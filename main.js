@@ -1,4 +1,4 @@
-﻿// main.js — Punto de entrada de la aplicación
+﻿// main.js — Punto de entrada de la aplicación (deploy trigger)
 document.addEventListener('DOMContentLoaded', async () => {
   console.log(`🚀 ${APP_CONFIG.app.nombre} v${APP_CONFIG.app.version}`);
 
