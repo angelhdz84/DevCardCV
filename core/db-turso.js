@@ -11,33 +11,6 @@ var dbTurso = {
   _pushInterval: null,
   _pullInterval: null,
 
-  _loadConfig() {
-    try {
-      const saved = localStorage.getItem('_turso_config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.url && parsed.token) {
-          APP_CONFIG.turso.url = parsed.url;
-          APP_CONFIG.turso.token = parsed.token;
-        }
-      }
-    } catch (e) { /* ignore */ }
-  },
-
-  _saveConfig(url, token) {
-    APP_CONFIG.turso.url = url;
-    APP_CONFIG.turso.token = token;
-    try {
-      localStorage.setItem('_turso_config', JSON.stringify({ url, token }));
-    } catch (e) { /* ignore */ }
-  },
-
-  _clearConfig() {
-    APP_CONFIG.turso.url = '';
-    APP_CONFIG.turso.token = '';
-    try { localStorage.removeItem('_turso_config'); } catch (e) { /* ignore */ }
-  },
-
   get status() {
     if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) return 'disabled';
     if (!navigator.onLine) return 'offline';
@@ -48,7 +21,6 @@ var dbTurso = {
   get lastPull() { return this._lastPull; },
 
   async init() {
-    this._loadConfig();
     if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) {
       console.log('ℹ️ Turso sync: deshabilitado (no configurado)');
       this._updateStore();

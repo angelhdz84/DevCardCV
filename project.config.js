@@ -62,12 +62,17 @@ const APP_CONFIG = {
 
   auth: {
     masterKey: 'DevCardCV2024',
-    sessionKey: '_auth_session'
+    sessionKey: '_auth_session',
+    admin: {
+      email: 'admin@devcardcv.com',
+      password: 'admin123',
+      nombre: 'Admin Root'
+    }
   },
 
   turso: {
-    url: '',
-    token: '',
+    url: 'libsql://devcardcv-gd4is.turso.io',
+    token: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDc5NzU0NDcsImlkIjoiMmQ2YjAxN2ItNzYyYy00OGI5LWIzNjgtM2FhYjQ1ODg2NDZiIn0.7rm_avPJIo0eqgYXk3J30gq1B8J47VFRF4akDJL38Lq9NFG6M6K5O1bHHhfm_8COlyKjBS5LhGrzMx5pCWn3Dg',
     autoSync: true
   }
 };

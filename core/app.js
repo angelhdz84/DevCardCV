@@ -150,6 +150,32 @@ const appRouter = {
     });
   },
 
+  // 💡 Auto-crear admin desde project.config.js si no existe en DB
+  async _bootstrapAdmin() {
+    if (!APP_CONFIG.auth || !APP_CONFIG.auth.admin) return;
+    const { email, password, nombre } = APP_CONFIG.auth.admin;
+    if (!email || !password || !nombre) return;
+    try {
+      const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
+      const exists = await db.usuarios.where('email_hash').equals(emailHash).first();
+      if (!exists) {
+        const hash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+        await db.usuarios.add({
+          email: cryptoHelpers.encrypt(email),
+          email_hash: emailHash,
+          nombre: nombre,
+          password_hash: hash,
+          rol: 'admin',
+          perfilId: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        window.dispatchEvent(new CustomEvent('db-change'));
+        console.log('✅ Admin auto-creado desde config');
+      }
+    } catch (e) { /* ignorar */ }
+  },
+
   // 💡 Inicializar store de autenticación
   _initAuthStore() {
     if (Alpine.store('auth')) return;

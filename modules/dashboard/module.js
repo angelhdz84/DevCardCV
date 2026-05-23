@@ -140,8 +140,8 @@ const Dashboard = {
         </button>
       </div>
 
-      <!-- Configuración -->
-      <div x-data="{ open: false }">
+      <!-- Configuración (oculta si Turso viene pre-configurado desde project.config.js) -->
+      <div x-show="$store.turso.overridable" x-data="{ open: false }">
         <button class="text-xs flex items-center gap-1" style="color: var(--ink-muted); cursor: pointer;"
                 @click="open = !open">
           <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
@@ -166,6 +166,9 @@ const Dashboard = {
             </button>
           </div>
         </div>
+      </div>
+      <div x-show="!$store.turso.overridable" class="text-xs" style="color: var(--ink-muted);">
+        <i class="bi bi-check-circle text-accent"></i> Turso configurado desde <code>project.config.js</code>
       </div>
     </div>
   </div>
@@ -642,7 +645,8 @@ function dashboardData(perfiles, topSkills, categorias) {
 
     guardarConfigTurso() {
       if (!this.tursoUrl && !this.tursoToken) {
-        dbTurso._clearConfig();
+        APP_CONFIG.turso.url = '';
+        APP_CONFIG.turso.token = '';
         UI.toast('Configuración de Turso eliminada', 'info');
         return;
       }
@@ -650,7 +654,8 @@ function dashboardData(perfiles, topSkills, categorias) {
         UI.toast('Debes completar ambos campos (URL y token)', 'error');
         return;
       }
-      dbTurso._saveConfig(this.tursoUrl.replace(/\/+$/, ''), this.tursoToken);
+      APP_CONFIG.turso.url = this.tursoUrl.replace(/\/+$/, '');
+      APP_CONFIG.turso.token = this.tursoToken;
       UI.toast('Configuración guardada. Inicia sincronización...', 'success');
       dbTurso.sync();
     },

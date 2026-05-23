@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 💡 Inicializar stores Alpine antes de cualquier operación
   if (!Alpine.store('network')) Alpine.store('network', { online: navigator.onLine });
-  if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled' });
+  if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled', overridable: !APP_CONFIG.turso || !APP_CONFIG.turso.url });
 
   try {
     // 💡 Listeners de conexión
@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       UI.toast('Sesión cerrada', 'info');
       window.location.hash = '#/auth/login';
     });
+
+    // 💡 Auto-crear admin desde project.config.js si no existe en DB
+    await appRouter._bootstrapAdmin();
 
     // 💡 Cargar datos de ejemplo si es primera vez
     await seedInitialData();
