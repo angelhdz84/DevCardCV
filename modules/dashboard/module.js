@@ -669,10 +669,19 @@ function dashboardData(perfiles, topSkills, categorias) {
       try {
         let baseUrl = this.tursoUrl.replace(/\/+$/, '');
         if (baseUrl.startsWith('libsql://')) baseUrl = 'https://' + baseUrl.slice(9);
-        const url = baseUrl + '/v2/pipeline';
+        const targetUrl = baseUrl + '/v2/pipeline';
+        const proxyUrl = APP_CONFIG.turso && APP_CONFIG.turso.proxyUrl;
+        let url, headers;
+        if (proxyUrl) {
+          url = proxyUrl.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(targetUrl);
+          headers = { 'Authorization': 'Bearer ' + this.tursoToken, 'Content-Type': 'application/json' };
+        } else {
+          url = targetUrl;
+          headers = { 'Authorization': 'Bearer ' + this.tursoToken, 'Content-Type': 'application/json' };
+        }
         const resp = await fetch(url, {
           method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + this.tursoToken, 'Content-Type': 'application/json' },
+          headers: headers,
           body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: 'SELECT 1' } }, { type: 'close' }] })
         });
         if (resp.ok) {

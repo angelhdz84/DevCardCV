@@ -21,6 +21,7 @@ var dbTurso = {
   get lastPull() { return this._lastPull; },
 
   async init() {
+    this._corsFailCount = 0;
     if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) {
       console.log('ℹ️ Turso sync: deshabilitado (no configurado)');
       this._updateStore();
@@ -50,11 +51,22 @@ var dbTurso = {
   },
 
   async _request(body) {
-    const url = this._baseUrl() + '/v2/pipeline';
     try {
+      let url, headers;
+      const proxyUrl = APP_CONFIG.turso && APP_CONFIG.turso.proxyUrl;
+      if (proxyUrl) {
+        const targetUrl = encodeURIComponent(this._baseUrl() + '/v2/pipeline');
+        url = proxyUrl.replace(/\/+$/, '') + '/?url=' + targetUrl;
+        headers = { 'Content-Type': 'application/json' };
+        const tok = APP_CONFIG.turso && APP_CONFIG.turso.token;
+        if (tok) headers['Authorization'] = 'Bearer ' + tok;
+      } else {
+        url = this._baseUrl() + '/v2/pipeline';
+        headers = this._headers();
+      }
       const resp = await fetch(url, {
         method: 'POST',
-        headers: this._headers(),
+        headers: headers,
         body: JSON.stringify(body)
       });
       if (!resp.ok) {
@@ -187,6 +199,16 @@ var dbTurso = {
     } catch (err) {
       this._connected = false;
       this._updateStore();
+      if (err.message.includes('Failed to fetch') || err.message.includes('CORS') || err.message.includes('NetworkError')) {
+        this._corsFailCount = (this._corsFailCount || 0) + 1;
+      } else {
+        this._corsFailCount = 0;
+      }
+      if (this._corsFailCount >= 3) {
+        this.stopAutoPull();
+        console.warn('⚠️ Turso pull: desactivado por CORS (se reintentará al recargar la página)');
+        return;
+      }
       console.warn('⚠️ Turso pull error:', err.message);
     }
   },
