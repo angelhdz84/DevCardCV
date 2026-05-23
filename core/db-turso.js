@@ -279,8 +279,4 @@ var dbTurso = {
   }
 };
 
-if (typeof Alpine !== 'undefined' && !Alpine.store('turso')) {
-  Alpine.store('turso', { status: dbTurso.status || 'disabled' });
-}
-
 window.dbTurso = dbTurso;

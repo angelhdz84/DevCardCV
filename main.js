@@ -2,6 +2,10 @@
 document.addEventListener('DOMContentLoaded', async () => {
   console.log(`🚀 ${APP_CONFIG.app.nombre} v${APP_CONFIG.app.version}`);
 
+  // 💡 Inicializar stores Alpine antes de cualquier operación
+  if (!Alpine.store('network')) Alpine.store('network', { online: navigator.onLine });
+  if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled' });
+
   try {
     // 💡 Listeners de conexión
     window.addEventListener('online', () => {
