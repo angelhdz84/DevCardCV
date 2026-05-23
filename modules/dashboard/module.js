@@ -115,7 +115,7 @@ const Dashboard = {
     </div>
   </div>
 
-  <!-- Sincronización Turso (solo admin) -->
+  <!-- Sincronización Cloud (solo admin) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6">
     <div class="card-body p-4">
       <h3 class="section-label mb-3 flex items-center gap-2">
@@ -140,35 +140,8 @@ const Dashboard = {
         </button>
       </div>
 
-      <!-- Configuración (oculta si Turso viene pre-configurado desde project.config.js) -->
-      <div x-show="$store.turso.overridable" x-data="{ open: false }">
-        <button class="text-xs flex items-center gap-1" style="color: var(--ink-muted); cursor: pointer;"
-                @click="open = !open">
-          <i class="bi" :class="open ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-          Configurar conexión Turso
-        </button>
-        <div x-show="open" x-collapse class="mt-3 space-y-3">
-          <div class="form-control">
-            <label class="label-text text-xs font-medium mb-1" style="color: var(--ink-muted);">URL de la base de datos</label>
-            <input type="text" x-model="tursoUrl" placeholder="ej: https://db-org.turso.io" class="input input-bordered input-sm w-full" style="border-radius: 8px;">
-          </div>
-          <div class="form-control">
-            <label class="label-text text-xs font-medium mb-1" style="color: var(--ink-muted);">Token de autenticación</label>
-            <input type="password" x-model="tursoToken" placeholder="Bearer token" class="input input-bordered input-sm w-full" style="border-radius: 8px;">
-          </div>
-          <div class="flex gap-2">
-            <button class="btn btn-primary btn-xs" style="border-radius: 6px;" @click="guardarConfigTurso()">
-              <i class="bi bi-check-lg"></i> Guardar
-            </button>
-            <button class="btn btn-ghost btn-xs" style="border-radius: 6px; border: 1px solid var(--border);" @click="probarConexion()" :disabled="testing">
-              <i class="bi" :class="testing ? 'bi-arrow-repeat animate-spin' : 'bi-plug'"></i>
-              <span x-text="testing ? 'Probando...' : 'Probar conexión'"></span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div x-show="!$store.turso.overridable" class="text-xs" style="color: var(--ink-muted);">
-        <i class="bi bi-check-circle text-accent"></i> Turso configurado desde <code>project.config.js</code>
+      <div class="text-xs" style="color: var(--ink-muted);">
+        <i class="bi bi-check-circle text-accent"></i> Sincronización vía Cloudflare D1 (desde <code>project.config.js</code>)
       </div>
     </div>
   </div>
@@ -596,11 +569,8 @@ function dashboardData(perfiles, topSkills, categorias) {
       }, 100);
     },
 
-    // 💡 Turso sync state
-    tursoUrl: APP_CONFIG.turso ? APP_CONFIG.turso.url : '',
-    tursoToken: APP_CONFIG.turso ? APP_CONFIG.turso.token : '',
+    // 💡 Cloud sync state
     syncing: false,
-    testing: false,
 
     get syncStatusColor() {
       switch (dbTurso.status) {
@@ -622,10 +592,10 @@ function dashboardData(perfiles, topSkills, categorias) {
 
     get syncStatusLabel() {
       switch (dbTurso.status) {
-        case 'connected': return 'Conectado a Turso Cloud';
+        case 'connected': return 'Conectado a Cloud D1';
         case 'offline': return 'Sin conexión a internet';
-        case 'disconnected': return 'Error de conexión con Turso';
-        default: return 'Turso no configurado';
+        case 'disconnected': return 'Error de conexión con Cloud';
+        default: return 'Cloud no configurado';
       }
     },
 
@@ -643,58 +613,7 @@ function dashboardData(perfiles, topSkills, categorias) {
       this.syncing = false;
     },
 
-    guardarConfigTurso() {
-      if (!this.tursoUrl && !this.tursoToken) {
-        APP_CONFIG.turso.url = '';
-        APP_CONFIG.turso.token = '';
-        UI.toast('Configuración de Turso eliminada', 'info');
-        return;
-      }
-      if (!this.tursoUrl || !this.tursoToken) {
-        UI.toast('Debes completar ambos campos (URL y token)', 'error');
-        return;
-      }
-      APP_CONFIG.turso.url = this.tursoUrl.replace(/\/+$/, '');
-      APP_CONFIG.turso.token = this.tursoToken;
-      UI.toast('Configuración guardada. Inicia sincronización...', 'success');
-      dbTurso.sync();
-    },
 
-    async probarConexion() {
-      if (!this.tursoUrl || !this.tursoToken) {
-        UI.toast('Configura primero la URL y el token', 'error');
-        return;
-      }
-      this.testing = true;
-      try {
-        let baseUrl = this.tursoUrl.replace(/\/+$/, '');
-        if (baseUrl.startsWith('libsql://')) baseUrl = 'https://' + baseUrl.slice(9);
-        const targetUrl = baseUrl + '/v2/pipeline';
-        const proxyUrl = APP_CONFIG.turso && APP_CONFIG.turso.proxyUrl;
-        let url, headers;
-        if (proxyUrl) {
-          url = proxyUrl.replace(/\/+$/, '') + '/?url=' + encodeURIComponent(targetUrl);
-          headers = { 'Authorization': 'Bearer ' + this.tursoToken, 'Content-Type': 'application/json' };
-        } else {
-          url = targetUrl;
-          headers = { 'Authorization': 'Bearer ' + this.tursoToken, 'Content-Type': 'application/json' };
-        }
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({ requests: [{ type: 'execute', stmt: { sql: 'SELECT 1' } }, { type: 'close' }] })
-        });
-        if (resp.ok) {
-          UI.toast('Conexión exitosa a Turso Cloud', 'success');
-        } else {
-          const text = await resp.text();
-          UI.toast('Error: ' + text.slice(0, 100), 'error');
-        }
-      } catch (err) {
-        UI.toast('Error de conexión: ' + err.message, 'error');
-      }
-      this.testing = false;
-    }
   };
 }
 

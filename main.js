@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 💡 Inicializar stores Alpine antes de cualquier operación
   if (!Alpine.store('network')) Alpine.store('network', { online: navigator.onLine });
-  if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled', overridable: !APP_CONFIG.turso || !APP_CONFIG.turso.url });
+  if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled' });
 
   try {
     // 💡 Listeners de conexión

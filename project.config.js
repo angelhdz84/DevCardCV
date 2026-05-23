@@ -70,10 +70,8 @@ const APP_CONFIG = {
     }
   },
 
-  turso: {
-    url: 'libsql://devcardcv-gd4is.turso.io',
-    token: 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE3NDc5NzU0NDcsImlkIjoiMmQ2YjAxN2ItNzYyYy00OGI5LWIzNjgtM2FhYjQ1ODg2NDZiIn0.7rm_avPJIo0eqgYXk3J30gq1B8J47VFRF4akDJL38Lq9NFG6M6K5O1bHHhfm_8COlyKjBS5LhGrzMx5pCWn3Dg',
-    proxyUrl: 'https://fragrant-mountain-65df.84angel-hdz.workers.dev',
+  cloud: {
+    syncUrl: 'https://fragrant-mountain-65df.84angel-hdz.workers.dev',
     autoSync: true
   }
 };

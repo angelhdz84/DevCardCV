@@ -12,7 +12,7 @@ var dbTurso = {
   _pullInterval: null,
 
   get status() {
-    if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) return 'disabled';
+    if (!APP_CONFIG.cloud || !APP_CONFIG.cloud.syncUrl) return 'disabled';
     if (!navigator.onLine) return 'offline';
     return this._connected ? 'connected' : 'disconnected';
   },
@@ -21,58 +21,42 @@ var dbTurso = {
   get lastPull() { return this._lastPull; },
 
   async init() {
-    this._corsFailCount = 0;
-    if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) {
-      console.log('ℹ️ Turso sync: deshabilitado (no configurado)');
+    if (!APP_CONFIG.cloud || !APP_CONFIG.cloud.syncUrl) {
+      console.log('ℹ️ Cloud sync: deshabilitado (no configurado)');
       this._updateStore();
       return;
     }
-    console.log('🚀 Turso sync: iniciando...');
+    console.log('🚀 Cloud sync: iniciando...');
     this._updateStore();
 
     window.addEventListener('online', () => {
-      if (APP_CONFIG.turso && APP_CONFIG.turso.url) this.sync();
+      if (APP_CONFIG.cloud && APP_CONFIG.cloud.syncUrl) this.sync();
     });
 
     window.addEventListener('db-change', () => {
-      if (APP_CONFIG.turso && APP_CONFIG.turso.url) this.schedulePush();
+      if (APP_CONFIG.cloud && APP_CONFIG.cloud.syncUrl) this.schedulePush();
     });
   },
 
-  _headers() {
-    if (!APP_CONFIG.turso || !APP_CONFIG.turso.token) return {};
-    return { 'Authorization': 'Bearer ' + APP_CONFIG.turso.token, 'Content-Type': 'application/json' };
-  },
+  async _request(action, data) {
+    const syncUrl = APP_CONFIG.cloud && APP_CONFIG.cloud.syncUrl;
+    if (!syncUrl) throw new Error('Cloud sync no configurado');
 
-  _baseUrl() {
-    let url = APP_CONFIG.turso.url;
-    if (url.startsWith('libsql://')) url = 'https://' + url.slice(9);
-    return url.replace(/\/+$/, '');
-  },
-
-  async _request(body) {
     try {
-      let url, headers;
-      const proxyUrl = APP_CONFIG.turso && APP_CONFIG.turso.proxyUrl;
-      if (proxyUrl) {
-        const targetUrl = encodeURIComponent(this._baseUrl() + '/v2/pipeline');
-        url = proxyUrl.replace(/\/+$/, '') + '/?url=' + targetUrl;
-        headers = { 'Content-Type': 'application/json' };
-        const tok = APP_CONFIG.turso && APP_CONFIG.turso.token;
-        if (tok) headers['Authorization'] = 'Bearer ' + tok;
-      } else {
-        url = this._baseUrl() + '/v2/pipeline';
-        headers = this._headers();
-      }
-      const resp = await fetch(url, {
+      const resp = await fetch(syncUrl, {
         method: 'POST',
-        headers: headers,
-        body: JSON.stringify(body)
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Key': APP_CONFIG.auth.masterKey || '',
+        },
+        body: JSON.stringify({ action, data }),
       });
+
       if (!resp.ok) {
         const text = await resp.text();
         throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
       }
+
       return await resp.json();
     } catch (err) {
       this._connected = false;
@@ -81,23 +65,9 @@ var dbTurso = {
     }
   },
 
-  async _ensureTable() {
-    await this._request({
-      requests: [
-        {
-          type: 'execute',
-          stmt: {
-            sql: 'CREATE TABLE IF NOT EXISTS app_sync (id INTEGER PRIMARY KEY, data TEXT, updated_at TEXT)'
-          }
-        },
-        { type: 'close' }
-      ]
-    });
-  },
-
   async push() {
-    if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) return;
-    if (!navigator.onLine) { console.log('ℹ️ Turso push: offline, skip'); return; }
+    if (!APP_CONFIG.cloud || !APP_CONFIG.cloud.syncUrl) return;
+    if (!navigator.onLine) { console.log('ℹ️ Cloud push: offline, skip'); return; }
 
     try {
       const perfiles = await db.perfiles.toArray();
@@ -105,7 +75,7 @@ var dbTurso = {
       const relaciones = await db.perfil_habilidades.toArray();
       const usuarios = await db.usuarios.toArray();
 
-      const data = JSON.stringify({
+      const data = {
         version: APP_CONFIG.app.version,
         app: APP_CONFIG.app.nombre,
         perfiles: perfiles.map(p => ({
@@ -124,63 +94,36 @@ var dbTurso = {
           password_hash: u.password_hash, rol: u.rol, perfilId: u.perfilId,
           created_at: u.created_at, updated_at: u.updated_at
         }))
-      });
+      };
 
-      await this._ensureTable();
-
-      const now = new Date().toISOString();
-      await this._request({
-        requests: [
-          {
-            type: 'execute',
-            stmt: {
-              sql: 'INSERT OR REPLACE INTO app_sync (id, data, updated_at) VALUES (1, ?, ?)',
-              args: [{ type: 'text', value: data }, { type: 'text', value: now }]
-            }
-          },
-          { type: 'close' }
-        ]
-      });
+      const result = await this._request('push', data);
 
       this._connected = true;
       this._updateStore();
-      this._lastPush = now;
-      console.log('✅ Turso push: OK');
+      this._lastPush = result.updated_at || new Date().toISOString();
+      console.log('✅ Cloud push: OK');
     } catch (err) {
       this._connected = false;
       this._updateStore();
-      console.warn('⚠️ Turso push error:', err.message);
+      console.warn('⚠️ Cloud push error:', err.message);
     }
   },
 
   async pull() {
-    if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) return;
-    if (!navigator.onLine) { console.log('ℹ️ Turso pull: offline, skip'); return; }
+    if (!APP_CONFIG.cloud || !APP_CONFIG.cloud.syncUrl) return;
+    if (!navigator.onLine) { console.log('ℹ️ Cloud pull: offline, skip'); return; }
 
     try {
-      await this._ensureTable();
+      const result = await this._request('pull');
 
-      const result = await this._request({
-        requests: [
-          {
-            type: 'execute',
-            stmt: { sql: 'SELECT data, updated_at FROM app_sync WHERE id = 1' }
-          },
-          { type: 'close' }
-        ]
-      });
-
-      if (!result.results || !result.results[0] || result.results[0].type !== 'ok') return;
-
-      const execResult = result.results[0].response.result;
-      if (!execResult.rows || execResult.rows.length === 0) {
+      if (!result.ok || !result.data) {
         this._connected = true;
         this._updateStore();
         return;
       }
 
-      const remoteData = JSON.parse(execResult.rows[0][0].value);
-      const remoteUpdatedAt = execResult.rows[0][1].value;
+      const remoteData = result.data;
+      const remoteUpdatedAt = result.updated_at || '';
 
       const localCount = await db.perfiles.count();
       if (localCount === 0 && remoteData.perfiles && remoteData.perfiles.length > 0) {
@@ -195,21 +138,21 @@ var dbTurso = {
       this._connected = true;
       this._updateStore();
       this._lastPull = remoteUpdatedAt;
-      console.log('✅ Turso pull: OK');
+      console.log('✅ Cloud pull: OK');
     } catch (err) {
       this._connected = false;
       this._updateStore();
-      if (err.message.includes('Failed to fetch') || err.message.includes('CORS') || err.message.includes('NetworkError')) {
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
         this._corsFailCount = (this._corsFailCount || 0) + 1;
       } else {
         this._corsFailCount = 0;
       }
       if (this._corsFailCount >= 3) {
         this.stopAutoPull();
-        console.warn('⚠️ Turso pull: desactivado por CORS (se reintentará al recargar la página)');
+        console.warn('⚠️ Cloud pull: desactivado por error de red');
         return;
       }
-      console.warn('⚠️ Turso pull error:', err.message);
+      console.warn('⚠️ Cloud pull error:', err.message);
     }
   },
 
