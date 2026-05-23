@@ -1,5 +1,11 @@
 var dbTurso = {
   _connected: false,
+
+  _updateStore() {
+    if (typeof Alpine !== 'undefined' && Alpine.store('turso')) {
+      Alpine.store('turso').status = this.status;
+    }
+  },
   _lastPush: null,
   _lastPull: null,
   _pushInterval: null,
@@ -17,9 +23,11 @@ var dbTurso = {
   async init() {
     if (!APP_CONFIG.turso || !APP_CONFIG.turso.url) {
       console.log('ℹ️ Turso sync: deshabilitado (no configurado)');
+      this._updateStore();
       return;
     }
     console.log('🚀 Turso sync: iniciando...');
+    this._updateStore();
 
     window.addEventListener('online', () => {
       if (APP_CONFIG.turso && APP_CONFIG.turso.url) this.sync();
@@ -56,6 +64,7 @@ var dbTurso = {
       return await resp.json();
     } catch (err) {
       this._connected = false;
+      this._updateStore();
       throw err;
     }
   },
@@ -122,10 +131,12 @@ var dbTurso = {
       });
 
       this._connected = true;
+      this._updateStore();
       this._lastPush = now;
       console.log('✅ Turso push: OK');
     } catch (err) {
       this._connected = false;
+      this._updateStore();
       console.warn('⚠️ Turso push error:', err.message);
     }
   },
@@ -152,6 +163,7 @@ var dbTurso = {
       const execResult = result.results[0].response.result;
       if (!execResult.rows || execResult.rows.length === 0) {
         this._connected = true;
+        this._updateStore();
         return;
       }
 
@@ -169,10 +181,12 @@ var dbTurso = {
       }
 
       this._connected = true;
+      this._updateStore();
       this._lastPull = remoteUpdatedAt;
       console.log('✅ Turso pull: OK');
     } catch (err) {
       this._connected = false;
+      this._updateStore();
       console.warn('⚠️ Turso pull error:', err.message);
     }
   },
@@ -264,5 +278,9 @@ var dbTurso = {
     UI.toast('Sincronización completada', 'success');
   }
 };
+
+if (typeof Alpine !== 'undefined' && !Alpine.store('turso')) {
+  Alpine.store('turso', { status: dbTurso.status || 'disabled' });
+}
 
 window.dbTurso = dbTurso;

@@ -436,14 +436,14 @@
           </h1>
         </div>
         <div class="flex-none flex items-center gap-3">
-          <span x-data="{ online: navigator.onLine, tursoStatus: dbTurso.status }"
-                x-init="window.addEventListener('online', () => { online = true; tursoStatus = dbTurso.status; }); window.addEventListener('offline', () => { online = false; tursoStatus = 'offline'; }); setInterval(() => { tursoStatus = dbTurso.status; }, 3000)"
+          <span x-data="{ online: navigator.onLine }"
+                x-init="window.addEventListener('online', () => online = true); window.addEventListener('offline', () => online = false)"
                 class="badge gap-1.5 text-xs font-medium"
-                :class="tursoStatus === 'connected' ? 'badge-ghost' : online ? 'badge-warning' : 'badge-error'"
+                :class="$store.turso.status === 'connected' ? 'badge-ghost' : online ? 'badge-warning' : 'badge-error'"
                 style="transition: all var(--transition-normal);"
-                :title="tursoStatus === 'connected' ? 'Sincronizado con Turso' : tursoStatus === 'offline' ? 'Sin conexión' : tursoStatus === 'disabled' ? 'Turso no configurado' : 'Turso desconectado'">
-            <i :class="tursoStatus === 'connected' ? 'bi-cloud-check-fill text-accent' : online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
-            <span x-text="tursoStatus === 'connected' ? 'Sync' : online ? 'Local' : 'Offline'"></span>
+                :title="$store.turso.status === 'connected' ? 'Sincronizado con Turso' : $store.turso.status === 'offline' ? 'Sin conexión' : $store.turso.status === 'disabled' ? 'Turso no configurado' : 'Turso desconectado'">
+            <i :class="$store.turso.status === 'connected' ? 'bi-cloud-check-fill text-accent' : online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
+            <span x-text="$store.turso.status === 'connected' ? 'Sync' : online ? 'Local' : 'Offline'"></span>
           </span>
         </div>
       </header>

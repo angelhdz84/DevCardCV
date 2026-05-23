@@ -664,7 +664,9 @@ function dashboardData(perfiles, topSkills, categorias) {
       }
       this.testing = true;
       try {
-        const url = this.tursoUrl.replace(/\/+$/, '') + '/v2/pipeline';
+        let baseUrl = this.tursoUrl.replace(/\/+$/, '');
+        if (baseUrl.startsWith('libsql://')) baseUrl = 'https://' + baseUrl.slice(9);
+        const url = baseUrl + '/v2/pipeline';
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + this.tursoToken, 'Content-Type': 'application/json' },
