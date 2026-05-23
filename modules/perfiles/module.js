@@ -8,7 +8,19 @@ const Perfiles = {
   },
 
   async render(params = {}) {
-    const perfiles = await db.perfiles.orderBy('nombre').toArray();
+    const auth = Alpine.store('auth');
+    const esAdmin = auth && auth.isAdmin;
+    const userId = auth && auth.user ? auth.user.userId : null;
+
+    let perfiles = await db.perfiles.orderBy('nombre').toArray();
+    if (!esAdmin && userId) {
+      const user = await db.usuarios.get(userId);
+      if (user && user.perfilId) {
+        perfiles = perfiles.filter(p => p.id === user.perfilId);
+      } else {
+        perfiles = [];
+      }
+    }
     const habilidades = await db.habilidades.orderBy('categoria').toArray();
     const relaciones = await db.perfil_habilidades.toArray();
 
@@ -49,11 +61,11 @@ const Perfiles = {
       <p class="text-xs text-base-content/50 mt-1" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' en el equipo'"></p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <label class="btn btn-ghost btn-sm cursor-pointer" style="border-radius: 8px; border: 1px solid var(--border);">
+      <label x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm cursor-pointer" style="border-radius: 8px; border: 1px solid var(--border);">
         <i class="bi bi-upload"></i> Importar
         <input type="file" accept=".json" class="hidden" @change="importarPerfilJSON($event)">
       </label>
-      <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="abrirFormulario()">
+      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="abrirFormulario()">
         <i class="bi bi-person-plus-fill"></i> Nuevo desarrollador
       </button>
     </div>

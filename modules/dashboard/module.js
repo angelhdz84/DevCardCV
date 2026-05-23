@@ -642,8 +642,7 @@ function dashboardData(perfiles, topSkills, categorias) {
 
     guardarConfigTurso() {
       if (!this.tursoUrl && !this.tursoToken) {
-        APP_CONFIG.turso.url = '';
-        APP_CONFIG.turso.token = '';
+        dbTurso._clearConfig();
         UI.toast('Configuración de Turso eliminada', 'info');
         return;
       }
@@ -651,8 +650,7 @@ function dashboardData(perfiles, topSkills, categorias) {
         UI.toast('Debes completar ambos campos (URL y token)', 'error');
         return;
       }
-      APP_CONFIG.turso.url = this.tursoUrl.replace(/\/+$/, '');
-      APP_CONFIG.turso.token = this.tursoToken;
+      dbTurso._saveConfig(this.tursoUrl.replace(/\/+$/, ''), this.tursoToken);
       UI.toast('Configuración guardada. Inicia sincronización...', 'success');
       dbTurso.sync();
     },
