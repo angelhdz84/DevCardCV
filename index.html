@@ -432,13 +432,30 @@
             <i class="bi bi-list text-xl"></i>
           </label>
         </div>
-        <div class="flex-1">
+        <div class="flex-1 flex items-center gap-3" x-show="$store.auth.isLoggedIn">
+          <div class="avatar">
+            <div class="w-8 h-8 rounded-full overflow-hidden bg-base-200 ring-2 ring-accent/20">
+              <img x-show="$store.auth.user?.fotoBase64" :src="$store.auth.user?.fotoBase64" alt="Avatar" class="w-full h-full object-cover" />
+              <div x-show="!$store.auth.user?.fotoBase64" class="w-full h-full flex items-center justify-center text-xs font-bold">
+                <i class="bi bi-person-fill text-lg text-base-content/40"></i>
+              </div>
+            </div>
+          </div>
+          <div class="leading-tight">
+            <span class="text-sm font-semibold block truncate max-w-[160px]" x-text="$store.auth.user?.nombre"></span>
+            <span class="text-[11px] text-base-content/50 capitalize" x-text="$store.auth.user?.rol"></span>
+          </div>
+        </div>
+        <div class="flex-1" x-show="!$store.auth.isLoggedIn">
           <h1 class="text-lg font-semibold tracking-heading flex items-center gap-2">
             <i class="bi bi-code-square text-accent text-xl"></i>
             <span>DevCardCV</span>
           </h1>
         </div>
-        <div class="flex-none flex items-center gap-3">
+        <div class="flex-none flex items-center gap-2">
+          <button class="btn btn-ghost btn-sm btn-square" @click="window.dispatchEvent(new CustomEvent('auth-logout'))" title="Cerrar sesión" x-show="$store.auth.isLoggedIn">
+            <i class="bi bi-box-arrow-right text-lg"></i>
+          </button>
           <span class="badge gap-1.5 text-xs font-medium"
                 :class="$store.turso.status === 'connected' ? 'badge-ghost' : $store.network.online ? 'badge-warning' : 'badge-error'"
                 style="transition: all var(--transition-normal);"

@@ -218,6 +218,10 @@ const appRouter = {
       const exists = await db.usuarios.get(session.userId);
       if (exists) {
         Alpine.store('auth').setSession(session);
+        const perfil = exists.perfilId ? await db.perfiles.get(exists.perfilId) : null;
+        if (perfil && perfil.fotoBase64) {
+          Alpine.store('auth').user.fotoBase64 = perfil.fotoBase64;
+        }
       } else {
         localStorage.removeItem(APP_CONFIG.auth.sessionKey);
       }

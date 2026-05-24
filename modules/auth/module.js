@@ -167,6 +167,12 @@ function authLogin() {
       const session = { userId: user.id, email: this.email, nombre: user.nombre, rol: user.rol, perfilId: user.perfilId, token: CryptoJS.SHA256(user.id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
+      if (user.perfilId) {
+        const perfil = await db.perfiles.get(user.perfilId);
+        if (perfil && perfil.fotoBase64) {
+          Alpine.store('auth').user.fotoBase64 = perfil.fotoBase64;
+        }
+      }
       UI.toast('Bienvenido, ' + user.nombre, 'success');
       window.location.hash = '#/dashboard';
     },
