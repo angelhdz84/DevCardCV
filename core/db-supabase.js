@@ -78,6 +78,17 @@ var dbSupabase = {
     console.log('🚀 Supabase: iniciando...');
     this._updateStore();
 
+    // 💡 Test de conexión rápida
+    try {
+      await this._request('GET', 'habilidades', null, 'select=id&limit=1');
+      this._connected = true;
+      console.log('✅ Supabase: conexión establecida');
+    } catch (err) {
+      this._connected = false;
+      console.warn('⚠️ Supabase: error de conexión:', err.message);
+    }
+    this._updateStore();
+
     window.addEventListener('online', () => {
       if (APP_CONFIG.supabase && APP_CONFIG.supabase.url && APP_CONFIG.supabase.anonKey) this.sync();
     });
@@ -125,20 +136,24 @@ var dbSupabase = {
         remoteData[table] = this._mapFields(rows || [], table, 'toLocal');
       }
 
-      if (!remoteData.perfiles || remoteData.perfiles.length === 0) {
-        this._connected = true;
-        this._updateStore();
-        return;
+      // Merge solo si hay datos remotos de habilidades
+      if (remoteData.habilidades && remoteData.habilidades.length > 0) {
+        await this._mergePull({ habilidades: remoteData.habilidades });
       }
 
-      const localCount = await db.perfiles.count();
-      if (localCount === 0 && remoteData.perfiles.length > 0) {
-        await this._mergePull(remoteData);
-      } else if (localCount > 0 && remoteData.perfiles.length > 0) {
+      // Merge perfiles con su comparación de updated_at
+      if (remoteData.perfiles && remoteData.perfiles.length > 0) {
         const localUpdatedAt = await this._getLocalUpdatedAt();
         const remoteUpdatedAt = this._getRemoteUpdatedAt(remoteData);
-        if (remoteUpdatedAt > localUpdatedAt) {
-          await this._mergePull(remoteData);
+        if (localUpdatedAt === '' || remoteUpdatedAt > localUpdatedAt) {
+          const merge = { perfiles: remoteData.perfiles };
+          if (remoteData['perfil_habilidades'] && remoteData['perfil_habilidades'].length > 0) {
+            merge['perfil_habilidades'] = remoteData['perfil_habilidades'];
+          }
+          if (remoteData.usuarios && remoteData.usuarios.length > 0) {
+            merge.usuarios = remoteData.usuarios;
+          }
+          await this._mergePull(merge);
         }
       }
 
@@ -169,7 +184,7 @@ var dbSupabase = {
   },
 
   async _mergePull(data) {
-    if (!data || !data.perfiles) return;
+    if (!data) return;
     let cambios = 0;
 
     for (const p of (data.perfiles || [])) {
