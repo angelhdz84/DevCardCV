@@ -136,7 +136,14 @@ var dbSupabase = {
         remoteData[table] = this._mapFields(rows || [], table, 'toLocal');
       }
 
-      // Merge solo si hay datos remotos de habilidades
+      // 💡 Migración única: limpiar habilidades semilla locales y re-importar desde Supabase
+      if (!localStorage.getItem('skills_v2') && remoteData.habilidades && remoteData.habilidades.length > 0) {
+        await db.habilidades.clear();
+        localStorage.setItem('skills_v2', '1');
+        console.log('🔄 Migración skills_v2: limpiadas y re-importadas desde Supabase');
+      }
+
+      // Merge habilidades (match por nombre, no por id)
       if (remoteData.habilidades && remoteData.habilidades.length > 0) {
         await this._mergePull({ habilidades: remoteData.habilidades });
       }
@@ -199,13 +206,16 @@ var dbSupabase = {
     }
 
     for (const h of (data.habilidades || [])) {
-      const local = await db.habilidades.get(h.id);
+      const local = await db.habilidades.where('nombre').equals(h.nombre).first();
       if (!local) {
         await db.habilidades.add(h);
         cambios++;
-      } else if (h.created_at && local.created_at && h.created_at > local.created_at) {
-        await db.habilidades.update(h.id, h);
-        cambios++;
+      } else {
+        const { id, ...updates } = h;
+        if (h.created_at && (!local.created_at || h.created_at > local.created_at)) {
+          await db.habilidades.update(local.id, updates);
+          cambios++;
+        }
       }
     }
 

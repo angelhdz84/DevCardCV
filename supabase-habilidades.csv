@@ -1,127 +1,120 @@
 nombre,categoria
-HTML,CMS
-CSS,CMS
-JavaScript,CMS
-PHP,CMS
-WordPress,CMS
+Angular,Frontend
+Bootstrap,Frontend
+CSS,Frontend
+GraphQL,Frontend
+HTML,Frontend
+JavaScript,Frontend
+Next.js,Frontend
+Nuxt.js,Frontend
+React,Frontend
+SASS/SCSS,Frontend
+Svelte,Frontend
+Tailwind CSS,Frontend
+TypeScript,Frontend
+Vite,Frontend
+Vue.js,Frontend
+Webpack,Frontend
+ASP.NET,Backend
+Django,Backend
+Express.js,Backend
+Flask,Backend
+Go,Backend
+Java,Backend
+Laravel,Backend
+Node.js,Backend
+PHP,Backend
+Python,Backend
+REST APIs,Backend
+Ruby on Rails,Backend
+Rust,Backend
+Spring Boot,Backend
+WebSockets,Backend
 Drupal,CMS
 Joomla,CMS
 Magento,CMS
 Shopify,CMS
-Wix,CMS
 Webflow,CMS
-HTML,Desarrolladores Web
-CSS,Desarrolladores Web
-JavaScript,Desarrolladores Web
-TypeScript,Desarrolladores Web
-React,Desarrolladores Web
-Vue.js,Desarrolladores Web
-Angular,Desarrolladores Web
-Svelte,Desarrolladores Web
-Next.js,Desarrolladores Web
-Nuxt.js,Desarrolladores Web
-Node.js,Desarrolladores Web
-Express.js,Desarrolladores Web
-Django,Desarrolladores Web
-Flask,Desarrolladores Web
-Laravel,Desarrolladores Web
-Ruby on Rails,Desarrolladores Web
-ASP.NET,Desarrolladores Web
-Spring Boot,Desarrolladores Web
-Python,Desarrolladores Web
-Java,Desarrolladores Web
-Go,Desarrolladores Web
-Rust,Desarrolladores Web
-GraphQL,Desarrolladores Web
-REST APIs,Desarrolladores Web
-WebSockets,Desarrolladores Web
-Tailwind CSS,Desarrolladores Web
-Bootstrap,Desarrolladores Web
-SASS/SCSS,Desarrolladores Web
-Webpack,Desarrolladores Web
-Vite,Desarrolladores Web
-Docker,Desarrolladores Web
-Git,Desarrolladores Web
-CI/CD,Desarrolladores Web
-Figma,Desarrolladores Web
-Photoshop,Diseñadores Web y Gráficos
-Illustrator,Diseñadores Web y Gráficos
-Figma,Diseñadores Web y Gráficos
-Adobe XD,Diseñadores Web y Gráficos
-Sketch,Diseñadores Web y Gráficos
-InDesign,Diseñadores Web y Gráficos
-After Effects,Diseñadores Web y Gráficos
-Premiere Pro,Diseñadores Web y Gráficos
-Blender,Diseñadores Web y Gráficos
-Canva,Diseñadores Web y Gráficos
-GIMP,Diseñadores Web y Gráficos
-Inkscape,Diseñadores Web y Gráficos
-Diseño UX/UI,Diseñadores Web y Gráficos
-Wireframing,Diseñadores Web y Gráficos
-Prototipado,Diseñadores Web y Gráficos
-Design Systems,Diseñadores Web y Gráficos
-Tipografía,Diseñadores Web y Gráficos
-Teoría del Color,Diseñadores Web y Gráficos
-SQL,Analistas
-Python,Analistas
-R,Analistas
-Excel,Analistas
-Tableau,Analistas
-Power BI,Analistas
-Google Analytics,Analistas
-Looker Studio,Analistas
-BigQuery,Analistas
-Apache Spark,Analistas
-ETL,Analistas
-Data Warehousing,Analistas
-Machine Learning,Analistas
-SQL,Admin de Red
-Linux,Admin de Red
-Windows Server,Admin de Red
-Docker,Admin de Red
-Kubernetes,Admin de Red
-AWS,Admin de Red
-Azure,Admin de Red
-Google Cloud,Admin de Red
-Firewalls,Admin de Red
-Cisco,Admin de Red
-VPN,Admin de Red
-DNS,Admin de Red
-Proxy,Admin de Red
-Monitorización,Admin de Red
-Backup,Admin de Red
-Terraform,Admin de Red
-Ansible,Admin de Red
-Bash,Admin de Red
-PowerShell,Admin de Red
-PostgreSQL,Bases de Datos
-MySQL,Bases de Datos
-MongoDB,Bases de Datos
-SQLite,Bases de Datos
-MariaDB,Bases de Datos
-SQL Server,Bases de Datos
-Oracle,Bases de Datos
-Redis,Bases de Datos
+Wix,CMS
+WordPress,CMS
+BigQuery,Bases de Datos
 Elasticsearch,Bases de Datos
-Supabase,Bases de Datos
 Firebase,Bases de Datos
+MariaDB,Bases de Datos
+MongoDB,Bases de Datos
+MySQL,Bases de Datos
 Neo4j,Bases de Datos
-Comunicación,Habilidades Blandas
-Trabajo en Equipo,Habilidades Blandas
-Liderazgo,Habilidades Blandas
-Resolución de Problemas,Habilidades Blandas
-Pensamiento Crítico,Habilidades Blandas
-Adaptabilidad,Habilidades Blandas
-Gestión del Tiempo,Habilidades Blandas
-Metodologías Ágiles,Habilidades Blandas
-Scrum,Habilidades Blandas
-Kanban,Habilidades Blandas
-QA Testing,Testing
-Selenium,Testing
+Oracle,Bases de Datos
+PostgreSQL,Bases de Datos
+Redis,Bases de Datos
+SQL,Bases de Datos
+SQL Server,Bases de Datos
+SQLite,Bases de Datos
+Supabase,Bases de Datos
+AWS,DevOps & Cloud
+Ansible,DevOps & Cloud
+Azure,DevOps & Cloud
+Backup,DevOps & Cloud
+Bash,DevOps & Cloud
+CI/CD,DevOps & Cloud
+Docker,DevOps & Cloud
+Git,DevOps & Cloud
+Google Cloud,DevOps & Cloud
+Kubernetes,DevOps & Cloud
+Linux,DevOps & Cloud
+Monitorización,DevOps & Cloud
+PowerShell,DevOps & Cloud
+Proxy,DevOps & Cloud
+Terraform,DevOps & Cloud
+Cisco,Redes & Seguridad
+DNS,Redes & Seguridad
+Firewalls,Redes & Seguridad
+VPN,Redes & Seguridad
+Windows Server,Redes & Seguridad
+Apache Spark,Analítica de Datos
+Data Warehousing,Analítica de Datos
+ETL,Analítica de Datos
+Excel,Analítica de Datos
+Google Analytics,Analítica de Datos
+Looker Studio,Analítica de Datos
+Machine Learning,Analítica de Datos
+Power BI,Analítica de Datos
+R,Analítica de Datos
+Tableau,Analítica de Datos
+Adobe XD,Diseño UX/UI & Gráfico
+After Effects,Diseño UX/UI & Gráfico
+Blender,Diseño UX/UI & Gráfico
+Canva,Diseño UX/UI & Gráfico
+Design Systems,Diseño UX/UI & Gráfico
+Diseño UX/UI,Diseño UX/UI & Gráfico
+Figma,Diseño UX/UI & Gráfico
+GIMP,Diseño UX/UI & Gráfico
+Illustrator,Diseño UX/UI & Gráfico
+InDesign,Diseño UX/UI & Gráfico
+Inkscape,Diseño UX/UI & Gráfico
+Photoshop,Diseño UX/UI & Gráfico
+Premiere Pro,Diseño UX/UI & Gráfico
+Prototipado,Diseño UX/UI & Gráfico
+Sketch,Diseño UX/UI & Gráfico
+Teoría del Color,Diseño UX/UI & Gráfico
+Tipografía,Diseño UX/UI & Gráfico
+Wireframing,Diseño UX/UI & Gráfico
 Cypress,Testing
 Jest,Testing
 Playwright,Testing
-Pruebas Unitarias,Testing
+Postman,Testing
 Pruebas de Integración,Testing
 Pruebas E2E,Testing
-Postman,Testing
+Pruebas Unitarias,Testing
+QA Testing,Testing
+Selenium,Testing
+Adaptabilidad,Soft Skills
+Comunicación,Soft Skills
+Gestión del Tiempo,Soft Skills
+Kanban,Soft Skills
+Liderazgo,Soft Skills
+Metodologías Ágiles,Soft Skills
+Pensamiento Crítico,Soft Skills
+Resolución de Problemas,Soft Skills
+Scrum,Soft Skills
+Trabajo en Equipo,Soft Skills
