@@ -511,6 +511,37 @@
 
   <!-- JS Librerías base -->
   <script src="assets/js/libs/alpine.js"></script>
+  <script>
+    // 💡 Auth store temprano: Alpine necesita $store.auth antes de evaluar templates
+    if (!Alpine.store('auth')) {
+      Alpine.store('auth', {
+        user: null,
+        sessionToken: null,
+        fotoBase64: null,
+        get isLoggedIn() { return !!this.user; },
+        get isAdmin() { return this.user && this.user.rol === 'admin'; },
+        setSession(session) {
+          this.user = session;
+          this.sessionToken = session && session.token;
+          this.fotoBase64 = null;
+        },
+        clearSession() {
+          this.user = null;
+          this.sessionToken = null;
+          this.fotoBase64 = null;
+          var k = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.auth ? APP_CONFIG.auth.sessionKey : '_auth_session';
+          try { localStorage.removeItem(k); } catch(e) {}
+        },
+        canEdit(perfilId) {
+          if (!this.user) return false;
+          if (this.user.rol === 'admin') return true;
+          return this.user.perfilId === perfilId;
+        },
+        canManageSkills() { return this.user && this.user.rol === 'admin'; },
+        canBackup() { return this.user && this.user.rol === 'admin'; }
+      });
+    }
+  </script>
   <script src="assets/js/libs/alpinejs-collapse.min.js"></script>
   <script src="assets/js/libs/dexie.js"></script>
   <script src="assets/js/libs/crypto-js.js"></script>

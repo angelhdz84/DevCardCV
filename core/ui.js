@@ -149,7 +149,7 @@ const UI = {
   emptyState(message, icon = 'bi-inbox', action = null) {
     let actionHtml = '';
     if (action) {
-      actionHtml = `<button class="btn btn-primary btn-sm mt-5" style="border-radius: 8px;" onclick="${action.handler}">
+      actionHtml = `<button class="btn btn-primary btn-sm mt-5" style="border-radius: 8px;" @click="${action.handler}">
         <i class="bi ${action.icon || 'bi-plus-lg'}"></i> ${action.label}
       </button>`;
     }

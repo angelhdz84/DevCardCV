@@ -245,6 +245,10 @@ function authRegister() {
       const session = { userId: id, email: this.email, nombre: this.nombre, rol: 'dev', perfilId: perfilId, token: CryptoJS.SHA256(id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
+      const perfilNuevo = await db.perfiles.get(perfilId);
+      if (perfilNuevo && perfilNuevo.fotoBase64) {
+        Alpine.store('auth').fotoBase64 = perfilNuevo.fotoBase64;
+      }
       UI.toast('Cuenta creada. Bienvenido, ' + this.nombre, 'success');
       window.location.hash = '#/perfiles';
     },

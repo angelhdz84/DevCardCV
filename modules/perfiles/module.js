@@ -248,10 +248,10 @@ const Perfiles = {
             <div class="flex items-center justify-between mb-3">
               <span class="section-label">Habilidades técnicas</span>
               <div class="flex gap-2">
-                <button type="button" class="btn btn-ghost btn-xs gap-1" style="border-radius: 6px;" @click="agregarCategoriaInline()" title="Nueva categoría">
+                <button type="button" class="btn btn-ghost btn-xs gap-1" style="border-radius: 6px;" @click="agregarCategoria()" title="Nueva categoría">
                   <i class="bi bi-folder-plus text-accent"></i> <span class="text-xs">Categoría</span>
                 </button>
-                <button type="button" class="btn btn-ghost btn-xs gap-1" style="border-radius: 6px;" @click="agregarSkillInline()" title="Nueva habilidad">
+                <button type="button" class="btn btn-ghost btn-xs gap-1" style="border-radius: 6px;" @click="agregarSkill()" title="Nueva habilidad">
                   <i class="bi bi-plus-lg text-accent"></i> <span class="text-xs">Habilidad</span>
                 </button>
                 <span class="text-xs text-base-content/50" x-text="form.skills.length + ' seleccionadas'"></span>
@@ -300,6 +300,58 @@ const Perfiles = {
       </div>
     </div>
   </div>
+
+  <!-- Modal: Nueva categoría -->
+  <div x-show="showCatModal" class="modal modal-open" data-modal="cat" @keydown.escape.window="showCatModal = false">
+    <div class="modal-box w-11/12 max-w-md" style="border-radius: 12px;">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
+          <i class="bi bi-folder-plus text-accent"></i> Nueva categoría
+        </h3>
+      </div>
+      <label class="form-control w-full">
+        <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Nombre de la categoría</span>
+        <input type="text" x-model="newCat" class="input input-bordered w-full" placeholder="Ej: Lenguajes" style="border-radius: 6px;" @keydown.enter.prevent="guardarCategoria()">
+      </label>
+      <div class="modal-action">
+        <button class="btn btn-ghost btn-sm" @click="showCatModal = false" style="border-radius: 6px;">Cancelar</button>
+        <button class="btn btn-primary btn-sm" @click="guardarCategoria()" :disabled="!newCat.trim()" style="border-radius: 6px;">
+          <i class="bi bi-check-lg"></i> Crear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Nueva habilidad -->
+  <div x-show="showSkillModal" class="modal modal-open" data-modal="skill" @keydown.escape.window="showSkillModal = false">
+    <div class="modal-box w-11/12 max-w-md" style="border-radius: 12px;">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
+          <i class="bi bi-plus-lg text-accent"></i> Nueva habilidad
+        </h3>
+      </div>
+      <div class="space-y-3">
+        <label class="form-control w-full">
+          <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Categoría</span>
+          <select x-model="newSkillCategoria" class="select select-bordered w-full" style="border-radius: 6px;">
+            <template x-for="cat in Object.keys(categorias)" :key="cat">
+              <option :value="cat" x-text="cat"></option>
+            </template>
+          </select>
+        </label>
+        <label class="form-control w-full">
+          <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Nombre de la habilidad</span>
+          <input type="text" x-model="newSkillNombre" class="input input-bordered w-full" placeholder="Ej: React" style="border-radius: 6px;" @keydown.enter.prevent="guardarSkill()">
+        </label>
+      </div>
+      <div class="modal-action">
+        <button class="btn btn-ghost btn-sm" @click="showSkillModal = false" style="border-radius: 6px;">Cancelar</button>
+        <button class="btn btn-primary btn-sm" @click="guardarSkill()" :disabled="!newSkillNombre.trim()" style="border-radius: 6px;">
+          <i class="bi bi-check-lg"></i> Crear
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 `;
   },
@@ -332,27 +384,41 @@ function perfilesData(perfiles, categorias, habilidades) {
       skills: []
     },
     formErrors: { nombre: '', email: '', cargo: '' },
-    newCatInline: '',
-    newSkillInline: { nombre: '', categoria: '' },
+    showCatModal: false,
+    newCat: '',
+    showSkillModal: false,
+    newSkillNombre: '',
+    newSkillCategoria: '',
 
-    async agregarCategoriaInline() {
-      const name = prompt('Nombre de la nueva categoría:');
-      if (!name || !name.trim()) return;
-      if (this.categorias[name.trim()]) { UI.toast('Esa categoría ya existe', 'warning'); return; }
-      this.categorias[name.trim()] = [];
-      UI.toast(`Categoría "${name.trim()}" creada`, 'success');
+    agregarCategoria() {
+      this.newCat = '';
+      this.showCatModal = true;
     },
 
-    async agregarSkillInline() {
+    guardarCategoria() {
+      const name = this.newCat.trim();
+      if (!name) { UI.toast('Nombre de categoría requerido', 'warning'); return; }
+      if (this.categorias[name]) { UI.toast('Esa categoría ya existe', 'warning'); return; }
+      this.categorias[name] = [];
+      this.showCatModal = false;
+      UI.toast(`Categoría "${name}" creada`, 'success');
+    },
+
+    agregarSkill() {
       const cats = Object.keys(this.categorias);
       if (cats.length === 0) { UI.toast('Crea una categoría primero', 'warning'); return; }
-      const cat = prompt(`Categoría (${cats.join(', ')}):`);
-      if (!cat || !this.categorias[cat]) { UI.toast('Categoría no válida', 'warning'); return; }
-      const name = prompt('Nombre de la habilidad:');
-      if (!name || !name.trim()) return;
-      const existente = this.categorias[cat].find(s => s.nombre.toLowerCase() === name.trim().toLowerCase());
+      this.newSkillNombre = '';
+      this.newSkillCategoria = cats[0];
+      this.showSkillModal = true;
+    },
+
+    async guardarSkill() {
+      const name = this.newSkillNombre.trim();
+      const cat = this.newSkillCategoria;
+      if (!name) { UI.toast('Nombre de habilidad requerido', 'warning'); return; }
+      const existente = this.categorias[cat].find(s => s.nombre.toLowerCase() === name.toLowerCase());
       if (existente) { UI.toast('Esa habilidad ya existe en la categoría', 'warning'); return; }
-      await db.habilidades.add({ nombre: name.trim(), categoria: cat, created_at: new Date() });
+      await db.habilidades.add({ nombre: name, categoria: cat, created_at: new Date() });
       const hb = await db.habilidades.toArray();
       this.habilidades = hb;
       this.categorias = {};
@@ -360,7 +426,8 @@ function perfilesData(perfiles, categorias, habilidades) {
         if (!this.categorias[h.categoria]) this.categorias[h.categoria] = [];
         this.categorias[h.categoria].push(h);
       });
-      UI.toast(`Habilidad "${name.trim()}" creada exitosamente`, 'success');
+      this.showSkillModal = false;
+      UI.toast(`Habilidad "${name}" creada exitosamente`, 'success');
     },
 
     abrirFormulario() {
@@ -631,28 +698,35 @@ function perfilesData(perfiles, categorias, habilidades) {
       window.addEventListener('fab-open-form', () => {
         this.abrirFormulario();
       });
-      this.$watch('showModal', (val) => {
-        if (val) {
-          this._prevFocus = document.activeElement;
-          this._handleBeforeUnload = (e) => {
-            e.preventDefault();
-            e.returnValue = '';
-          };
-          window.addEventListener('beforeunload', this._handleBeforeUnload);
-          this.$nextTick(() => {
-            const modal = this.$el.querySelector('.modal-box');
-            if (modal) UI.focusTrap(modal);
-          });
-        } else {
-          if (this._handleBeforeUnload) {
-            window.removeEventListener('beforeunload', this._handleBeforeUnload);
-            this._handleBeforeUnload = null;
+      ['showModal', 'showCatModal', 'showSkillModal'].forEach(prop => {
+        this.$watch(prop, (val) => {
+          if (val) {
+            this._prevFocus = document.activeElement;
+            if (prop === 'showModal') {
+              this._handleBeforeUnload = (e) => {
+                e.preventDefault();
+                e.returnValue = '';
+              };
+              window.addEventListener('beforeunload', this._handleBeforeUnload);
+            }
+            this.$nextTick(() => {
+              const sel = prop === 'showCatModal' ? '[data-modal="cat"] .modal-box' :
+                          prop === 'showSkillModal' ? '[data-modal="skill"] .modal-box' :
+                          '.modal-box';
+              const modal = this.$el.querySelector(sel);
+              if (modal) UI.focusTrap(modal);
+            });
+          } else {
+            if (prop === 'showModal' && this._handleBeforeUnload) {
+              window.removeEventListener('beforeunload', this._handleBeforeUnload);
+              this._handleBeforeUnload = null;
+            }
+            if (this._prevFocus) {
+              this._prevFocus.focus();
+              this._prevFocus = null;
+            }
           }
-          if (this._prevFocus) {
-            this._prevFocus.focus();
-            this._prevFocus = null;
-          }
-        }
+        });
       });
     }
   };
