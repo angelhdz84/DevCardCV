@@ -486,6 +486,11 @@ function perfilesData(perfiles, categorias, habilidades) {
 
         this.cerrarFormulario();
         window.dispatchEvent(new CustomEvent('db-change'));
+        const authStore = Alpine.store('auth');
+        if (authStore.isLoggedIn && authStore.user?.perfilId === perfilId) {
+          const perfilActualizado = await db.perfiles.get(perfilId);
+          authStore.fotoBase64 = (perfilActualizado && perfilActualizado.fotoBase64) || null;
+        }
         window.location.hash = '#/perfiles';
       } catch (err) {
         UI.toast('Error al guardar: ' + err.message, 'error');

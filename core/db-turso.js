@@ -168,50 +168,53 @@ var dbTurso = {
   async _mergePull(data) {
     if (!data || !data.perfiles) return;
 
-    const ok = await UI.confirm(
-      'Se encontraron datos en la nube. ¿Desea importarlos?<br><strong>Esto reemplazará los datos locales.</strong>',
-      'Sincronizar desde la nube'
-    );
-    if (!ok) return;
-
-    await db.perfiles.clear();
-    await db.habilidades.clear();
-    await db.perfil_habilidades.clear();
-    await db.usuarios.clear();
+    let cambios = 0;
 
     for (const p of (data.perfiles || [])) {
-      await db.perfiles.add({
-        id: p.id, nombre: p.nombre, email: p.email, telefono: p.telefono,
-        direccion: p.direccion, cargo: p.cargo, bio: p.bio,
-        fotoBase64: p.fotoBase64, created_at: p.created_at || new Date().toISOString(),
-        updated_at: p.updated_at || null
-      });
+      const local = await db.perfiles.get(p.id);
+      if (!local) {
+        await db.perfiles.add(p);
+        cambios++;
+      } else if (p.updated_at && local.updated_at && p.updated_at > local.updated_at) {
+        await db.perfiles.update(p.id, p);
+        cambios++;
+      }
     }
 
     for (const h of (data.habilidades || [])) {
-      await db.habilidades.add({
-        id: h.id, nombre: h.nombre, categoria: h.categoria || '',
-        created_at: h.created_at || new Date().toISOString()
-      });
+      const local = await db.habilidades.get(h.id);
+      if (!local) {
+        await db.habilidades.add(h);
+        cambios++;
+      } else if (h.created_at && local.created_at && h.created_at > local.created_at) {
+        await db.habilidades.update(h.id, h);
+        cambios++;
+      }
     }
 
     for (const r of (data.relaciones || [])) {
-      await db.perfil_habilidades.add({
-        id: r.id, perfil_id: r.perfil_id, habilidad_id: r.habilidad_id
-      });
+      const local = await db.perfil_habilidades.get(r.id);
+      if (!local) {
+        await db.perfil_habilidades.add(r);
+        cambios++;
+      }
     }
 
     for (const u of (data.usuarios || [])) {
-      await db.usuarios.add({
-        id: u.id, email: u.email, email_hash: u.email_hash, nombre: u.nombre,
-        password_hash: u.password_hash, rol: u.rol || 'dev', perfilId: u.perfilId || null,
-        created_at: u.created_at || new Date().toISOString(),
-        updated_at: u.updated_at || null
-      });
+      const local = await db.usuarios.get(u.id);
+      if (!local) {
+        await db.usuarios.add(u);
+        cambios++;
+      } else if (u.updated_at && local.updated_at && u.updated_at > local.updated_at) {
+        await db.usuarios.update(u.id, u);
+        cambios++;
+      }
     }
 
-    UI.toast('Datos sincronizados desde la nube', 'success');
-    window.dispatchEvent(new CustomEvent('db-change'));
+    if (cambios > 0) {
+      UI.toast('Datos sincronizados desde la nube', 'success');
+      window.dispatchEvent(new CustomEvent('db-change'));
+    }
   },
 
   async sync() {

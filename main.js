@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 💡 Inicializar stores Alpine antes de cualquier operación
   if (!Alpine.store('network')) Alpine.store('network', { online: navigator.onLine });
   if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled' });
+  if (!Alpine.store('supabase')) Alpine.store('supabase', { status: 'disabled' });
 
   try {
     // 💡 Listeners de conexión
@@ -25,20 +26,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     await dbSQLite.init();
     console.log('✅ SQLite (sql.js) inicializado');
 
-    // 💡 Inicializar Turso sync
-    await dbTurso.init();
-    console.log('✅ Turso sync inicializado');
+    // 💡 Inicializar Supabase sync
+    await dbSupabase.init();
+    console.log('✅ Supabase sync inicializado');
 
-    // 💡 Pull inicial desde Turso (si hay datos remotos)
-    await dbTurso.pull();
+    // 💡 Pull inicial desde Supabase (si hay datos remotos)
+    await dbSupabase.pull();
 
     // 💡 Auto-pull periódico (cada 30s)
-    dbTurso.startAutoPull();
+    dbSupabase.startAutoPull();
 
     // 💡 Escuchar cambios: sync SQLite + push a Turso + refrescar módulo activo
     window.addEventListener('db-change', async () => {
       await dbSQLite.sync();
-      dbTurso.schedulePush();
+      dbSupabase.schedulePush();
       const modId = window._currentModule;
       if (modId && appRouter.modules[modId]) {
         const container = document.getElementById('app-content');
@@ -63,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Escuchar cierre de sesión
     window.addEventListener('auth-logout', () => {
       Alpine.store('auth').clearSession();
+      appRouter.currentRoute = '';
       UI.toast('Sesión cerrada', 'info');
       window.location.hash = '#/auth/login';
     });

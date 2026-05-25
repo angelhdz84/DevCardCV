@@ -141,7 +141,7 @@ const Dashboard = {
       </div>
 
       <div class="text-xs" style="color: var(--ink-muted);">
-        <i class="bi bi-check-circle text-accent"></i> Sincronización vía Cloudflare D1 (desde <code>project.config.js</code>)
+        <i class="bi bi-check-circle text-accent"></i> Sincronización vía Supabase PostgreSQL (desde <code>project.config.js</code>)
       </div>
     </div>
   </div>
@@ -573,7 +573,7 @@ function dashboardData(perfiles, topSkills, categorias) {
     syncing: false,
 
     get syncStatusColor() {
-      switch (dbTurso.status) {
+      switch (dbSupabase.status) {
         case 'connected': return '#22C55E';
         case 'offline': return '#F59E0B';
         case 'disconnected': return '#EF4444';
@@ -582,7 +582,7 @@ function dashboardData(perfiles, topSkills, categorias) {
     },
 
     get syncStatusBg() {
-      switch (dbTurso.status) {
+      switch (dbSupabase.status) {
         case 'connected': return 'background: rgba(34,197,94,0.06)';
         case 'offline': return 'background: rgba(245,158,11,0.06)';
         case 'disconnected': return 'background: rgba(239,68,68,0.06)';
@@ -591,25 +591,25 @@ function dashboardData(perfiles, topSkills, categorias) {
     },
 
     get syncStatusLabel() {
-      switch (dbTurso.status) {
-        case 'connected': return 'Conectado a Cloud D1';
+      switch (dbSupabase.status) {
+        case 'connected': return 'Conectado a Supabase PostgreSQL';
         case 'offline': return 'Sin conexión a internet';
-        case 'disconnected': return 'Error de conexión con Cloud';
-        default: return 'Cloud no configurado';
+        case 'disconnected': return 'Error de conexión con Supabase';
+        default: return 'Supabase no configurado';
       }
     },
 
     get syncLastPush() {
-      return dbTurso.lastPush ? dayjs(dbTurso.lastPush).format('HH:mm:ss') : null;
+      return dbSupabase.lastPush ? dayjs(dbSupabase.lastPush).format('HH:mm:ss') : null;
     },
 
     get syncLastPull() {
-      return dbTurso.lastPull ? dayjs(dbTurso.lastPull).format('HH:mm:ss') : null;
+      return dbSupabase.lastPull ? dayjs(dbSupabase.lastPull).format('HH:mm:ss') : null;
     },
 
     async forceSync() {
       this.syncing = true;
-      await dbTurso.forceSync();
+      await dbSupabase.forceSync();
       this.syncing = false;
     },
 

@@ -182,6 +182,7 @@ const appRouter = {
     Alpine.store('auth', {
       user: null,
       sessionToken: null,
+      fotoBase64: null,
 
       get isLoggedIn() { return !!this.user; },
       get isAdmin() { return this.user?.rol === 'admin'; },
@@ -189,11 +190,13 @@ const appRouter = {
       setSession(session) {
         this.user = session;
         this.sessionToken = session.token;
+        this.fotoBase64 = null;
       },
 
       clearSession() {
         this.user = null;
         this.sessionToken = null;
+        this.fotoBase64 = null;
         localStorage.removeItem(APP_CONFIG.auth.sessionKey);
       },
 
@@ -220,7 +223,7 @@ const appRouter = {
         Alpine.store('auth').setSession(session);
         const perfil = exists.perfilId ? await db.perfiles.get(exists.perfilId) : null;
         if (perfil && perfil.fotoBase64) {
-          Alpine.store('auth').user.fotoBase64 = perfil.fotoBase64;
+          Alpine.store('auth').fotoBase64 = perfil.fotoBase64;
         }
       } else {
         localStorage.removeItem(APP_CONFIG.auth.sessionKey);

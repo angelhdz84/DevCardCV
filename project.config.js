@@ -70,6 +70,11 @@ const APP_CONFIG = {
     }
   },
 
+  supabase: {
+    url: 'https://uwvjqjeijvjxuhrhvqfr.supabase.co',
+    anonKey: 'sb_publishable_iJHaIMk8_2lny37WFLAYqw_HKoNKq7T'
+  },
+
   cloud: {
     syncUrl: 'https://fragrant-mountain-65df.84angel-hdz.workers.dev',
     autoSync: true

@@ -170,7 +170,7 @@ function authLogin() {
       if (user.perfilId) {
         const perfil = await db.perfiles.get(user.perfilId);
         if (perfil && perfil.fotoBase64) {
-          Alpine.store('auth').user.fotoBase64 = perfil.fotoBase64;
+          Alpine.store('auth').fotoBase64 = perfil.fotoBase64;
         }
       }
       UI.toast('Bienvenido, ' + user.nombre, 'success');
