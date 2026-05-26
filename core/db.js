@@ -76,6 +76,7 @@ async function seedInitialData() {
     }
   }
 
+  window.dispatchEvent(new CustomEvent('db-change'));
   console.log('💡 Datos de ejemplo cargados');
 }
 
