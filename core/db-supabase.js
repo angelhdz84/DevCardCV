@@ -1,7 +1,8 @@
 var dbSupabase = {
   _connected: false,
+  _supa: null,
+  _realtimeChannel: null,
 
-  // Field mapping: Dexie (camelCase) ↔ Supabase (snake_case)
   _fieldMap: {
     perfiles: { toRemote: { fotoBase64: 'foto_base64' }, toLocal: { foto_base64: 'fotoBase64' } },
     habilidades: { toRemote: {}, toLocal: {} },
@@ -32,6 +33,7 @@ var dbSupabase = {
   _lastPush: null,
   _lastPull: null,
   _pushTimer: null,
+  _pullTimer: null,
   _pullInterval: null,
 
   get status() {
@@ -43,32 +45,6 @@ var dbSupabase = {
   get lastPush() { return this._lastPush; },
   get lastPull() { return this._lastPull; },
 
-  get _headers() {
-    return {
-      'apikey': APP_CONFIG.supabase.anonKey,
-      'Authorization': 'Bearer ' + APP_CONFIG.supabase.anonKey,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
-    };
-  },
-
-  get _baseUrl() {
-    return APP_CONFIG.supabase.url.replace(/\/+$/, '') + '/rest/v1';
-  },
-
-  async _request(method, table, body, params) {
-    const url = this._baseUrl + '/' + table + (params ? '?' + params : '');
-    const opts = { method, headers: this._headers };
-    if (body) opts.body = JSON.stringify(body);
-    const resp = await fetch(url, opts);
-    if (!resp.ok) {
-      const text = await resp.text();
-      throw new Error('HTTP ' + resp.status + ': ' + text.slice(0, 200));
-    }
-    if (method === 'DELETE' || resp.status === 204) return null;
-    return await resp.json();
-  },
-
   async init() {
     if (!APP_CONFIG.supabase || !APP_CONFIG.supabase.url || !APP_CONFIG.supabase.anonKey) {
       console.log('ℹ️ Supabase: deshabilitado (no configurado)');
@@ -78,9 +54,13 @@ var dbSupabase = {
     console.log('🚀 Supabase: iniciando...');
     this._updateStore();
 
-    // 💡 Test de conexión rápida
+    this._supa = supabase.createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey, {
+      realtime: { params: { eventsPerSecond: 10 } }
+    });
+
     try {
-      await this._request('GET', 'habilidades', null, 'select=id&limit=1');
+      const { data, error } = await this._supa.from('habilidades').select('id').limit(1);
+      if (error) throw error;
       this._connected = true;
       console.log('✅ Supabase: conexión establecida');
     } catch (err) {
@@ -89,6 +69,20 @@ var dbSupabase = {
     }
     this._updateStore();
 
+    if (this._connected) {
+      this._realtimeChannel = this._supa.channel('db-changes')
+        .on('postgres_changes',
+          { event: '*', schema: 'public' },
+          payload => {
+            console.log('📡 Realtime:', payload.eventType, payload.table);
+            this.schedulePull();
+          }
+        )
+        .subscribe(status => {
+          if (status === 'SUBSCRIBED') console.log('✅ Realtime: suscrito a cambios');
+        });
+    }
+
     window.addEventListener('online', () => {
       if (APP_CONFIG.supabase && APP_CONFIG.supabase.url && APP_CONFIG.supabase.anonKey) this.sync();
     });
@@ -96,13 +90,16 @@ var dbSupabase = {
     window.addEventListener('db-change', () => {
       if (APP_CONFIG.supabase && APP_CONFIG.supabase.url && APP_CONFIG.supabase.anonKey) this.schedulePush();
     });
+
+    this._pullInterval = setInterval(() => this.pull(), 60000);
   },
 
   async _getRemoteUpdatedAtMap(table) {
     try {
-      const rows = await this._request('GET', table, null, 'select=id,updated_at');
+      const { data, error } = await this._supa.from(table).select('id,updated_at');
+      if (error) throw error;
       const map = {};
-      for (const r of rows) { map[r.id] = r.updated_at; }
+      for (const r of (data || [])) { map[r.id] = r.updated_at; }
       return map;
     } catch (e) { return {}; }
   },
@@ -119,7 +116,6 @@ var dbSupabase = {
         const records = this._mapFields(await db[table].toArray(), table, 'toRemote');
         if (records.length === 0) continue;
 
-        // 💡 Conflict check solo para tablas con updated_at
         const remoteMap = (table === 'perfiles' || table === 'usuarios')
           ? await this._getRemoteUpdatedAtMap(table) : {};
 
@@ -136,7 +132,8 @@ var dbSupabase = {
         }
 
         if (toPush.length > 0) {
-          await this._request('POST', table, toPush, 'on_conflict=id');
+          const { error } = await this._supa.from(table).upsert(toPush, { onConflict: 'id' });
+          if (error) throw error;
         }
         if (conflicts.length > 0) {
           conflictedTables.push(`${table}: ${conflicts.join(', ')}`);
@@ -167,23 +164,21 @@ var dbSupabase = {
       const remoteData = {};
 
       for (const table of tables) {
-        const rows = await this._request('GET', table, null, 'select=*');
-        remoteData[table] = this._mapFields(rows || [], table, 'toLocal');
+        const { data, error } = await this._supa.from(table).select('*');
+        if (error) throw error;
+        remoteData[table] = this._mapFields(data || [], table, 'toLocal');
       }
 
-      // 💡 Migración única: limpiar habilidades semilla locales y re-importar desde Supabase
       if (!localStorage.getItem('skills_v2') && remoteData.habilidades && remoteData.habilidades.length > 0) {
         await db.habilidades.clear();
         localStorage.setItem('skills_v2', '1');
         console.log('🔄 Migración skills_v2: limpiadas y re-importadas desde Supabase');
       }
 
-      // Merge habilidades (match por nombre, no por id)
       if (remoteData.habilidades && remoteData.habilidades.length > 0) {
         await this._mergePull({ habilidades: remoteData.habilidades });
       }
 
-      // Merge perfiles con su comparación de updated_at
       if (remoteData.perfiles && remoteData.perfiles.length > 0) {
         const localUpdatedAt = await this._getLocalUpdatedAt();
         const remoteUpdatedAt = this._getRemoteUpdatedAt(remoteData);
@@ -292,8 +287,16 @@ var dbSupabase = {
     }, 2000);
   },
 
+  schedulePull() {
+    if (this._pullTimer) clearTimeout(this._pullTimer);
+    this._pullTimer = setTimeout(() => {
+      this.pull();
+      this._pullTimer = null;
+    }, 500);
+  },
+
   startAutoPull() {
-    this._pullInterval = setInterval(() => this.pull(), 10000);
+    this._pullInterval = setInterval(() => this.pull(), 60000);
   },
 
   stopAutoPull() {
