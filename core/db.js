@@ -40,23 +40,22 @@ db.version(2).stores({
 
 // 💡 Datos de ejemplo al iniciar por primera vez
 async function seedInitialData() {
-  const userCount = await db.usuarios.count();
-  if (userCount > 0) return; // Ya hay usuarios configurados, no sobrescribir
-
   const count = await db.perfiles.count();
+  if (count > 0) return; // Ya hay perfiles
+
+  // Skills seed solo si no hay (fallback offline)
   const habCount = await db.habilidades.count();
-  if (count > 0 && habCount > 0) return; // Ya hay datos
-
-  const categorias = [
-    { nombre: 'Lenguajes', skills: ['JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'Go', 'Rust'] },
-    { nombre: 'Frameworks', skills: ['React', 'Vue.js', 'Angular', 'Node.js', 'Django', 'Spring Boot', '.NET'] },
-    { nombre: 'Bases de Datos', skills: ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite'] },
-    { nombre: 'Herramientas', skills: ['Git', 'Docker', 'AWS', 'Linux', 'CI/CD', 'Figma'] }
-  ];
-
-  for (const cat of categorias) {
-    for (const skill of cat.skills) {
-      await db.habilidades.add({ nombre: skill, categoria: cat.nombre, created_at: new Date() });
+  if (habCount === 0) {
+    const categorias = [
+      { nombre: 'Lenguajes', skills: ['JavaScript', 'TypeScript', 'Python', 'Java', 'C#', 'Go', 'Rust'] },
+      { nombre: 'Frameworks', skills: ['React', 'Vue.js', 'Angular', 'Node.js', 'Django', 'Spring Boot', '.NET'] },
+      { nombre: 'Bases de Datos', skills: ['PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'SQLite'] },
+      { nombre: 'Herramientas', skills: ['Git', 'Docker', 'AWS', 'Linux', 'CI/CD', 'Figma'] }
+    ];
+    for (const cat of categorias) {
+      for (const skill of cat.skills) {
+        await db.habilidades.add({ nombre: skill, categoria: cat.nombre, created_at: new Date() });
+      }
     }
   }
 
@@ -69,7 +68,6 @@ async function seedInitialData() {
 
   for (const perfil of ejemplos) {
     const id = await db.perfiles.add(perfil);
-    // Asignar skills aleatorias a cada ejemplo
     const allSkills = await db.habilidades.toArray();
     const shuffled = allSkills.sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, Math.floor(Math.random() * 4) + 3);
