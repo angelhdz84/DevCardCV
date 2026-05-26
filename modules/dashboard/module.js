@@ -573,8 +573,8 @@ function dashboardData(perfiles, topSkills, categorias) {
     syncing: false,
 
     get _syncStatus() {
-      const s = $store.supabase && $store.supabase.status ? $store.supabase.status : dbSupabase.status;
-      return s;
+      const store = typeof Alpine !== 'undefined' && Alpine.store('supabase');
+      return store && store.status ? store.status : dbSupabase.status;
     },
 
     get syncStatusColor() {
