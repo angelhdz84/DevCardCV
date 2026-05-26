@@ -81,17 +81,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Restaurar sesión y marcar auth como checked
     await appRouter.checkSession();
 
-    // 💡 Push inicial si hay datos locales no subidos nunca
+    // 💡 Router primero (no bloquear UI con push)
+    appRouter.init();
+
+    // 💡 Push inicial asíncrono si hay datos locales no subidos nunca
     if (dbSupabase._connected) {
       const hasLocalData = await db.perfiles.count() > 0 || await db.usuarios.count() > 0;
       if (hasLocalData) {
         console.log('📤 Push inicial automático...');
-        await dbSupabase.push();
+        dbSupabase.push(); // fire-and-forget, no blocker
       }
     }
-
-    // 💡 Inicializar router
-    appRouter.init();
 
     console.log('✅ App inicializada correctamente');
   } catch (err) {

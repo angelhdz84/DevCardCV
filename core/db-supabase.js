@@ -154,8 +154,6 @@ var dbSupabase = {
       const conflictMsg = conflictedTables.length > 0 ? ` (${conflictedTables.length} conflicto(s) resuelto(s))` : '';
       console.log('✅ Supabase push: OK' + conflictMsg);
     } catch (err) {
-      this._connected = false;
-      this._updateStore();
       console.warn('⚠️ Supabase push error:', err.message);
     }
   },

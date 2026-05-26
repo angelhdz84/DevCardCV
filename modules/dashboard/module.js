@@ -572,8 +572,13 @@ function dashboardData(perfiles, topSkills, categorias) {
     // 💡 Cloud sync state
     syncing: false,
 
+    get _syncStatus() {
+      const s = $store.supabase && $store.supabase.status ? $store.supabase.status : dbSupabase.status;
+      return s;
+    },
+
     get syncStatusColor() {
-      switch (dbSupabase.status) {
+      switch (this._syncStatus) {
         case 'connected': return '#22C55E';
         case 'offline': return '#F59E0B';
         case 'disconnected': return '#EF4444';
@@ -582,7 +587,7 @@ function dashboardData(perfiles, topSkills, categorias) {
     },
 
     get syncStatusBg() {
-      switch (dbSupabase.status) {
+      switch (this._syncStatus) {
         case 'connected': return 'background: rgba(34,197,94,0.06)';
         case 'offline': return 'background: rgba(245,158,11,0.06)';
         case 'disconnected': return 'background: rgba(239,68,68,0.06)';
@@ -591,7 +596,7 @@ function dashboardData(perfiles, topSkills, categorias) {
     },
 
     get syncStatusLabel() {
-      switch (dbSupabase.status) {
+      switch (this._syncStatus) {
         case 'connected': return 'Conectado a Supabase PostgreSQL';
         case 'offline': return 'Sin conexión a internet';
         case 'disconnected': return 'Error de conexión con Supabase';
