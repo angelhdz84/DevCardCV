@@ -98,24 +98,61 @@ var dbSupabase = {
     });
   },
 
+  async _getRemoteUpdatedAtMap(table) {
+    try {
+      const rows = await this._request('GET', table, null, 'select=id,updated_at');
+      const map = {};
+      for (const r of rows) { map[r.id] = r.updated_at; }
+      return map;
+    } catch (e) { return {}; }
+  },
+
   async push() {
     if (!APP_CONFIG.supabase || !APP_CONFIG.supabase.url || !APP_CONFIG.supabase.anonKey) return;
     if (!navigator.onLine) { console.log('ℹ️ Supabase push: offline, skip'); return; }
 
     try {
+      const conflictedTables = [];
       const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios'];
+
       for (const table of tables) {
-        const records = await db[table].toArray();
-        if (records.length > 0) {
-          const mapped = this._mapFields(records, table, 'toRemote');
-          await this._request('POST', table, mapped, 'on_conflict=id');
+        const records = this._mapFields(await db[table].toArray(), table, 'toRemote');
+        if (records.length === 0) continue;
+
+        // 💡 Conflict check solo para tablas con updated_at
+        const remoteMap = (table === 'perfiles' || table === 'usuarios')
+          ? await this._getRemoteUpdatedAtMap(table) : {};
+
+        const toPush = [];
+        const conflicts = [];
+
+        for (const r of records) {
+          const remoteUpdatedAt = remoteMap[r.id];
+          if (remoteUpdatedAt && r.updated_at && remoteUpdatedAt > r.updated_at) {
+            conflicts.push(r.nombre || r.id);
+          } else {
+            toPush.push(r);
+          }
         }
+
+        if (toPush.length > 0) {
+          await this._request('POST', table, toPush, 'on_conflict=id');
+        }
+        if (conflicts.length > 0) {
+          conflictedTables.push(`${table}: ${conflicts.join(', ')}`);
+        }
+      }
+
+      if (conflictedTables.length > 0) {
+        UI.toast(`Conflicto: ${conflictedTables.join('; ')}. Cargando datos más recientes...`, 'warning');
+        await this.pull();
       }
 
       this._connected = true;
       this._updateStore();
       this._lastPush = new Date().toISOString();
-      console.log('✅ Supabase push: OK');
+      const conflictMsg = conflictedTables.length > 0 ? ` (${conflictedTables.length} conflicto(s) resuelto(s))` : '';
+      console.log('✅ Supabase push: OK' + conflictMsg);
     } catch (err) {
       this._connected = false;
       this._updateStore();
@@ -258,7 +295,7 @@ var dbSupabase = {
   },
 
   startAutoPull() {
-    this._pullInterval = setInterval(() => this.pull(), 30000);
+    this._pullInterval = setInterval(() => this.pull(), 10000);
   },
 
   stopAutoPull() {
