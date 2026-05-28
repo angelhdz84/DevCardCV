@@ -134,8 +134,7 @@ const appRouter = {
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key === 'n') {
         e.preventDefault();
-        window.location.hash = '#/perfiles';
-        setTimeout(() => window.dispatchEvent(new CustomEvent('fab-open-form')), 300);
+        window.location.hash = '#/perfiles/nuevo/' + Date.now();
       }
       if (mod && e.key === 'f') {
         e.preventDefault();

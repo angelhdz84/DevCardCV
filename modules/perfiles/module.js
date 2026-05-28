@@ -7,7 +7,7 @@ const Perfiles = {
     console.log('💡 [perfiles] Inicializado');
   },
 
-  async render(params = {}) {
+  async render({ params: routeParams } = { params: [] }) {
     let perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     const habilidades = (await dbOnline.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
     const relaciones = await dbOnline.getAll('perfil_habilidades');
@@ -37,8 +37,7 @@ const Perfiles = {
     });
 
     return `
-<div x-data="perfilesData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${JSON.stringify(habilidades).replace(/"/g, '&quot;')})"
-     x-init="init()">
+<div x-data="perfilesData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${JSON.stringify(habilidades).replace(/"/g, '&quot;')}, ${JSON.stringify(routeParams.includes('nuevo'))})">
 
   <!-- Header con contador -->
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -46,14 +45,14 @@ const Perfiles = {
       <h2 class="text-xl font-semibold tracking-heading flex items-center gap-2">
         <i class="bi bi-people-fill text-accent"></i> Perfiles
       </h2>
-      <p class="text-xs text-base-content/50 mt-1" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' en el equipo'"></p>
+      <p class="text-xs mt-1" style="color: var(--ink-muted);" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' en el equipo'"></p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <label x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm cursor-pointer" style="border-radius: 8px; border: 1px solid var(--border);">
+      <label x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm cursor-pointer gap-1.5" style="border-radius: var(--radius-sm);">
         <i class="bi bi-upload"></i> Importar
         <input type="file" accept=".json" class="hidden" @change="importarPerfilJSON($event)">
       </label>
-      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="abrirFormulario()">
+      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm gap-1.5" style="border-radius: var(--radius-sm);" @click="abrirFormulario()">
         <i class="bi bi-person-plus-fill"></i> Nuevo desarrollador
       </button>
     </div>
@@ -71,27 +70,27 @@ const Perfiles = {
           <!-- Foto + Nombre -->
           <div class="flex items-start gap-4">
             <div class="avatar">
-              <div class="w-16 h-16 rounded-xl overflow-hidden bg-base-200 flex items-center justify-center ring-1 ring-base-200 group-hover:ring-accent/20 transition-all">
+              <div class="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center" style="background: var(--surface-muted);">
                 <template x-if="dev.fotoBase64">
                   <img :src="dev.fotoBase64" :alt="dev.nombre" class="w-full h-full object-cover">
                 </template>
                 <template x-if="!dev.fotoBase64">
-                  <i class="bi bi-person-fill text-2xl text-base-content/20"></i>
+                  <i class="bi bi-person-fill text-xl" style="color: var(--ink-faint);"></i>
                 </template>
               </div>
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="font-semibold text-sm tracking-heading truncate" x-text="dev.nombre"></h3>
               <p class="text-sm text-accent" x-text="dev.cargo"></p>
-              <p class="text-xs text-base-content/50 mt-0.5" x-text="UI.formatDateRelative(dev.created_at)"></p>
+              <p class="text-xs mt-0.5" style="color: var(--ink-faint);" x-text="UI.formatDateRelative(dev.created_at)"></p>
             </div>
           </div>
 
           <!-- Bio -->
-          <p class="text-sm text-base-content/50 mt-3 leading-relaxed line-clamp-2" x-text="dev.bio || 'Sin descripción'"></p>
+          <p class="text-sm mt-3 leading-relaxed line-clamp-2" style="color: var(--ink-muted);" x-text="dev.bio || 'Sin descripción'"></p>
 
           <!-- Contacto -->
-          <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-base-content/50">
+          <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs" style="color: var(--ink-muted);">
             <span x-show="dev.email" class="flex items-center gap-1">
               <i class="bi bi-envelope"></i> <span x-text="dev.email"></span>
             </span>
@@ -112,14 +111,14 @@ const Perfiles = {
           </div>
 
           <!-- Acciones -->
-          <div class="flex justify-end gap-1 mt-3 pt-3 border-t border-base-100">
-            <button class="btn btn-ghost btn-xs" @click="exportarPerfilJSON(dev)" aria-label="Exportar JSON" title="Exportar JSON">
+          <div class="flex justify-end gap-0.5 mt-4 pt-3" style="border-top: 1px solid var(--border);">
+            <button class="btn btn-ghost btn-xs btn-square" @click="exportarPerfilJSON(dev)" aria-label="Exportar JSON" title="Exportar JSON">
               <i class="bi bi-download"></i>
             </button>
-            <button class="btn btn-ghost btn-xs" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
+            <button class="btn btn-ghost btn-xs gap-1" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
               <i class="bi bi-file-earmark-richtext"></i> CV
             </button>
-            <button x-show="$store.auth.canEdit(dev.id)" class="btn btn-ghost btn-xs" @click="editar(dev.id)" aria-label="Editar" title="Editar">
+            <button x-show="$store.auth.canEdit(dev.id)" class="btn btn-ghost btn-xs btn-square" @click="editar(dev.id)" aria-label="Editar" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
             <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs text-error" @click="eliminar(dev.id)" aria-label="Eliminar" title="Eliminar">
@@ -350,7 +349,7 @@ const Perfiles = {
 };
 
 // 💡 Alpine data factory
-function perfilesData(perfiles, categorias, habilidades) {
+function perfilesData(perfiles, categorias, habilidades, abrirForm) {
   return {
     perfiles,
     categorias,
@@ -696,10 +695,6 @@ function perfilesData(perfiles, categorias, habilidades) {
 
     init() {
       window.UI = UI;
-      // 💡 Escuchar evento del FAB para abrir formulario automáticamente
-      window.addEventListener('fab-open-form', () => {
-        this.abrirFormulario();
-      });
       ['showModal', 'showCatModal', 'showSkillModal'].forEach(prop => {
         this.$watch(prop, (val) => {
           if (val) {
@@ -730,6 +725,7 @@ function perfilesData(perfiles, categorias, habilidades) {
           }
         });
       });
+      if (abrirForm) this.abrirFormulario();
     }
   };
 }

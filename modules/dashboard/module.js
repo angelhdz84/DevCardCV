@@ -61,59 +61,59 @@ const Dashboard = {
     <p class="text-xs" style="color: var(--ink-muted);" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' registrados'"></p>
   </div>
 
-  <!-- Stats cards — Firecrawl stat block pattern -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  <!-- Stats cards — Linear-inspired stat blocks -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="card bg-white">
-      <div class="card-body p-4">
+      <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2 rounded-lg" style="background: rgba(38,38,38,0.06);">
-            <i class="bi bi-people-fill" style="color: var(--ink);"></i>
+          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--surface-muted);">
+            <i class="bi bi-people-fill text-lg" style="color: var(--ink);"></i>
           </div>
-          <div>
-            <p class="stat-label">Desarrolladores</p>
-            <p class="stat-value" x-text="perfiles.length"></p>
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Desarrolladores</p>
+            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length"></p>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card bg-white">
-      <div class="card-body p-4">
+      <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2 rounded-lg" style="background: var(--accent-light);">
-            <i class="bi bi-tools text-accent"></i>
+          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--accent-light);">
+            <i class="bi bi-tools text-lg text-accent"></i>
           </div>
-          <div>
-            <p class="stat-label">Habilidades</p>
-            <p class="stat-value" x-text="Object.keys(categorias).reduce((a,b) => a + categorias[b], 0)"></p>
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Habilidades</p>
+            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="Object.keys(categorias).reduce((a,b) => a + categorias[b], 0)"></p>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card bg-white">
-      <div class="card-body p-4">
+      <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2 rounded-lg" style="background: var(--accent-secondary-light);">
-            <i class="bi bi-tag-fill" style="color: var(--accent-secondary);"></i>
+          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--accent-secondary-light);">
+            <i class="bi bi-tag-fill text-lg" style="color: var(--accent-secondary);"></i>
           </div>
-          <div>
-            <p class="stat-label">Categorías</p>
-            <p class="stat-value" x-text="Object.keys(categorias).length"></p>
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Categorías</p>
+            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="Object.keys(categorias).length"></p>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card bg-white">
-      <div class="card-body p-4">
+      <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2 rounded-lg" style="background: var(--accent-light);">
-            <i class="bi bi-graph-up" style="color: var(--accent);"></i>
+          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--accent-light);">
+            <i class="bi bi-graph-up text-lg text-accent"></i>
           </div>
-          <div>
-            <p class="stat-label">Promedio Skills</p>
-            <p class="stat-value" x-text="perfiles.length ? (perfiles.reduce((a,p) => a + p.skillCount, 0) / perfiles.length).toFixed(1) : '0'"></p>
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Promedio Skills</p>
+            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length ? (perfiles.reduce((a,p) => a + p.skillCount, 0) / perfiles.length).toFixed(1) : '0'"></p>
           </div>
         </div>
       </div>
@@ -122,56 +122,45 @@ const Dashboard = {
 
   <!-- Sincronización Cloud (solo admin) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6">
-    <div class="card-body p-4">
-      <h3 class="section-label mb-3 flex items-center gap-2">
+    <div class="card-body p-5">
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--ink-muted);">
         <i class="bi bi-cloud-arrow-up text-accent"></i> Sincronización Cloud
       </h3>
-
-      <!-- Estado de sync -->
-      <div class="flex items-center gap-3 mb-4 p-3 rounded-lg"
-           style="background: var(--surface-muted);">
-        <div class="w-3 h-3 rounded-full"
-             :style="'background: ' + (syncStatus === 'connected' ? '#22C55E' : '#EF4444')"></div>
-        <div class="flex-1">
+      <div class="flex items-center gap-3 p-3 rounded-lg" style="background: var(--surface-muted);">
+        <div class="w-2.5 h-2.5 rounded-full shrink-0" :style="'background: ' + (syncStatus === 'connected' ? '#22C55E' : '#EF4444')"></div>
+        <div class="flex-1 min-w-0">
           <p class="text-sm font-medium" x-text="'Supabase: ' + onlineLabel"></p>
-          <p class="text-xs" style="color: var(--ink-muted);">
-            <span>Sincronización vía WebSocket en tiempo real</span>
-          </p>
+          <p class="text-xs mt-0.5" style="color: var(--ink-muted);">WebSocket en tiempo real</p>
         </div>
-        <button class="btn btn-ghost btn-sm" style="border-radius: 8px; border: 1px solid var(--border);"
-                @click="forceRefresh()" :disabled="syncing">
+        <button class="btn btn-ghost btn-xs gap-1.5 shrink-0" style="border-radius: var(--radius-sm);" @click="forceRefresh()" :disabled="syncing">
           <i class="bi" :class="syncing ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-repeat'"></i>
           <span x-text="syncing ? 'Refrescando...' : 'Refrescar'"></span>
         </button>
-      </div>
-
-      <div class="text-xs" style="color: var(--ink-muted);">
-        <i class="bi bi-check-circle text-accent"></i> Realtime: los cambios aparecen automáticamente en todos los dispositivos
       </div>
     </div>
   </div>
 
   <!-- Backup manual (solo admin) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
-    <div class="card-body p-4">
-      <h3 class="section-label mb-1 flex items-center gap-2 cursor-pointer select-none" @click="open = !open">
+    <div class="card-body p-5">
+      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none" style="color: var(--ink-muted);" @click="open = !open">
         <i class="bi bi-database-fill-gear text-accent"></i> Backup Manual (JSON)
-        <span class="text-xs ml-auto" style="color: var(--ink-muted);">
+        <span class="ml-auto flex items-center gap-1">
           <span x-text="open ? 'ocultar' : 'mostrar'"></span>
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mb-4" style="color: var(--ink-muted);">Exportación/importación local sin conexión cloud</p>
+      <p class="text-xs mt-1 mb-4" style="color: var(--ink-faint);">Exportación/importación local sin conexión cloud</p>
       <div x-show="open" x-collapse>
-        <div class="flex flex-wrap gap-2">
-          <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="exportarJSON()">
+        <div class="flex flex-wrap items-center gap-3">
+          <button class="btn btn-primary btn-sm" style="border-radius: var(--radius-sm);" @click="exportarJSON()">
             <i class="bi bi-download"></i> Exportar JSON
           </button>
-          <label class="btn btn-ghost btn-sm cursor-pointer" style="border-radius: 8px; border: 1px solid var(--border);">
+          <label class="btn btn-ghost btn-sm cursor-pointer" style="border-radius: var(--radius-sm);">
             <i class="bi bi-upload"></i> Importar JSON
             <input type="file" accept=".json" class="hidden" @change="importarJSON($event)">
           </label>
-          <span class="text-xs self-center" style="color: var(--ink-muted);">Exporta o restaura todos los datos en formato JSON</span>
+          <span class="text-xs" style="color: var(--ink-faint);">Todos los datos en JSON</span>
         </div>
       </div>
     </div>
@@ -179,29 +168,29 @@ const Dashboard = {
 
   <!-- Reporte SQL (sql.js) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
-    <div class="card-body p-4">
-      <h3 class="section-label mb-1 flex items-center gap-2 cursor-pointer select-none" @click="open = !open">
+    <div class="card-body p-5">
+      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none" style="color: var(--ink-muted);" @click="open = !open">
         <i class="bi bi-code-slash text-accent"></i> Reporte SQL
-        <span class="text-xs ml-auto" style="color: var(--ink-muted);">
+        <span class="ml-auto flex items-center gap-1">
           <span x-text="open ? 'ocultar' : 'mostrar'"></span>
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mb-4" style="color: var(--ink-muted);">Perfiles × Skills — consulta JOIN ejecutada con sql.js</p>
+      <p class="text-xs mt-1 mb-4" style="color: var(--ink-faint);">Perfiles × Skills — consulta JOIN ejecutada con sql.js</p>
       <div x-show="open" x-collapse>
         <div class="overflow-x-auto rounded-lg" style="border: 1px solid var(--border);">
           <table class="table table-xs w-full">
             <thead>
               <tr style="background: var(--surface-muted);">
-                <th class="font-semibold text-xs">Perfil</th>
-                <th class="font-semibold text-xs">Cargo</th>
-                <th class="font-semibold text-xs">Skill</th>
-                <th class="font-semibold text-xs">Categoría</th>
+                <th>Perfil</th>
+                <th>Cargo</th>
+                <th>Skill</th>
+                <th>Categoría</th>
               </tr>
             </thead>
             <tbody>
               <template x-for="row in sqlReport" :key="row.pid + '-' + row.hid">
-                <tr class="hover:bg-base-200 transition-colors stagger-enter" :style="'animation-delay: ' + ($el.parentElement.children.length * 0.02) + 's'">
+                <tr class="stagger-enter" :style="'animation-delay: ' + ($el.parentElement.children.length * 0.02) + 's'">
                   <td class="font-medium text-xs" x-text="row.nombre"></td>
                   <td class="text-xs" x-text="row.cargo"></td>
                   <td class="text-xs" x-text="row.skill"></td>
@@ -211,9 +200,8 @@ const Dashboard = {
             </tbody>
           </table>
         </div>
-        <p class="text-xs mt-2" style="color: var(--ink-muted);">
+        <p class="text-xs mt-3" style="color: var(--ink-faint);">
           <i class="bi bi-database"></i> <span x-text="sqlReport.length + ' relaciones'"></span>
-          &mdash; <code class="px-1 py-0.5 rounded" style="background: var(--surface-muted); font-size: 0.625rem;">SELECT p.nombre, p.cargo, h.nombre, h.categoria FROM perfiles p JOIN perfil_habilidades ph ON p.id = ph.perfil_id JOIN habilidades h ON h.id = ph.habilidad_id</code>
         </p>
       </div>
     </div>
@@ -222,12 +210,10 @@ const Dashboard = {
   <!-- Buscador -->
   <div class="card bg-white mb-6">
     <div class="card-body p-4">
-      <div class="form-control">
-        <div class="relative">
-          <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-base-content/25 text-sm"></i>
-          <input type="text" x-model="search" placeholder="Buscar por nombre, cargo o habilidad..."
-                 class="input input-bordered w-full pl-10" style="border-radius: 8px;">
-        </div>
+      <div class="relative">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--ink-faint);"></i>
+        <input type="text" x-model="search" placeholder="Buscar por nombre, cargo o habilidad..."
+               class="input input-bordered w-full pl-9" style="border-radius: var(--radius-sm);">
       </div>
     </div>
   </div>
@@ -237,8 +223,8 @@ const Dashboard = {
     <div class="flex flex-col gap-6">
       <!-- Gráfico de skills -->
       <div class="card bg-white">
-        <div class="card-body p-4">
-          <h3 class="section-label mb-2 flex items-center gap-2">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style="color: var(--ink-muted);">
             <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
           </h3>
           <div id="skills-chart" style="min-height: 250px;"></div>
@@ -247,8 +233,8 @@ const Dashboard = {
 
       <!-- Treemap: Skills por desarrollador -->
       <div class="card bg-white">
-        <div class="card-body p-4">
-          <h3 class="section-label mb-2 flex items-center gap-2">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style="color: var(--ink-muted);">
             <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por desarrollador
           </h3>
           <div id="skills-per-dev-chart" style="min-height: 280px;"></div>
@@ -258,8 +244,8 @@ const Dashboard = {
 
     <!-- Distribución por categoría — barras horizontales -->
     <div class="card bg-white">
-      <div class="card-body p-4">
-        <h3 class="section-label mb-4 flex items-center gap-2">
+      <div class="card-body p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--ink-muted);">
           <i class="bi bi-bar-chart-fill text-accent"></i> Por categoría
         </h3>
         <div class="space-y-3" id="category-bars">
@@ -287,8 +273,8 @@ const Dashboard = {
 
   <!-- Tabla de desarrolladores -->
   <div class="card bg-white">
-    <div class="card-body p-4">
-      <h3 class="section-label mb-4 flex items-center gap-2">
+    <div class="card-body p-5">
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--ink-muted);">
         <i class="bi bi-people-fill text-accent"></i> Equipo de desarrollo
       </h3>
 
@@ -299,26 +285,26 @@ const Dashboard = {
       <div class="overflow-x-auto" x-show="filtered.length > 0">
         <table class="table w-full">
           <thead>
-            <tr class="border-b border-base-200">
-              <th class="section-label font-semibold">Nombre</th>
-              <th class="section-label font-semibold">Cargo</th>
-              <th class="section-label font-semibold">Skills</th>
-              <th class="section-label font-semibold">Rol</th>
-              <th class="text-right section-label font-semibold">Acciones</th>
+            <tr>
+              <th>Nombre</th>
+              <th>Cargo</th>
+              <th>Skills</th>
+              <th>Rol</th>
+              <th class="text-right">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <template x-for="(dev, index) in filtered" :key="dev.id">
-              <tr class="border-b border-base-100 last:border-b-0 stagger-enter" :style="'animation-delay: ' + (index * 0.03) + 's'">
+              <tr class="stagger-enter" :style="'animation-delay: ' + (index * 0.03) + 's'">
                   <td>
                     <div class="flex items-center gap-3">
                       <div class="avatar">
-                        <div class="rounded-full w-9 h-9 overflow-hidden ring-1 ring-base-200" style="background: rgba(38,38,38,0.06);">
+                        <div class="rounded-full w-9 h-9 overflow-hidden" style="background: var(--surface-muted);">
                           <template x-if="dev.fotoBase64">
                             <img :src="dev.fotoBase64" :alt="dev.nombre" class="w-full h-full object-cover">
                           </template>
                           <template x-if="!dev.fotoBase64">
-                            <div class="w-full h-full flex items-center justify-center" style="color: var(--ink);">
+                            <div class="w-full h-full flex items-center justify-center" style="color: var(--ink-muted);">
                               <span x-text="dev.nombre.charAt(0).toUpperCase()" class="text-xs font-semibold"></span>
                             </div>
                           </template>
@@ -326,13 +312,13 @@ const Dashboard = {
                       </div>
                     <div>
                       <p class="font-medium text-sm" x-text="dev.nombre"></p>
-                      <p class="text-xs text-base-content/50" x-text="UI.formatDateRelative(dev.created_at)"></p>
+                      <p class="text-xs" style="color: var(--ink-faint);" x-text="UI.formatDateRelative(dev.created_at)"></p>
                     </div>
                   </div>
                 </td>
-                <td><span class="badge badge-ghost badge-sm" style="border-radius: 6px;" x-text="dev.cargo"></span></td>
+                <td><span class="badge badge-ghost badge-sm" style="border-radius: var(--radius-sm);" x-text="dev.cargo"></span></td>
                 <td>
-                  <div class="flex flex-wrap gap-1.5">
+                  <div class="flex flex-wrap gap-1">
                     <template x-for="skill in dev.skills.slice(0, 4)" :key="skill">
                       <span class="badge badge-sm" style="border-radius: 4px;" x-text="skill"></span>
                     </template>
@@ -358,11 +344,11 @@ const Dashboard = {
                         x-text="dev.rol === 'admin' ? 'Admin' : 'Dev'"></span>
                 </td>
                 <td class="text-right">
-                  <div class="flex justify-end gap-1">
-                    <button class="btn btn-ghost btn-xs" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
+                  <div class="flex justify-end gap-0.5">
+                    <button class="btn btn-ghost btn-xs btn-square" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
                       <i class="bi bi-file-earmark-richtext"></i>
                     </button>
-                    <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-xs" @click="editarPerfil(dev.id)" aria-label="Editar perfil" title="Editar perfil">
+                    <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-xs btn-square" @click="editarPerfil(dev.id)" aria-label="Editar perfil" title="Editar perfil">
                       <i class="bi bi-pencil"></i>
                     </button>
                   </div>

@@ -34,13 +34,13 @@ const Habilidades = {
       <h2 class="text-xl font-semibold tracking-heading flex items-center gap-2">
         <i class="bi bi-tools text-accent"></i> Habilidades
       </h2>
-      <p class="text-xs text-base-content/50 mt-1" x-text="Object.keys(cats).length + ' categorías, ' + Object.values(cats).flat().length + ' skills'"></p>
+      <p class="text-xs mt-1" style="color: var(--ink-muted);" x-text="Object.keys(cats).length + ' categorías, ' + Object.values(cats).flat().length + ' skills'"></p>
     </div>
     <div class="flex gap-2">
-      <button class="btn btn-ghost btn-sm" style="border-radius: 8px; border: 1px solid var(--border);" @click="showCatModal = true">
+      <button class="btn btn-ghost btn-sm gap-1.5" style="border-radius: var(--radius-sm);" @click="showCatModal = true">
         <i class="bi bi-folder-plus"></i> Nueva categoría
       </button>
-      <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="showSkillModal = true">
+      <button class="btn btn-primary btn-sm gap-1.5" style="border-radius: var(--radius-sm);" @click="showSkillModal = true">
         <i class="bi bi-plus-lg"></i> Nueva habilidad
       </button>
     </div>
@@ -56,12 +56,12 @@ const Habilidades = {
       <div class="card bg-white stagger-enter" :style="'animation-delay: ' + (Object.keys(cats).indexOf(categoria) * 0.06) + 's'">
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="section-label flex items-center gap-2">
+            <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style="color: var(--ink-muted);">
               <i class="bi bi-folder-fill text-accent"></i>
               <span x-text="categoria"></span>
               <span class="badge badge-sm badge-ghost ml-1" style="border-radius: 4px;" x-text="skills.length"></span>
             </h3>
-            <button class="btn btn-ghost btn-xs text-error" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
+            <button class="btn btn-ghost btn-xs btn-square" style="color: var(--ink-faint);" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -73,12 +73,12 @@ const Habilidades = {
                   <i class="bi bi-tag-fill text-accent/40 text-xs"></i>
                   <span class="text-sm" x-text="skill.nombre"></span>
                 </div>
-                <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                  <span class="text-xs text-base-content/50" x-text="skill.uso"></span>
-                  <button class="btn btn-ghost btn-xs" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
+                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="text-xs mr-1" style="color: var(--ink-faint);" x-text="skill.uso"></span>
+                  <button class="btn btn-ghost btn-xs btn-square" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-ghost btn-xs text-error" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
+                  <button class="btn btn-ghost btn-xs btn-square" style="color: var(--ink-faint);" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>

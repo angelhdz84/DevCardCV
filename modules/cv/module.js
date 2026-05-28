@@ -232,6 +232,188 @@ function cvData(perfiles, perfil, currentId) {
       window.location.hash = `#/cv/${this.selectedId}`;
     },
 
+    // ── Helper: generar PDF (compartido entre exportarPDF y compartirCV) ──
+    _generarPDF(p, perfilSkills) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pw = pdf.internal.pageSize.getWidth();
+      const ph = pdf.internal.pageSize.getHeight();
+      const m = 22;
+      let y = 0;
+
+      const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) || p.email : '';
+      const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) || p.telefono : '';
+      const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) || p.direccion : '';
+
+      const checkPage = (delta) => { if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; } };
+
+      const acc = [21, 128, 61];
+      const darkBg = [4, 120, 87];
+      const darkFg = [255, 255, 255];
+      const mutedFg = [180, 210, 195];
+      const headingFg = [25, 35, 55];
+      const bodyFg = [60, 70, 85];
+
+      // ── Header: emerald bar ──
+      const hh = 46;
+      pdf.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
+      pdf.rect(0, 0, pw, hh, 'F');
+      pdf.setFillColor(5, 150, 105);
+      pdf.rect(0, hh - 3, pw, 3, 'F');
+
+      let hasAvatar = false;
+      const avatarSize = 20;
+      if (p.fotoBase64) {
+        try {
+          pdf.addImage(p.fotoBase64, 'JPEG', m, (hh - avatarSize) / 2, avatarSize, avatarSize, undefined, 'FAST');
+          pdf.setDrawColor(255, 255, 255);
+          pdf.setLineWidth(0.5);
+          pdf.circle(m + avatarSize / 2, hh / 2, avatarSize / 2);
+          hasAvatar = true;
+        } catch (_) {}
+      }
+
+      const textX = hasAvatar ? m + avatarSize + 7 : m;
+      const textY = hasAvatar ? (hh - avatarSize) / 2 + 6 : 16;
+      pdf.setTextColor(darkFg[0], darkFg[1], darkFg[2]);
+      pdf.setFontSize(18);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(p.nombre, textX, textY);
+      if (p.cargo) {
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, 'normal');
+        pdf.setTextColor(mutedFg[0], mutedFg[1], mutedFg[2]);
+        pdf.text(p.cargo, textX, textY + 6);
+      }
+
+      // ── Contact info bar ──
+      y = hh + 9;
+      const visible = [];
+      visible.push(['Email', emailDecrypted]);
+      if (telDecrypted) visible.push(['Tel', telDecrypted]);
+      if (dirDecrypted) visible.push(['Direccion', dirDecrypted]);
+
+      if (visible.length) {
+        pdf.setFillColor(246, 248, 250);
+        pdf.rect(m - 3, y - 3.5, pw - m * 2 + 6, 11, 'F');
+        let cx = m;
+        visible.forEach(([label, val]) => {
+          pdf.setFontSize(7);
+          pdf.setFont(undefined, 'normal');
+          pdf.setTextColor(140, 150, 165);
+          pdf.text(label + ':', cx, y);
+          pdf.setFontSize(8);
+          pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
+          const trunc = val.length > 30 ? val.slice(0, 28) + '\u2026' : val;
+          pdf.text(trunc, cx + (label === 'Email' ? 14 : 10), y);
+          cx += (pw - m * 2) / visible.length;
+        });
+        y += 13;
+      }
+
+      // ── Bio section ──
+      if (p.bio) {
+        checkPage(20);
+        pdf.setFillColor(acc[0], acc[1], acc[2]);
+        pdf.rect(m, y, 3, 11, 'F');
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
+        pdf.text('PERFIL PROFESIONAL', m + 8, y + 4);
+        y += 14;
+        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
+        const bioLines = pdf.splitTextToSize(p.bio, pw - m * 2 - 6);
+        bioLines.forEach(line => {
+          checkPage(4);
+          pdf.text(line, m + 3, y);
+          y += 4.2;
+        });
+        y += 5;
+      }
+
+      // ── Skills section ──
+      const skillsByCat = {};
+      perfilSkills.forEach(s => {
+        if (!skillsByCat[s.categoria]) skillsByCat[s.categoria] = [];
+        if (!skillsByCat[s.categoria].includes(s.nombre)) skillsByCat[s.categoria].push(s.nombre);
+      });
+
+      const catColors = {
+        'Lenguajes': [59, 130, 246], 'Frameworks': [139, 92, 246],
+        'Backend': [16, 185, 129], 'Bases de Datos': [245, 158, 11],
+        'DevOps': [239, 68, 68], 'Herramientas': [107, 114, 128],
+        'Diseno': [236, 72, 153], 'Metodologias': [168, 85, 247],
+        'Testing': [34, 197, 94], 'Cloud': [59, 130, 246],
+        'Frontend': [59, 130, 246], 'Redes & Seguridad': [239, 68, 68],
+        'Soft Skills': [34, 197, 94], 'DevOps & Cloud': [245, 158, 11],
+        'Diseño UX/UI & Gráfico': [236, 72, 153], 'Analítica de Datos': [16, 185, 129],
+        'CMS': [107, 114, 128]
+      };
+
+      if (Object.keys(skillsByCat).length) {
+        checkPage(20);
+        pdf.setFillColor(acc[0], acc[1], acc[2]);
+        pdf.rect(m, y, 3, 11, 'F');
+        pdf.setFontSize(10);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
+        pdf.text('HABILIDADES TECNICAS', m + 8, y + 4);
+        y += 14;
+
+        for (const [cat, skills] of Object.entries(skillsByCat)) {
+          checkPage(28);
+          const c = catColors[cat] || acc;
+          pdf.setFillColor(c[0], c[1], c[2]);
+          pdf.roundedRect(m, y, 55, 5.5, 1.2, 1.2, 'F');
+          pdf.setFontSize(7);
+          pdf.setFont(undefined, 'bold');
+          pdf.setTextColor(255, 255, 255);
+          pdf.text(cat.toUpperCase(), m + 3, y + 4);
+          y += 9;
+
+          const cols = 3;
+          const tagW = (pw - m * 2 - (cols - 1) * 4) / cols;
+          const startY = y;
+          skills.forEach((skill, i) => {
+            checkPage(7);
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const ax = m + col * (tagW + 4);
+            const ay = startY + row * 7;
+            pdf.setFillColor(240, 244, 248);
+            pdf.roundedRect(ax, ay, tagW, 5.5, 1, 1, 'F');
+            pdf.setFontSize(7);
+            pdf.setFont(undefined, 'normal');
+            pdf.setTextColor(c[0], c[1], c[2]);
+            const display = skill.length > 18 ? skill.slice(0, 16) + '\u2026' : skill;
+            pdf.text(display, ax + 2.5, ay + 4);
+          });
+          const rows = Math.ceil(skills.length / cols);
+          y = startY + rows * 7 + 6;
+        }
+      }
+
+      // ── Footer ──
+      const drawFooter = (pageNum) => {
+        pdf.setDrawColor(215, 220, 230);
+        pdf.setLineWidth(0.3);
+        pdf.line(m, ph - 13, pw - m, ph - 13);
+        pdf.setFontSize(7);
+        pdf.setTextColor(155, 165, 180);
+        pdf.text('Generado por DevCardCV', m, ph - 7);
+        pdf.text(dayjs().format('DD/MM/YYYY HH:mm'), pw - m, ph - 7, { align: 'right' });
+        pdf.text('Pagina ' + pageNum, pw / 2, ph - 7, { align: 'center' });
+      };
+
+      drawFooter(1);
+      const total = pdf.getNumberOfPages();
+      for (let i = 2; i <= total; i++) { pdf.setPage(i); drawFooter(i); }
+
+      return pdf;
+    },
+
     async exportarPDF() {
       if (!this.perfil) return;
       this.exporting = true;
@@ -243,215 +425,17 @@ function cvData(perfiles, perfil, currentId) {
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
-
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pw = pdf.internal.pageSize.getWidth();
-        const ph = pdf.internal.pageSize.getHeight();
-        const m = 22;
-        let y = 0;
-
-        const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) || p.email : '';
-        const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) || p.telefono : '';
-        const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) || p.direccion : '';
-
-        function checkPage(delta) {
-          if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; }
-        }
-
-        const acc = [21, 128, 61];
-        const darkBg = [4, 120, 87];
-        const darkFg = [255, 255, 255];
-        const mutedFg = [180, 210, 195];
-        const headingFg = [25, 35, 55];
-        const bodyFg = [60, 70, 85];
-
-        // ── Header: emerald gradient bar ──
-        const hh = 46;
-        pdf.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
-        pdf.rect(0, 0, pw, hh, 'F');
-        pdf.setFillColor(5, 150, 105);
-        pdf.rect(0, hh - 3, pw, 3, 'F');
-
-        const avatarSize = 20;
-        const avatarX = m;
-        const avatarY = (hh - avatarSize) / 2;
-
-        let hasAvatar = false;
-        if (p.fotoBase64) {
-          try {
-            pdf.addImage(p.fotoBase64, 'JPEG', avatarX, avatarY, avatarSize, avatarSize, undefined, 'FAST');
-            pdf.setDrawColor(255, 255, 255);
-            pdf.setLineWidth(0.5);
-            pdf.circle(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2);
-            pdf.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
-            hasAvatar = true;
-          } catch (_) {}
-        }
-
-        const textX = hasAvatar ? m + avatarSize + 7 : m;
-        const textY = hasAvatar ? avatarY + 6 : 16;
-        pdf.setTextColor(darkFg[0], darkFg[1], darkFg[2]);
-        pdf.setFontSize(18);
-        pdf.setFont(undefined, 'bold');
-        pdf.text(p.nombre, textX, textY);
-        if (p.cargo) {
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, 'normal');
-          pdf.setTextColor(mutedFg[0], mutedFg[1], mutedFg[2]);
-          pdf.text(p.cargo, textX, textY + 6);
-        }
-
-        // ── Contact info bar ──
-        y = hh + 9;
-        const contactItems = [];
-        contactItems.push(['email', emailDecrypted]);
-        if (telDecrypted) contactItems.push(['tel', telDecrypted]);
-        if (dirDecrypted) contactItems.push(['direccion', dirDecrypted]);
-        const contactsShown = contactItems.length;
-
-        if (contactsShown) {
-          pdf.setFillColor(246, 248, 250);
-          pdf.rect(m - 3, y - 3.5, pw - m * 2 + 6, 11, 'F');
-          let cx = m;
-          contactItems.forEach((item) => {
-            const [key, val] = item;
-            pdf.setFontSize(7);
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(140, 150, 165);
-            pdf.text(key.charAt(0).toUpperCase() + key.slice(1) + ':', cx, y);
-            pdf.setFontSize(8);
-            pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-            const valTrunc = val.length > 32 ? val.slice(0, 30) + '\u2026' : val;
-            pdf.text(valTrunc, cx + (key === 'email' ? 14 : 10), y);
-            cx += (pw - m * 2) / contactsShown;
-          });
-          y += 13;
-        }
-
-        // ── Bio section ──
-        if (p.bio) {
-          checkPage(20);
-          pdf.setFillColor(acc[0], acc[1], acc[2]);
-          pdf.rect(m, y, 3, 11, 'F');
-          pdf.setFontSize(10);
-          pdf.setFont(undefined, 'bold');
-          pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
-          pdf.text('PERFIL PROFESIONAL', m + 8, y + 4);
-          y += 14;
-          pdf.setFont(undefined, 'normal');
-          pdf.setFontSize(9);
-          pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-          const bioLines = pdf.splitTextToSize(p.bio, pw - m * 2 - 6);
-          bioLines.forEach(line => {
-            checkPage(4);
-            pdf.text(line, m + 3, y);
-            y += 4.2;
-          });
-          y += 5;
-        }
-
-        // ── Skills section ──
-        const skillsByCat = {};
-        perfilSkills.forEach(s => {
-          if (!skillsByCat[s.categoria]) skillsByCat[s.categoria] = [];
-          if (!skillsByCat[s.categoria].includes(s.nombre)) skillsByCat[s.categoria].push(s.nombre);
-        });
-
-        const catColors = {
-          'Lenguajes': [59, 130, 246], 'Frameworks': [139, 92, 246],
-          'Backend': [16, 185, 129], 'Bases de Datos': [245, 158, 11],
-          'DevOps': [239, 68, 68], 'Herramientas': [107, 114, 128],
-          'Diseno': [236, 72, 153], 'Metodologias': [168, 85, 247],
-          'Testing': [34, 197, 94], 'Cloud': [59, 130, 246],
-          'Frontend': [59, 130, 246], 'Redes & Seguridad': [239, 68, 68],
-          'Soft Skills': [34, 197, 94], 'DevOps & Cloud': [245, 158, 11],
-          'Diseño UX/UI & Gráfico': [236, 72, 153], 'Analítica de Datos': [16, 185, 129],
-          'CMS': [107, 114, 128]
-        };
-
-        if (Object.keys(skillsByCat).length) {
-          checkPage(20);
-          pdf.setFillColor(acc[0], acc[1], acc[2]);
-          pdf.rect(m, y, 3, 11, 'F');
-          pdf.setFontSize(10);
-          pdf.setFont(undefined, 'bold');
-          pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
-          pdf.text('HABILIDADES TECNICAS', m + 8, y + 4);
-          y += 14;
-
-          for (const [cat, skills] of Object.entries(skillsByCat)) {
-            checkPage(28);
-            const c = catColors[cat] || acc;
-            pdf.setFillColor(c[0], c[1], c[2]);
-            pdf.roundedRect(m, y, 55, 5.5, 1.2, 1.2, 'F');
-            pdf.setFontSize(7);
-            pdf.setFont(undefined, 'bold');
-            pdf.setTextColor(255, 255, 255);
-            pdf.text(cat.toUpperCase(), m + 3, y + 4);
-            y += 9;
-
-            const tagsPerRow = 3;
-            const tagW = (pw - m * 2 - (tagsPerRow - 1) * 4) / tagsPerRow;
-            let col = 0;
-            const startY = y;
-            skills.forEach((skill, i) => {
-              checkPage(7);
-              const tx = m + col * (tagW + 4);
-              const ty = startY + Math.floor(col / tagsPerRow) * 7;
-              if (col >= tagsPerRow) col = 0;
-              const actualX = m + col * (tagW + 4);
-              const actualY = ty;
-              pdf.setFillColor(240, 244, 248);
-              pdf.roundedRect(actualX, actualY, tagW, 5.5, 1, 1, 'F');
-              pdf.setFontSize(7);
-              pdf.setFont(undefined, 'normal');
-              pdf.setTextColor(c[0], c[1], c[2]);
-              const display = skill.length > 18 ? skill.slice(0, 16) + '\u2026' : skill;
-              pdf.text(display, actualX + 2.5, actualY + 4);
-              col++;
-            });
-            if (col > 0) y = startY + (Math.ceil(col / tagsPerRow)) * 7 + 6;
-            else y += 6;
-          }
-        }
-
-        // ── Footer ──
-        pdf.setDrawColor(215, 220, 230);
-        pdf.setLineWidth(0.3);
-        pdf.line(m, ph - 13, pw - m, ph - 13);
-        pdf.setFontSize(7);
-        pdf.setTextColor(155, 165, 180);
-        pdf.text('Generado por DevCardCV', m, ph - 7);
-        pdf.text(dayjs().format('DD/MM/YYYY HH:mm'), pw - m, ph - 7, { align: 'right' });
-        pdf.text('P\u00E1gina 1', pw / 2, ph - 7, { align: 'center' });
-
-        const totalPages = pdf.getNumberOfPages();
-        for (let i = 2; i <= totalPages; i++) {
-          pdf.setPage(i);
-          pdf.setDrawColor(215, 220, 230);
-          pdf.setLineWidth(0.3);
-          pdf.line(m, ph - 13, pw - m, ph - 13);
-          pdf.setFontSize(7);
-          pdf.setTextColor(155, 165, 180);
-          pdf.text('Generado por DevCardCV', m, ph - 7);
-          pdf.text(dayjs().format('DD/MM/YYYY HH:mm'), pw - m, ph - 7, { align: 'right' });
-          pdf.text('P\u00E1gina ' + i, pw / 2, ph - 7, { align: 'center' });
-        }
-
-        const pdfBlob = pdf.output('blob');
+        const pdf = this._generarPDF(p, perfilSkills);
+        const blob = pdf.output('blob');
         const nombre = p.nombre.replace(/\s+/g, '_');
-        const fecha = dayjs().format('YYYYMMDD');
-        const pdfName = 'CV_' + nombre + '_' + fecha + '.pdf';
-        const url = URL.createObjectURL(pdfBlob);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = pdfName;
+        a.download = `CV_${nombre}_${dayjs().format('YYYYMMDD')}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
-        UI.toast('PDF descargado: ' + pdfName, 'success');
+        UI.toast('PDF descargado', 'success');
       } catch (err) {
-        console.error('Error exportando PDF:', err);
         UI.toast('Error: ' + err.message, 'error');
       } finally {
         this.exporting = false;
@@ -469,195 +453,7 @@ function cvData(perfiles, perfil, currentId) {
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
-
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pw = pdf.internal.pageSize.getWidth();
-        const ph = pdf.internal.pageSize.getHeight();
-        const m = 22;
-        let y = 0;
-
-        const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) || p.email : '';
-        const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) || p.telefono : '';
-        const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) || p.direccion : '';
-
-        function checkPage(delta) {
-          if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; }
-        }
-
-        const acc = [21, 128, 61];
-        const darkBg = [4, 120, 87];
-        const darkFg = [255, 255, 255];
-        const mutedFg = [180, 210, 195];
-        const headingFg = [25, 35, 55];
-        const bodyFg = [60, 70, 85];
-
-        const hh = 46;
-        pdf.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
-        pdf.rect(0, 0, pw, hh, 'F');
-        pdf.setFillColor(5, 150, 105);
-        pdf.rect(0, hh - 3, pw, 3, 'F');
-
-        const avatarSize = 20;
-        const avatarX = m;
-        const avatarY = (hh - avatarSize) / 2;
-
-        let hasAvatar = false;
-        if (p.fotoBase64) {
-          try {
-            pdf.addImage(p.fotoBase64, 'JPEG', avatarX, avatarY, avatarSize, avatarSize, undefined, 'FAST');
-            pdf.setDrawColor(255, 255, 255);
-            pdf.setLineWidth(0.5);
-            pdf.circle(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2);
-            pdf.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
-            hasAvatar = true;
-          } catch (_) {}
-        }
-
-        const textX = hasAvatar ? m + avatarSize + 7 : m;
-        const textY = hasAvatar ? avatarY + 6 : 16;
-        pdf.setTextColor(darkFg[0], darkFg[1], darkFg[2]);
-        pdf.setFontSize(18);
-        pdf.setFont(undefined, 'bold');
-        pdf.text(p.nombre, textX, textY);
-        if (p.cargo) {
-          pdf.setFontSize(9);
-          pdf.setFont(undefined, 'normal');
-          pdf.setTextColor(mutedFg[0], mutedFg[1], mutedFg[2]);
-          pdf.text(p.cargo, textX, textY + 6);
-        }
-
-        y = hh + 9;
-        const contactItems = [];
-        contactItems.push(['email', emailDecrypted]);
-        if (telDecrypted) contactItems.push(['tel', telDecrypted]);
-        if (dirDecrypted) contactItems.push(['direccion', dirDecrypted]);
-        const contactsShown = contactItems.length;
-
-        if (contactsShown) {
-          pdf.setFillColor(246, 248, 250);
-          pdf.rect(m - 3, y - 3.5, pw - m * 2 + 6, 11, 'F');
-          let cx = m;
-          contactItems.forEach((item) => {
-            const [key, val] = item;
-            pdf.setFontSize(7);
-            pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(140, 150, 165);
-            pdf.text(key.charAt(0).toUpperCase() + key.slice(1) + ':', cx, y);
-            pdf.setFontSize(8);
-            pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-            const valTrunc = val.length > 32 ? val.slice(0, 30) + '\u2026' : val;
-            pdf.text(valTrunc, cx + (key === 'email' ? 14 : 10), y);
-            cx += (pw - m * 2) / contactsShown;
-          });
-          y += 13;
-        }
-
-        if (p.bio) {
-          checkPage(20);
-          pdf.setFillColor(acc[0], acc[1], acc[2]);
-          pdf.rect(m, y, 3, 11, 'F');
-          pdf.setFontSize(10);
-          pdf.setFont(undefined, 'bold');
-          pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
-          pdf.text('PERFIL PROFESIONAL', m + 8, y + 4);
-          y += 14;
-          pdf.setFont(undefined, 'normal');
-          pdf.setFontSize(9);
-          pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-          const bioLines = pdf.splitTextToSize(p.bio, pw - m * 2 - 6);
-          bioLines.forEach(line => {
-            checkPage(4);
-            pdf.text(line, m + 3, y);
-            y += 4.2;
-          });
-          y += 5;
-        }
-
-        const skillsByCat = {};
-        perfilSkills.forEach(s => {
-          if (!skillsByCat[s.categoria]) skillsByCat[s.categoria] = [];
-          if (!skillsByCat[s.categoria].includes(s.nombre)) skillsByCat[s.categoria].push(s.nombre);
-        });
-
-        const catColors = {
-          'Lenguajes': [59, 130, 246], 'Frameworks': [139, 92, 246],
-          'Backend': [16, 185, 129], 'Bases de Datos': [245, 158, 11],
-          'DevOps': [239, 68, 68], 'Herramientas': [107, 114, 128],
-          'Diseno': [236, 72, 153], 'Metodologias': [168, 85, 247],
-          'Testing': [34, 197, 94], 'Cloud': [59, 130, 246],
-          'Frontend': [59, 130, 246], 'Redes & Seguridad': [239, 68, 68],
-          'Soft Skills': [34, 197, 94], 'DevOps & Cloud': [245, 158, 11],
-          'Diseño UX/UI & Gráfico': [236, 72, 153], 'Analítica de Datos': [16, 185, 129],
-          'CMS': [107, 114, 128]
-        };
-
-        if (Object.keys(skillsByCat).length) {
-          checkPage(20);
-          pdf.setFillColor(acc[0], acc[1], acc[2]);
-          pdf.rect(m, y, 3, 11, 'F');
-          pdf.setFontSize(10);
-          pdf.setFont(undefined, 'bold');
-          pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
-          pdf.text('HABILIDADES TECNICAS', m + 8, y + 4);
-          y += 14;
-
-          for (const [cat, skills] of Object.entries(skillsByCat)) {
-            checkPage(28);
-            const c = catColors[cat] || acc;
-            pdf.setFillColor(c[0], c[1], c[2]);
-            pdf.roundedRect(m, y, 55, 5.5, 1.2, 1.2, 'F');
-            pdf.setFontSize(7);
-            pdf.setFont(undefined, 'bold');
-            pdf.setTextColor(255, 255, 255);
-            pdf.text(cat.toUpperCase(), m + 3, y + 4);
-            y += 9;
-
-            const tagsPerRow = 3;
-            const tagW = (pw - m * 2 - (tagsPerRow - 1) * 4) / tagsPerRow;
-            let col = 0;
-            const startY = y;
-            skills.forEach((skill) => {
-              checkPage(7);
-              if (col >= tagsPerRow) col = 0;
-              const actualX = m + col * (tagW + 4);
-              const actualY = startY + Math.floor(col / tagsPerRow) * 7;
-              pdf.setFillColor(240, 244, 248);
-              pdf.roundedRect(actualX, actualY, tagW, 5.5, 1, 1, 'F');
-              pdf.setFontSize(7);
-              pdf.setFont(undefined, 'normal');
-              pdf.setTextColor(c[0], c[1], c[2]);
-              const display = skill.length > 18 ? skill.slice(0, 16) + '\u2026' : skill;
-              pdf.text(display, actualX + 2.5, actualY + 4);
-              col++;
-            });
-            if (col > 0) y = startY + (Math.ceil(col / tagsPerRow)) * 7 + 6;
-            else y += 6;
-          }
-        }
-
-        pdf.setDrawColor(215, 220, 230);
-        pdf.setLineWidth(0.3);
-        pdf.line(m, ph - 13, pw - m, ph - 13);
-        pdf.setFontSize(7);
-        pdf.setTextColor(155, 165, 180);
-        pdf.text('Generado por DevCardCV', m, ph - 7);
-        pdf.text(dayjs().format('DD/MM/YYYY HH:mm'), pw - m, ph - 7, { align: 'right' });
-        pdf.text('P\u00E1gina 1', pw / 2, ph - 7, { align: 'center' });
-
-        const totalPages = pdf.getNumberOfPages();
-        for (let i = 2; i <= totalPages; i++) {
-          pdf.setPage(i);
-          pdf.setDrawColor(215, 220, 230);
-          pdf.setLineWidth(0.3);
-          pdf.line(m, ph - 13, pw - m, ph - 13);
-          pdf.setFontSize(7);
-          pdf.setTextColor(155, 165, 180);
-          pdf.text('Generado por DevCardCV', m, ph - 7);
-          pdf.text(dayjs().format('DD/MM/YYYY HH:mm'), pw - m, ph - 7, { align: 'right' });
-          pdf.text('P\u00E1gina ' + i, pw / 2, ph - 7, { align: 'center' });
-        }
-
+        const pdf = this._generarPDF(p, perfilSkills);
         const pdfBlob = pdf.output('blob');
         const nombre = p.nombre.replace(/\s+/g, '_');
         const fecha = dayjs().format('YYYYMMDD');
