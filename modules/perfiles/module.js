@@ -45,14 +45,14 @@ const Perfiles = {
       <h2 class="text-xl font-semibold tracking-heading flex items-center gap-2">
         <i class="bi bi-people-fill text-accent"></i> Perfiles
       </h2>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' en el equipo'"></p>
+      <p class="text-xs mt-1 text-muted" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' en el equipo'"></p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <label x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm cursor-pointer gap-1.5" style="border-radius: var(--radius-sm);">
+      <label x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm cursor-pointer gap-1.5 radius-sm">
         <i class="bi bi-upload"></i> Importar
         <input type="file" accept=".json" class="hidden" @change="importarPerfilJSON($event)">
       </label>
-      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm gap-1.5" style="border-radius: var(--radius-sm);" @click="abrirFormulario()">
+      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm gap-1.5 radius-sm" @click="abrirFormulario()">
         <i class="bi bi-person-plus-fill"></i> Nuevo desarrollador
       </button>
     </div>
@@ -65,32 +65,32 @@ const Perfiles = {
 
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="perfiles.length > 0">
     <template x-for="(dev, index) in perfiles" :key="dev.id">
-      <div class="card bg-white group stagger-enter" :style="'animation-delay: ' + (index * 0.04) + 's'">
+      <div class="card bg-white group stagger-enter" :style="'animation-delay: ' + (index * 60) + 'ms'">
         <div class="card-body p-5">
           <!-- Foto + Nombre -->
           <div class="flex items-start gap-4">
             <div class="avatar">
-              <div class="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center" style="background: var(--surface-muted);">
+              <div class="w-14 h-14 rounded-xl overflow-hidden flex items-center justify-center bg-muted">
                 <template x-if="dev.fotoBase64">
                   <img :src="dev.fotoBase64" :alt="dev.nombre" class="w-full h-full object-cover">
                 </template>
                 <template x-if="!dev.fotoBase64">
-                  <i class="bi bi-person-fill text-xl" style="color: var(--ink-faint);"></i>
+                  <i class="bi bi-person-fill text-xl text-faint"></i>
                 </template>
               </div>
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="font-semibold text-sm tracking-heading truncate" x-text="dev.nombre"></h3>
               <p class="text-sm text-accent" x-text="dev.cargo"></p>
-              <p class="text-xs mt-0.5" style="color: var(--ink-faint);" x-text="UI.formatDateRelative(dev.created_at)"></p>
+              <p class="text-xs mt-0.5 text-faint" x-text="UI.formatDateRelative(dev.created_at)"></p>
             </div>
           </div>
 
           <!-- Bio -->
-          <p class="text-sm mt-3 leading-relaxed line-clamp-2" style="color: var(--ink-muted);" x-text="dev.bio || 'Sin descripción'"></p>
+          <p class="text-sm mt-3 leading-relaxed line-clamp-2 text-muted" x-text="dev.bio || 'Sin descripción'"></p>
 
           <!-- Contacto -->
-          <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs" style="color: var(--ink-muted);">
+          <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-muted">
             <span x-show="dev.email" class="flex items-center gap-1">
               <i class="bi bi-envelope"></i> <span x-text="dev.email"></span>
             </span>
@@ -111,7 +111,7 @@ const Perfiles = {
           </div>
 
           <!-- Acciones -->
-          <div class="flex justify-end gap-0.5 mt-4 pt-3" style="border-top: 1px solid var(--border);">
+          <div class="flex justify-end gap-0.5 mt-4 pt-3 border-t-default">
             <button class="btn btn-ghost btn-xs btn-square" @click="exportarPerfilJSON(dev)" aria-label="Exportar JSON" title="Exportar JSON">
               <i class="bi bi-download"></i>
             </button>
@@ -132,9 +132,9 @@ const Perfiles = {
 
   <!-- Modal Formulario — Linear-inspired -->
   <div x-show="showModal" class="modal modal-open" @keydown.escape.window="cerrarFormulario()">
-    <div class="modal-box w-11/12 max-w-3xl p-0 overflow-hidden" style="border-radius: 12px; max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="modal-box w-11/12 max-w-3xl p-0 overflow-hidden radius-lg" style="max-height: 90vh; display: flex; flex-direction: column;">
       <!-- Header sticky -->
-      <div class="flex justify-between items-center px-6 py-4 shrink-0" style="border-bottom: 1px solid var(--border); background: var(--surface-elevated);">
+      <div class="flex justify-between items-center px-6 py-4 shrink-0 border-b-default bg-elevated">
         <div>
           <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
             <i class="bi bi-person-badge text-accent"></i>
@@ -142,7 +142,7 @@ const Perfiles = {
           </h3>
           <p class="text-xs text-base-content/35 mt-0.5" x-text="editando ? 'Actualiza los datos del desarrollador' : 'Completa la información para crear la ficha'"></p>
         </div>
-        <button class="btn btn-ghost btn-sm btn-circle" @click="cerrarFormulario()" title="Cerrar" style="border-radius: 6px;">
+        <button class="btn btn-ghost btn-sm btn-circle radius-sm" @click="cerrarFormulario()" title="Cerrar">
           <i class="bi bi-x-lg text-sm"></i>
         </button>
       </div>
@@ -153,16 +153,16 @@ const Perfiles = {
           <!-- Sección: Foto + Identidad -->
           <div>
             <span class="section-label block mb-3">Foto e identidad</span>
-            <div class="flex items-start gap-5 p-4 rounded-lg" style="background: var(--surface-muted); border: 1px solid var(--border);">
+            <div class="flex items-start gap-5 p-4 rounded-lg bg-muted border-default">
               <!-- Avatar preview -->
               <div class="shrink-0">
                 <div class="w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center ring-1 ring-base-200 transition-all"
                      :style="form.fotoBase64 ? 'ring-color: var(--accent-border)' : ''">
                   <template x-if="form.fotoBase64">
-                    <img :src="form.fotoBase64" class="w-full h-full object-cover">
+                    <img :src="form.fotoBase64" alt="Foto del desarrollador" class="w-full h-full object-cover">
                   </template>
                   <template x-if="!form.fotoBase64">
-                    <div class="w-full h-full flex items-center justify-center" style="background: var(--surface-elevated);">
+                    <div class="w-full h-full flex items-center justify-center bg-elevated">
                       <i class="bi bi-person-fill text-3xl text-base-content/15"></i>
                     </div>
                   </template>
@@ -173,12 +173,12 @@ const Perfiles = {
                 <p class="text-sm font-medium mb-1">Foto de perfil</p>
                 <p class="text-xs text-base-content/35 mb-3">JPG o PNG. Se almacena localmente en la base de datos.</p>
                 <div class="flex gap-2">
-                  <label class="btn btn-sm gap-1.5" for="foto-input" style="border-radius: 6px; border: 1px solid var(--border); background: transparent;"
+                  <label class="btn btn-sm gap-1.5 radius-sm border-default" for="foto-input" style="background: transparent;"
                          :style="dragOver ? 'border-color: var(--accent); background: rgba(21,128,61,0.08);' : ''">
                     <i class="bi bi-camera text-xs"></i>
                     <span x-text="form.fotoBase64 ? 'Cambiar' : 'Subir foto'"></span>
                   </label>
-                  <button x-show="form.fotoBase64" class="btn btn-sm btn-ghost gap-1.5" @click="form.fotoBase64 = ''" style="border-radius: 6px;">
+                  <button x-show="form.fotoBase64" class="btn btn-sm btn-ghost gap-1.5 radius-sm" @click="form.fotoBase64 = ''">
                     <i class="bi bi-trash text-xs text-error"></i> Quitar
                   </button>
                   <input type="file" id="foto-input" accept="image/*" class="hidden" @change="cargarFoto($event)">
@@ -193,17 +193,17 @@ const Perfiles = {
             <div class="space-y-3">
               <label class="form-control w-full">
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Nombre completo <span class="text-accent">*</span></span>
-                <input type="text" x-model="form.nombre" class="input input-bordered w-full" placeholder="Ej: Ana García" style="border-radius: 6px;" aria-describedby="error-nombre">
+                <input type="text" x-model="form.nombre" class="input input-bordered w-full radius-sm" placeholder="Ej: Ana García" aria-describedby="error-nombre">
                 <span x-show="formErrors.nombre" x-text="formErrors.nombre" class="text-xs text-error mt-1 flex items-center gap-1" id="error-nombre" data-error><i class="bi bi-exclamation-triangle-fill"></i> </span>
               </label>
               <label class="form-control w-full">
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Cargo / Rol <span class="text-accent">*</span></span>
-                <input type="text" x-model="form.cargo" class="input input-bordered w-full" placeholder="Ej: Frontend Senior" style="border-radius: 6px;" aria-describedby="error-cargo">
+                <input type="text" x-model="form.cargo" class="input input-bordered w-full radius-sm" placeholder="Ej: Frontend Senior" aria-describedby="error-cargo">
                 <span x-show="formErrors.cargo" x-text="formErrors.cargo" class="text-xs text-error mt-1 flex items-center gap-1" id="error-cargo" data-error><i class="bi bi-exclamation-triangle-fill"></i> </span>
               </label>
               <label class="form-control w-full">
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Biografía</span>
-                <textarea x-model="form.bio" class="textarea textarea-bordered w-full h-20" placeholder="Breve descripción profesional..." style="border-radius: 6px;"></textarea>
+                <textarea x-model="form.bio" class="textarea textarea-bordered w-full h-20 radius-sm" placeholder="Breve descripción profesional..."></textarea>
               </label>
             </div>
           </div>
@@ -214,18 +214,18 @@ const Perfiles = {
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="form-control w-full">
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Email <span class="text-accent">*</span></span>
-                <input type="email" x-model="form.email" class="input input-bordered w-full" placeholder="correo@ejemplo.com" style="border-radius: 6px;" aria-describedby="error-email">
+                <input type="email" x-model="form.email" class="input input-bordered w-full radius-sm" placeholder="correo@ejemplo.com" aria-describedby="error-email">
                 <span x-show="formErrors.email" x-text="formErrors.email" class="text-xs text-error mt-1 flex items-center gap-1" id="error-email" data-error><i class="bi bi-exclamation-triangle-fill"></i> </span>
               </label>
               <label class="form-control w-full">
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Teléfono</span>
-                <input type="tel" x-model="form.telefono" class="input input-bordered w-full" placeholder="+34 600 000 000" style="border-radius: 6px;">
+                <input type="tel" x-model="form.telefono" class="input input-bordered w-full radius-sm" placeholder="+34 600 000 000">
               </label>
             </div>
             <div class="mt-3">
               <label class="form-control w-full">
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Dirección particular</span>
-                <input type="text" x-model="form.direccion" class="input input-bordered w-full" placeholder="Calle, número, ciudad, código postal" style="border-radius: 6px;">
+                <input type="text" x-model="form.direccion" class="input input-bordered w-full radius-sm" placeholder="Calle, número, ciudad, código postal">
               </label>
             </div>
           </div>
@@ -235,10 +235,10 @@ const Perfiles = {
             <div class="flex items-center justify-between mb-3">
               <span class="section-label">Habilidades técnicas</span>
               <div class="flex gap-2">
-                <button type="button" class="btn btn-ghost btn-xs gap-1" style="border-radius: 6px;" @click="agregarCategoria()" title="Nueva categoría">
+                <button type="button" class="btn btn-ghost btn-xs gap-1 radius-sm" @click="agregarCategoria()" title="Nueva categoría">
                   <i class="bi bi-folder-plus text-accent"></i> <span class="text-xs">Categoría</span>
                 </button>
-                <button type="button" class="btn btn-ghost btn-xs gap-1" style="border-radius: 6px;" @click="agregarSkill()" title="Nueva habilidad">
+                <button type="button" class="btn btn-ghost btn-xs gap-1 radius-sm" @click="agregarSkill()" title="Nueva habilidad">
                   <i class="bi bi-plus-lg text-accent"></i> <span class="text-xs">Habilidad</span>
                 </button>
                 <span class="text-xs text-base-content/50" x-text="form.skills.length + ' seleccionadas'"></span>
@@ -246,7 +246,7 @@ const Perfiles = {
             </div>
             <div class="space-y-3 max-h-56 overflow-y-auto pr-1">
               <template x-for="(skills, categoria) in categorias" :key="categoria">
-                <div class="p-3 rounded-lg stagger-enter" style="background: var(--surface-muted); border: 1px solid var(--border);" :style="'animation-delay: ' + (Object.keys(categorias).indexOf(categoria) * 0.05) + 's'">
+                <div class="p-3 rounded-lg stagger-enter bg-muted border-default" :style="'animation-delay: ' + (Object.keys(categorias).indexOf(categoria) * 0.05) + 's'">
                   <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <i class="bi bi-folder-fill text-accent/50 text-[10px]"></i>
                     <span x-text="categoria"></span>
@@ -258,6 +258,7 @@ const Perfiles = {
                              :style="form.skills.includes(skill.id) ? 'background: var(--accent-light); border-color: var(--accent-border);' : ''">
                         <input type="checkbox" class="checkbox checkbox-xs"
                                style="border-radius: 3px; --chkbg: var(--accent);"
+                               :aria-label="'Seleccionar ' + skill.nombre"
                                :value="skill.id"
                                :checked="form.skills.includes(skill.id)"
                                @change="toggleSkill(skill.id, $event)">
@@ -273,13 +274,13 @@ const Perfiles = {
       </div>
 
       <!-- Footer sticky -->
-      <div class="flex justify-between items-center px-6 py-4 shrink-0" style="border-top: 1px solid var(--border); background: var(--surface-elevated);">
+      <div class="flex justify-between items-center px-6 py-4 shrink-0 border-t-default bg-elevated">
         <div class="text-xs text-base-content/50">
           <i class="bi bi-shield-lock text-[10px]"></i> Email, teléfono y dirección se cifran automáticamente
         </div>
         <div class="flex gap-2">
-          <button class="btn btn-ghost btn-sm" @click="cerrarFormulario()" style="border-radius: 6px;">Cancelar</button>
-          <button class="btn btn-primary btn-sm gap-1.5" style="border-radius: 6px;" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo">
+          <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
+          <button class="btn btn-primary btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo">
             <i class="bi bi-check-lg"></i>
             <span x-text="editando ? 'Actualizar' : 'Guardar'"></span>
           </button>
@@ -290,7 +291,7 @@ const Perfiles = {
 
   <!-- Modal: Nueva categoría -->
   <div x-show="showCatModal" class="modal modal-open" data-modal="cat" @keydown.escape.window="showCatModal = false">
-    <div class="modal-box w-11/12 max-w-md" style="border-radius: 12px;">
+    <div class="modal-box w-11/12 max-w-md radius-lg">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
           <i class="bi bi-folder-plus text-accent"></i> Nueva categoría
@@ -298,11 +299,11 @@ const Perfiles = {
       </div>
       <label class="form-control w-full">
         <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Nombre de la categoría</span>
-        <input type="text" x-model="newCat" class="input input-bordered w-full" placeholder="Ej: Lenguajes" style="border-radius: 6px;" @keydown.enter.prevent="guardarCategoria()">
+        <input type="text" x-model="newCat" class="input input-bordered w-full radius-sm" placeholder="Ej: Lenguajes" @keydown.enter.prevent="guardarCategoria()">
       </label>
       <div class="modal-action">
-        <button class="btn btn-ghost btn-sm" @click="showCatModal = false" style="border-radius: 6px;">Cancelar</button>
-        <button class="btn btn-primary btn-sm" @click="guardarCategoria()" :disabled="!newCat.trim()" style="border-radius: 6px;">
+        <button class="btn btn-ghost btn-sm radius-sm" @click="showCatModal = false">Cancelar</button>
+        <button class="btn btn-primary btn-sm radius-sm" @click="guardarCategoria()" :disabled="!newCat.trim()">
           <i class="bi bi-check-lg"></i> Crear
         </button>
       </div>
@@ -311,7 +312,7 @@ const Perfiles = {
 
   <!-- Modal: Nueva habilidad -->
   <div x-show="showSkillModal" class="modal modal-open" data-modal="skill" @keydown.escape.window="showSkillModal = false">
-    <div class="modal-box w-11/12 max-w-md" style="border-radius: 12px;">
+    <div class="modal-box w-11/12 max-w-md radius-lg">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
           <i class="bi bi-plus-lg text-accent"></i> Nueva habilidad
@@ -320,7 +321,7 @@ const Perfiles = {
       <div class="space-y-3">
         <label class="form-control w-full">
           <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Categoría</span>
-          <select x-model="newSkillCategoria" class="select select-bordered w-full" style="border-radius: 6px;">
+          <select x-model="newSkillCategoria" class="select select-bordered w-full radius-sm">
             <template x-for="cat in Object.keys(categorias)" :key="cat">
               <option :value="cat" x-text="cat"></option>
             </template>
@@ -328,12 +329,12 @@ const Perfiles = {
         </label>
         <label class="form-control w-full">
           <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Nombre de la habilidad</span>
-          <input type="text" x-model="newSkillNombre" class="input input-bordered w-full" placeholder="Ej: React" style="border-radius: 6px;" @keydown.enter.prevent="guardarSkill()">
+          <input type="text" x-model="newSkillNombre" class="input input-bordered w-full radius-sm" placeholder="Ej: React" @keydown.enter.prevent="guardarSkill()">
         </label>
       </div>
       <div class="modal-action">
-        <button class="btn btn-ghost btn-sm" @click="showSkillModal = false" style="border-radius: 6px;">Cancelar</button>
-        <button class="btn btn-primary btn-sm" @click="guardarSkill()" :disabled="!newSkillNombre.trim()" style="border-radius: 6px;">
+        <button class="btn btn-ghost btn-sm radius-sm" @click="showSkillModal = false">Cancelar</button>
+        <button class="btn btn-primary btn-sm radius-sm" @click="guardarSkill()" :disabled="!newSkillNombre.trim()">
           <i class="bi bi-check-lg"></i> Crear
         </button>
       </div>

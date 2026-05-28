@@ -58,7 +58,7 @@ const Dashboard = {
     <h2 class="text-xl font-semibold tracking-heading flex items-center gap-2">
       <i class="bi bi-speedometer2 text-accent"></i> Dashboard
     </h2>
-    <p class="text-xs" style="color: var(--ink-muted);" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' registrados'"></p>
+    <p class="text-xs text-muted" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' registrados'"></p>
   </div>
 
   <!-- Stats cards — Linear-inspired stat blocks -->
@@ -66,11 +66,11 @@ const Dashboard = {
     <div class="card bg-white">
       <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--surface-muted);">
+          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
             <i class="bi bi-people-fill text-lg" style="color: var(--ink);"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Desarrolladores</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-muted">Desarrolladores</p>
             <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length"></p>
           </div>
         </div>
@@ -84,7 +84,7 @@ const Dashboard = {
             <i class="bi bi-tools text-lg text-accent"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Habilidades</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-muted">Habilidades</p>
             <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="Object.keys(categorias).reduce((a,b) => a + categorias[b], 0)"></p>
           </div>
         </div>
@@ -98,7 +98,7 @@ const Dashboard = {
             <i class="bi bi-tag-fill text-lg" style="color: var(--accent-secondary);"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Categorías</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-muted">Categorías</p>
             <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="Object.keys(categorias).length"></p>
           </div>
         </div>
@@ -112,7 +112,7 @@ const Dashboard = {
             <i class="bi bi-graph-up text-lg text-accent"></i>
           </div>
           <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider" style="color: var(--ink-muted);">Promedio Skills</p>
+            <p class="text-xs font-medium uppercase tracking-wider text-muted">Promedio Skills</p>
             <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length ? (perfiles.reduce((a,p) => a + p.skillCount, 0) / perfiles.length).toFixed(1) : '0'"></p>
           </div>
         </div>
@@ -123,17 +123,17 @@ const Dashboard = {
   <!-- Sincronización Cloud (solo admin) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6">
     <div class="card-body p-5">
-      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--ink-muted);">
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted">
         <i class="bi bi-cloud-arrow-up text-accent"></i> Sincronización Cloud
       </h3>
-      <div class="flex items-center gap-3 p-3 rounded-lg" style="background: var(--surface-muted);">
-        <div class="w-2.5 h-2.5 rounded-full shrink-0" :style="'background: ' + (syncStatus === 'connected' ? '#22C55E' : '#EF4444')"></div>
+      <div class="flex items-center gap-3 p-3 rounded-lg bg-muted">
+        <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="syncStatus === 'connected' ? 'bg-success' : 'bg-error'"></div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium" x-text="'Supabase: ' + onlineLabel"></p>
-          <p class="text-xs mt-0.5" style="color: var(--ink-muted);">WebSocket en tiempo real</p>
+          <p class="text-xs mt-0.5 text-muted">WebSocket en tiempo real</p>
         </div>
-        <button class="btn btn-ghost btn-xs gap-1.5 shrink-0" style="border-radius: var(--radius-sm);" @click="forceRefresh()" :disabled="syncing">
-          <i class="bi" :class="syncing ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-repeat'"></i>
+        <button class="btn btn-ghost btn-xs gap-1.5 shrink-0 radius-sm" @click="forceRefresh()" :disabled="syncing">
+          <i class="bi" :class="syncing ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-repeat'" role="status"></i>
           <span x-text="syncing ? 'Refrescando...' : 'Refrescar'"></span>
         </button>
       </div>
@@ -143,24 +143,24 @@ const Dashboard = {
   <!-- Backup manual (solo admin) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
     <div class="card-body p-5">
-      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none" style="color: var(--ink-muted);" @click="open = !open">
+      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none text-muted" @click="open = !open">
         <i class="bi bi-database-fill-gear text-accent"></i> Backup Manual (JSON)
         <span class="ml-auto flex items-center gap-1">
           <span x-text="open ? 'ocultar' : 'mostrar'"></span>
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mt-1 mb-4" style="color: var(--ink-faint);">Exportación/importación local sin conexión cloud</p>
+      <p class="text-xs mt-1 mb-4 text-faint">Exportación/importación local sin conexión cloud</p>
       <div x-show="open" x-collapse>
         <div class="flex flex-wrap items-center gap-3">
-          <button class="btn btn-primary btn-sm" style="border-radius: var(--radius-sm);" @click="exportarJSON()">
+          <button class="btn btn-primary btn-sm radius-sm" @click="exportarJSON()">
             <i class="bi bi-download"></i> Exportar JSON
           </button>
-          <label class="btn btn-ghost btn-sm cursor-pointer" style="border-radius: var(--radius-sm);">
+          <label class="btn btn-ghost btn-sm cursor-pointer radius-sm">
             <i class="bi bi-upload"></i> Importar JSON
             <input type="file" accept=".json" class="hidden" @change="importarJSON($event)">
           </label>
-          <span class="text-xs" style="color: var(--ink-faint);">Todos los datos en JSON</span>
+          <span class="text-xs text-faint">Todos los datos en JSON</span>
         </div>
       </div>
     </div>
@@ -169,19 +169,19 @@ const Dashboard = {
   <!-- Reporte SQL (sql.js) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
     <div class="card-body p-5">
-      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none" style="color: var(--ink-muted);" @click="open = !open">
+      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none text-muted" @click="open = !open">
         <i class="bi bi-code-slash text-accent"></i> Reporte SQL
         <span class="ml-auto flex items-center gap-1">
           <span x-text="open ? 'ocultar' : 'mostrar'"></span>
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mt-1 mb-4" style="color: var(--ink-faint);">Perfiles × Skills — consulta JOIN ejecutada con sql.js</p>
+      <p class="text-xs mt-1 mb-4 text-faint">Perfiles × Skills — consulta JOIN ejecutada con sql.js</p>
       <div x-show="open" x-collapse>
-        <div class="overflow-x-auto rounded-lg" style="border: 1px solid var(--border);">
+        <div class="overflow-x-auto rounded-lg border-default">
           <table class="table table-xs w-full">
             <thead>
-              <tr style="background: var(--surface-muted);">
+              <tr class="bg-muted">
                 <th>Perfil</th>
                 <th>Cargo</th>
                 <th>Skill</th>
@@ -194,13 +194,13 @@ const Dashboard = {
                   <td class="font-medium text-xs" x-text="row.nombre"></td>
                   <td class="text-xs" x-text="row.cargo"></td>
                   <td class="text-xs" x-text="row.skill"></td>
-                  <td class="text-xs" style="color: var(--ink-muted);" x-text="row.categoria"></td>
+                  <td class="text-xs text-muted" x-text="row.categoria"></td>
                 </tr>
               </template>
             </tbody>
           </table>
         </div>
-        <p class="text-xs mt-3" style="color: var(--ink-faint);">
+        <p class="text-xs mt-3 text-faint">
           <i class="bi bi-database"></i> <span x-text="sqlReport.length + ' relaciones'"></span>
         </p>
       </div>
@@ -211,9 +211,9 @@ const Dashboard = {
   <div class="card bg-white mb-6">
     <div class="card-body p-4">
       <div class="relative">
-        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-sm" style="color: var(--ink-faint);"></i>
-        <input type="text" x-model="search" placeholder="Buscar por nombre, cargo o habilidad..."
-               class="input input-bordered w-full pl-9" style="border-radius: var(--radius-sm);">
+        <i class="bi bi-search absolute left-4 top-1/2 -translate-y-1/2 text-sm text-faint"></i>
+        <input type="text" x-model="search" placeholder="Buscar por nombre, cargo o habilidad..." aria-label="Buscar perfiles"
+               class="input input-bordered w-full pl-9 radius-sm">
       </div>
     </div>
   </div>
@@ -224,20 +224,20 @@ const Dashboard = {
       <!-- Gráfico de skills -->
       <div class="card bg-white">
         <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style="color: var(--ink-muted);">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
             <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
           </h3>
-          <div id="skills-chart" style="min-height: 250px;"></div>
+          <div id="skills-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de skills más frecuentes"></div>
         </div>
       </div>
 
       <!-- Treemap: Skills por desarrollador -->
       <div class="card bg-white">
         <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style="color: var(--ink-muted);">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
             <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por desarrollador
           </h3>
-          <div id="skills-per-dev-chart" style="min-height: 280px;"></div>
+          <div id="skills-per-dev-chart" style="min-height: 280px;" role="img" aria-label="Treemap de skills por desarrollador"></div>
         </div>
       </div>
     </div>
@@ -245,7 +245,7 @@ const Dashboard = {
     <!-- Distribución por categoría — barras horizontales -->
     <div class="card bg-white">
       <div class="card-body p-5">
-        <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--ink-muted);">
+        <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted">
           <i class="bi bi-bar-chart-fill text-accent"></i> Por categoría
         </h3>
         <div class="space-y-3" id="category-bars">
@@ -256,9 +256,9 @@ const Dashboard = {
                   <span class="w-2.5 h-2.5 rounded-full" :style="'background: ' + catColors[index % catColors.length]"></span>
                   <span class="text-sm font-medium" style="color: var(--ink-secondary);" x-text="cat.name"></span>
                 </div>
-                <span class="text-xs font-semibold" style="color: var(--ink-muted);" x-text="cat.count + ' skills'"></span>
+                <span class="text-xs font-semibold text-muted" x-text="cat.count + ' skills'"></span>
               </div>
-              <div class="w-full rounded-md overflow-hidden" style="height: 16px; background: var(--surface-muted);">
+              <div class="w-full rounded-md overflow-hidden bg-muted" style="height: 16px;">
                 <div class="rounded-md transition-all duration-500 flex items-center justify-end pr-1.5"
                      :style="'width: ' + cat.pct + '%; background: ' + catColors[index % catColors.length]">
                   <span class="text-[10px] font-bold text-white leading-none" x-show="cat.pct >= 10" x-text="cat.pct + '%'"></span>
@@ -274,7 +274,7 @@ const Dashboard = {
   <!-- Tabla de desarrolladores -->
   <div class="card bg-white">
     <div class="card-body p-5">
-      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2" style="color: var(--ink-muted);">
+      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted">
         <i class="bi bi-people-fill text-accent"></i> Equipo de desarrollo
       </h3>
 
@@ -295,16 +295,16 @@ const Dashboard = {
           </thead>
           <tbody>
             <template x-for="(dev, index) in filtered" :key="dev.id">
-              <tr class="stagger-enter" :style="'animation-delay: ' + (index * 0.03) + 's'">
+              <tr class="stagger-enter" :style="'animation-delay: ' + (index * 40) + 'ms'">
                   <td>
                     <div class="flex items-center gap-3">
                       <div class="avatar">
-                        <div class="rounded-full w-9 h-9 overflow-hidden" style="background: var(--surface-muted);">
+                        <div class="rounded-full w-9 h-9 overflow-hidden bg-muted">
                           <template x-if="dev.fotoBase64">
                             <img :src="dev.fotoBase64" :alt="dev.nombre" class="w-full h-full object-cover">
                           </template>
                           <template x-if="!dev.fotoBase64">
-                            <div class="w-full h-full flex items-center justify-center" style="color: var(--ink-muted);">
+                            <div class="w-full h-full flex items-center justify-center text-muted">
                               <span x-text="dev.nombre.charAt(0).toUpperCase()" class="text-xs font-semibold"></span>
                             </div>
                           </template>
@@ -312,11 +312,11 @@ const Dashboard = {
                       </div>
                     <div>
                       <p class="font-medium text-sm" x-text="dev.nombre"></p>
-                      <p class="text-xs" style="color: var(--ink-faint);" x-text="UI.formatDateRelative(dev.created_at)"></p>
+                      <p class="text-xs text-faint" x-text="UI.formatDateRelative(dev.created_at)"></p>
                     </div>
                   </div>
                 </td>
-                <td><span class="badge badge-ghost badge-sm" style="border-radius: var(--radius-sm);" x-text="dev.cargo"></span></td>
+                <td><span class="badge badge-ghost badge-sm radius-sm" x-text="dev.cargo"></span></td>
                 <td>
                   <div class="flex flex-wrap gap-1">
                     <template x-for="skill in dev.skills.slice(0, 4)" :key="skill">

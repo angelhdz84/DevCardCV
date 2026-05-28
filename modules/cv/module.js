@@ -54,13 +54,13 @@ const CV = {
       <p class="text-xs text-base-content/50 mt-1" x-show="perfil" x-text="perfil.nombre + ' — ' + perfil.cargo"></p>
     </div>
     <div class="flex gap-2">
-      <select x-model="selectedId" @change="cambiarPerfil()" class="select select-bordered select-sm" style="border-radius: 8px;">
+      <select x-model="selectedId" @change="cambiarPerfil()" class="select select-bordered select-sm radius-md">
         <option value="" disabled>Seleccionar perfil</option>
         <template x-for="p in perfiles" :key="p.id">
           <option :value="p.id" x-text="p.nombre + ' — ' + p.cargo" :selected="p.id === currentId"></option>
         </template>
       </select>
-      <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="exportarPDF()" :disabled="!perfil || exporting">
+      <button class="btn btn-primary btn-sm radius-md" @click="exportarPDF()" :disabled="!perfil || exporting" aria-label="Exportar CV en PDF">
         <i class="bi bi-file-earmark-pdf-fill"></i>
         <span x-show="!exporting">Exportar PDF</span>
         <span x-show="exporting" class="loading loading-spinner loading-xs"></span>
@@ -85,7 +85,7 @@ const CV = {
               <div class="avatar">
                 <div class="w-16 h-16 rounded-xl ring-2 ring-white/20 overflow-hidden bg-white/10 flex items-center justify-center">
                   <template x-if="perfil.fotoBase64">
-                    <img :src="perfil.fotoBase64" class="w-full h-full object-cover">
+                    <img :src="perfil.fotoBase64" alt="Foto de perfil" class="w-full h-full object-cover">
                   </template>
                   <template x-if="!perfil.fotoBase64">
                     <i class="bi bi-person-fill text-3xl text-white/30"></i>
@@ -140,12 +140,12 @@ const CV = {
                   <div>
                     <p class="text-xs font-medium text-base-content/40 mb-1.5" x-text="cat"></p>
                     <div class="flex flex-wrap gap-1.5">
-                      <template x-for="skill in skills" :key="skill">
-                        <span class="badge badge-sm" :class="'badge-skill-' + _sanitizeCat(cat)" style="border-radius: 4px;" x-text="skill"></span>
+                      <template x-for="(skill, i) in skills" :key="skill">
+                        <span class="badge badge-sm stagger-enter" :class="'badge-skill-' + _sanitizeCat(cat)" x-text="skill" :style="'animation-delay: ' + (i * 40) + 'ms; border-radius: 4px;'"></span>
                       </template>
-                    </div>
-                  </div>
-                </template>
+                      <template x-if="Object.keys(perfil.skillsByCat).length === 0">
+                        <p class="text-sm text-base-content/50" role="alert">No hay habilidades registradas.</p>
+                      </template>
               </div>
             </div>
 
@@ -165,12 +165,12 @@ const CV = {
             <h3 class="section-label mb-3 flex items-center gap-2">
               <i class="bi bi-download text-accent"></i> Exportar
             </h3>
-            <button class="btn btn-primary w-full btn-sm" style="border-radius: 8px;" @click="exportarPDF()" :disabled="exporting">
+            <button class="btn btn-primary w-full btn-sm radius-md" @click="exportarPDF()" :disabled="exporting" aria-label="Exportar CV en PDF">
               <i class="bi bi-file-earmark-pdf-fill"></i>
               <span x-show="!exporting">Descargar PDF</span>
               <span x-show="exporting" class="loading loading-spinner loading-xs"></span>
             </button>
-            <button class="btn btn-ghost w-full btn-sm mt-1" style="border-radius: 8px; border: 1px solid var(--border);" @click="exportarPerfilJSON()">
+            <button class="btn btn-ghost w-full btn-sm mt-1 radius-md border-default" @click="exportarPerfilJSON()">
               <i class="bi bi-filetype-json"></i> Exportar JSON
             </button>
           </div>
@@ -182,7 +182,7 @@ const CV = {
             <h3 class="section-label mb-3 flex items-center gap-2" style="color: var(--accent);">
               <i class="bi bi-share-fill"></i> Compartir CV
             </h3>
-            <button class="btn w-full btn-sm gap-2" style="border-radius: 8px; background: var(--accent); color: white; border: none;" @click="compartirCV()" :disabled="!perfil || compartiendo">
+            <button class="btn w-full btn-sm gap-2 radius-md" style="background: var(--accent); color: white; border: none;" @click="compartirCV()" :disabled="!perfil || compartiendo" aria-label="Compartir CV">
               <i class="bi bi-share-fill"></i>
               <span x-show="!compartiendo">Compartir PDF + JSON</span>
               <span x-show="compartiendo" class="loading loading-spinner loading-xs"></span>
@@ -260,6 +260,8 @@ function cvData(perfiles, perfil, currentId) {
       pdf.rect(0, 0, pw, hh, 'F');
       pdf.setFillColor(5, 150, 105);
       pdf.rect(0, hh - 3, pw, 3, 'F');
+      pdf.setFillColor(5, 150, 105);
+      pdf.rect(pw - 28, hh - 8, 22, 4, 'F');
 
       let hasAvatar = false;
       const avatarSize = 20;
@@ -305,7 +307,7 @@ function cvData(perfiles, perfil, currentId) {
           pdf.setFontSize(8);
           pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
           const trunc = val.length > 30 ? val.slice(0, 28) + '\u2026' : val;
-          pdf.text(trunc, cx + (label === 'Email' ? 14 : 10), y);
+          pdf.text(trunc, cx + (label === 'Email' ? 16 : 12), y);
           cx += (pw - m * 2) / visible.length;
         });
         y += 13;
@@ -315,7 +317,7 @@ function cvData(perfiles, perfil, currentId) {
       if (p.bio) {
         checkPage(20);
         pdf.setFillColor(acc[0], acc[1], acc[2]);
-        pdf.rect(m, y, 3, 11, 'F');
+        pdf.roundedRect(m, y, 3, 11, 0.5, 0.5, 'F');
         pdf.setFontSize(10);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
@@ -355,7 +357,7 @@ function cvData(perfiles, perfil, currentId) {
       if (Object.keys(skillsByCat).length) {
         checkPage(20);
         pdf.setFillColor(acc[0], acc[1], acc[2]);
-        pdf.rect(m, y, 3, 11, 'F');
+        pdf.roundedRect(m, y, 3, 11, 0.5, 0.5, 'F');
         pdf.setFontSize(10);
         pdf.setFont(undefined, 'bold');
         pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
@@ -374,14 +376,23 @@ function cvData(perfiles, perfil, currentId) {
           y += 9;
 
           const cols = 3;
-          const tagW = (pw - m * 2 - (cols - 1) * 4) / cols;
+          const gap = 6;
+          const tagW = (pw - m * 2 - (cols - 1) * gap) / cols;
           const startY = y;
+          const rows = Math.ceil(skills.length / cols);
+          const rowH = 7;
+          for (let r = 0; r < rows; r++) {
+            if (r % 2 === 1) {
+              pdf.setFillColor(245, 247, 250);
+              pdf.rect(m, startY + r * rowH - 0.5, pw - m * 2, rowH, 'F');
+            }
+          }
           skills.forEach((skill, i) => {
             checkPage(7);
             const col = i % cols;
             const row = Math.floor(i / cols);
-            const ax = m + col * (tagW + 4);
-            const ay = startY + row * 7;
+            const ax = m + col * (tagW + gap);
+            const ay = startY + row * rowH;
             pdf.setFillColor(240, 244, 248);
             pdf.roundedRect(ax, ay, tagW, 5.5, 1, 1, 'F');
             pdf.setFontSize(7);
@@ -390,8 +401,7 @@ function cvData(perfiles, perfil, currentId) {
             const display = skill.length > 18 ? skill.slice(0, 16) + '\u2026' : skill;
             pdf.text(display, ax + 2.5, ay + 4);
           });
-          const rows = Math.ceil(skills.length / cols);
-          y = startY + rows * 7 + 6;
+          y = startY + rows * rowH + 6;
         }
       }
 
@@ -402,7 +412,7 @@ function cvData(perfiles, perfil, currentId) {
         pdf.line(m, ph - 13, pw - m, ph - 13);
         pdf.setFontSize(7);
         pdf.setTextColor(155, 165, 180);
-        pdf.text('Generado por DevCardCV', m, ph - 7);
+        pdf.text('Generado por DevCardCV v' + APP_CONFIG.app.version, m, ph - 7);
         pdf.text(dayjs().format('DD/MM/YYYY HH:mm'), pw - m, ph - 7, { align: 'right' });
         pdf.text('Pagina ' + pageNum, pw / 2, ph - 7, { align: 'center' });
       };

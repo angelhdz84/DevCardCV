@@ -34,13 +34,13 @@ const Habilidades = {
       <h2 class="text-xl font-semibold tracking-heading flex items-center gap-2">
         <i class="bi bi-tools text-accent"></i> Habilidades
       </h2>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);" x-text="Object.keys(cats).length + ' categorías, ' + Object.values(cats).flat().length + ' skills'"></p>
+      <p class="text-xs mt-1 text-muted" x-text="Object.keys(cats).length + ' categorías, ' + Object.values(cats).flat().length + ' skills'"></p>
     </div>
     <div class="flex gap-2">
-      <button class="btn btn-ghost btn-sm gap-1.5" style="border-radius: var(--radius-sm);" @click="showCatModal = true">
+      <button class="btn btn-ghost btn-sm gap-1.5 radius-sm" @click="showCatModal = true">
         <i class="bi bi-folder-plus"></i> Nueva categoría
       </button>
-      <button class="btn btn-primary btn-sm gap-1.5" style="border-radius: var(--radius-sm);" @click="showSkillModal = true">
+      <button class="btn btn-primary btn-sm gap-1.5 radius-sm" @click="showSkillModal = true">
         <i class="bi bi-plus-lg"></i> Nueva habilidad
       </button>
     </div>
@@ -53,32 +53,32 @@ const Habilidades = {
 
   <div class="space-y-4" x-show="Object.keys(cats).length > 0">
     <template x-for="(skills, categoria) in cats" :key="categoria">
-      <div class="card bg-white stagger-enter" :style="'animation-delay: ' + (Object.keys(cats).indexOf(categoria) * 0.06) + 's'">
+      <div class="card bg-white stagger-enter" :style="'animation-delay: ' + (Object.keys(cats).indexOf(categoria) * 0.06) + 's'" :aria-label="'Categoría: ' + categoria">
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style="color: var(--ink-muted);">
+            <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 text-muted">
               <i class="bi bi-folder-fill text-accent"></i>
               <span x-text="categoria"></span>
               <span class="badge badge-sm badge-ghost ml-1" style="border-radius: 4px;" x-text="skills.length"></span>
             </h3>
-            <button class="btn btn-ghost btn-xs btn-square" style="color: var(--ink-faint);" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
+            <button class="btn btn-ghost btn-xs btn-square text-faint" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
               <i class="bi bi-trash"></i>
             </button>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
-            <template x-for="skill in skills" :key="skill.id">
-              <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-base-100 group" style="border: 1px solid var(--border);">
+            <template x-for="(skill, i) in skills" :key="skill.id">
+              <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-base-100 group border-default stagger-enter" :style="'animation-delay: ' + (i * 40) + 'ms'">
                 <div class="flex items-center gap-2">
                   <i class="bi bi-tag-fill text-accent/40 text-xs"></i>
                   <span class="text-sm" x-text="skill.nombre"></span>
                 </div>
-                <div class="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span class="text-xs mr-1" style="color: var(--ink-faint);" x-text="skill.uso"></span>
+                <div class="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                  <span class="text-xs mr-1 text-faint" x-text="skill.uso"></span>
                   <button class="btn btn-ghost btn-xs btn-square" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button class="btn btn-ghost btn-xs btn-square" style="color: var(--ink-faint);" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
+                  <button class="btn btn-ghost btn-xs btn-square text-faint" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
@@ -92,17 +92,17 @@ const Habilidades = {
 
   <!-- Modal Nueva Categoría -->
   <div x-show="showCatModal" class="modal modal-open" @keydown.escape.window="showCatModal = false">
-    <div class="modal-box w-11/12 max-w-md" style="border-radius: 12px;">
+    <div class="modal-box w-11/12 max-w-md radius-lg">
       <h3 class="font-semibold text-base tracking-heading mb-4 flex items-center gap-2">
         <i class="bi bi-folder-plus text-accent"></i> Nueva categoría
       </h3>
       <label class="form-control w-full">
         <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1">Nombre de la categoría</span>
-        <input type="text" x-model="newCat" class="input input-bordered w-full" placeholder="Ej: Cloud, DevOps, Testing..." style="border-radius: 8px;">
+        <input type="text" x-model="newCat" class="input input-bordered w-full radius-md" placeholder="Ej: Cloud, DevOps, Testing...">
       </label>
       <div class="modal-action">
-        <button class="btn btn-ghost btn-sm" @click="showCatModal = false" style="border-radius: 8px;">Cancelar</button>
-        <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="guardarCategoria()" :disabled="!newCat.trim()">
+        <button class="btn btn-ghost btn-sm radius-md" @click="showCatModal = false">Cancelar</button>
+        <button class="btn btn-primary btn-sm radius-md" @click="guardarCategoria()" :disabled="!newCat.trim()">
           <i class="bi bi-check-lg"></i> Crear
         </button>
       </div>
@@ -111,7 +111,7 @@ const Habilidades = {
 
   <!-- Modal Nueva/Editar Skill -->
   <div x-show="showSkillModal" class="modal modal-open" @keydown.escape.window="showSkillModal = false">
-    <div class="modal-box w-11/12 max-w-md" style="border-radius: 12px;">
+    <div class="modal-box w-11/12 max-w-md radius-lg">
       <h3 class="font-semibold text-base tracking-heading mb-4 flex items-center gap-2">
         <i class="bi bi-plus-lg text-accent"></i>
         <span x-text="editingSkill ? 'Editar habilidad' : 'Nueva habilidad'"></span>
@@ -119,11 +119,11 @@ const Habilidades = {
       <div class="space-y-4">
         <label class="form-control w-full">
           <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1">Nombre</span>
-          <input type="text" x-model="newSkill.nombre" class="input input-bordered w-full" placeholder="Ej: React, PostgreSQL..." style="border-radius: 8px;">
+          <input type="text" x-model="newSkill.nombre" class="input input-bordered w-full radius-md" placeholder="Ej: React, PostgreSQL...">
         </label>
         <label class="form-control w-full">
           <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1">Categoría</span>
-          <select x-model="newSkill.categoria" class="select select-bordered w-full" style="border-radius: 8px;">
+          <select x-model="newSkill.categoria" class="select select-bordered w-full radius-md">
             <option value="" disabled>Selecciona categoría</option>
             <template x-for="cat in Object.keys(cats)" :key="cat">
               <option :value="cat" x-text="cat"></option>
@@ -132,8 +132,8 @@ const Habilidades = {
         </label>
       </div>
       <div class="modal-action">
-        <button class="btn btn-ghost btn-sm" @click="showSkillModal = false; editingSkill = null" style="border-radius: 8px;">Cancelar</button>
-        <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="guardarSkill()" :disabled="!newSkill.nombre || !newSkill.categoria">
+        <button class="btn btn-ghost btn-sm radius-md" @click="showSkillModal = false; editingSkill = null">Cancelar</button>
+        <button class="btn btn-primary btn-sm radius-md" @click="guardarSkill()" :disabled="!newSkill.nombre || !newSkill.categoria">
           <i class="bi bi-check-lg"></i> <span x-text="editingSkill ? 'Actualizar' : 'Crear'"></span>
         </button>
       </div>

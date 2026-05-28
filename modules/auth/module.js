@@ -29,26 +29,26 @@ const Auth = {
         <i class="bi bi-shield-lock-fill text-2xl text-accent"></i>
       </div>
       <h2 class="text-lg font-semibold tracking-heading">DevCardCV</h2>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);">Inicia sesión para continuar</p>
+      <p class="text-xs mt-1 text-muted">Inicia sesión para continuar</p>
     </div>
 
-    <div class="card bg-white" style="border-radius: 12px;">
+    <div class="card bg-white radius-lg">
       <div class="card-body p-6">
         <form @submit.prevent="login()" class="space-y-4">
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Email</span>
-            <input type="email" x-model="email" class="input input-bordered w-full" placeholder="correo@ejemplo.com" style="border-radius: 6px;" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Email</span>
+            <input type="email" x-model="email" class="input input-bordered w-full radius-sm" placeholder="correo@ejemplo.com" required>
           </label>
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Contraseña</span>
-            <input type="password" x-model="password" class="input input-bordered w-full" placeholder="••••••••" style="border-radius: 6px;" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
+            <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="••••••••" required>
           </label>
-          <button type="submit" class="btn btn-primary w-full" style="border-radius: 8px;" :disabled="!email || !password">
+          <button type="submit" class="btn btn-primary w-full radius-md" :disabled="!email || !password">
             <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
           </button>
           <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>
         </form>
-        <p class="text-xs text-center mt-4" style="color: var(--ink-muted);">
+        <p class="text-xs text-center mt-4 text-muted">
           ¿No tienes cuenta?
           <a href="#/auth/register" class="text-accent font-medium hover:underline">Regístrate</a>
         </p>
@@ -68,30 +68,30 @@ const Auth = {
         <i class="bi bi-gear-fill text-2xl text-accent"></i>
       </div>
       <h2 class="text-lg font-semibold tracking-heading">Configuración Inicial</h2>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);">Crea el primer usuario administrador</p>
+      <p class="text-xs mt-1 text-muted">Crea el primer usuario administrador</p>
     </div>
 
-    <div class="card bg-white" style="border-radius: 12px;">
+    <div class="card bg-white radius-lg">
       <div class="card-body p-6">
         <form @submit.prevent="setup()" class="space-y-4">
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Clave maestra</span>
-            <input type="password" x-model="masterKey" class="input input-bordered w-full" placeholder="Ingresa la clave de configuración" style="border-radius: 6px;" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Clave maestra</span>
+            <input type="password" x-model="masterKey" class="input input-bordered w-full radius-sm" placeholder="Ingresa la clave de configuración" required>
           </label>
-          <hr style="border-color: var(--border);">
+          <hr class="border-default">
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Nombre del admin</span>
-            <input type="text" x-model="nombre" class="input input-bordered w-full" placeholder="Ej: Admin" style="border-radius: 6px;" required>
-          </label>
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Email</span>
-            <input type="email" x-model="email" class="input input-bordered w-full" placeholder="admin@ejemplo.com" style="border-radius: 6px;" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Nombre del admin</span>
+            <input type="text" x-model="nombre" class="input input-bordered w-full radius-sm" placeholder="Ej: Admin" required>
           </label>
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Contraseña</span>
-            <input type="password" x-model="password" class="input input-bordered w-full" placeholder="Mínimo 6 caracteres" style="border-radius: 6px;" minlength="6" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Email</span>
+            <input type="email" x-model="email" class="input input-bordered w-full radius-sm" placeholder="admin@ejemplo.com" required>
           </label>
-          <button type="submit" class="btn btn-primary w-full" style="border-radius: 8px;" :disabled="!masterKey || !nombre || !email || !password">
+          <label class="form-control w-full">
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
+            <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="Mínimo 6 caracteres" minlength="6" required>
+          </label>
+          <button type="submit" class="btn btn-primary w-full radius-md" :disabled="!masterKey || !nombre || !email || !password">
             <i class="bi bi-check-lg"></i> Crear Administrador
           </button>
           <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>
@@ -112,30 +112,30 @@ const Auth = {
         <i class="bi bi-person-plus-fill text-2xl text-accent"></i>
       </div>
       <h2 class="text-lg font-semibold tracking-heading">Crear cuenta</h2>
-      <p class="text-xs mt-1" style="color: var(--ink-muted);">Regístrate como desarrollador</p>
+      <p class="text-xs mt-1 text-muted">Regístrate como desarrollador</p>
     </div>
 
-    <div class="card bg-white" style="border-radius: 12px;">
+    <div class="card bg-white radius-lg">
       <div class="card-body p-6">
         <form @submit.prevent="register()" class="space-y-4">
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Nombre completo</span>
-            <input type="text" x-model="nombre" class="input input-bordered w-full" placeholder="Ej: Ana García" style="border-radius: 6px;" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Nombre completo</span>
+            <input type="text" x-model="nombre" class="input input-bordered w-full radius-sm" placeholder="Ej: Ana García" required>
           </label>
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Email</span>
-            <input type="email" x-model="email" class="input input-bordered w-full" placeholder="correo@ejemplo.com" style="border-radius: 6px;" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Email</span>
+            <input type="email" x-model="email" class="input input-bordered w-full radius-sm" placeholder="correo@ejemplo.com" required>
           </label>
           <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5" style="color: var(--ink-muted);">Contraseña</span>
-            <input type="password" x-model="password" class="input input-bordered w-full" placeholder="Mínimo 6 caracteres" style="border-radius: 6px;" minlength="6" required>
+            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
+            <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="Mínimo 6 caracteres" minlength="6" required>
           </label>
-          <button type="submit" class="btn btn-primary w-full" style="border-radius: 8px;" :disabled="!nombre || !email || !password">
+          <button type="submit" class="btn btn-primary w-full radius-md" :disabled="!nombre || !email || !password">
             <i class="bi bi-person-plus-fill"></i> Crear cuenta
           </button>
           <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>
         </form>
-        <p class="text-xs text-center mt-4" style="color: var(--ink-muted);">
+        <p class="text-xs text-center mt-4 text-muted">
           ¿Ya tienes cuenta?
           <a href="#/auth/login" class="text-accent font-medium hover:underline">Inicia sesión</a>
         </p>
