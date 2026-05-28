@@ -1,7 +1,7 @@
-var dbSupabase = {
-  _connected: false,
+var dbOnline = {
   _supa: null,
   _realtimeChannel: null,
+  _connected: false,
 
   _fieldMap: {
     perfiles: { toRemote: { fotoBase64: 'foto_base64' }, toLocal: { foto_base64: 'fotoBase64' } },
@@ -30,20 +30,18 @@ var dbSupabase = {
     }
   },
 
-  _lastPush: null,
-  _lastPull: null,
-  _pushTimer: null,
-  _pullTimer: null,
-  _pullInterval: null,
-
   get status() {
     if (!APP_CONFIG.supabase || !APP_CONFIG.supabase.url || !APP_CONFIG.supabase.anonKey) return 'disabled';
     if (!navigator.onLine) return 'offline';
     return this._connected ? 'connected' : 'disconnected';
   },
 
-  get lastPush() { return this._lastPush; },
-  get lastPull() { return this._lastPull; },
+  _requireOnline() {
+    if (!navigator.onLine) {
+      if (typeof UI !== 'undefined') UI.toast('Sin conexión — no puedes guardar cambios', 'error');
+      throw new Error('OFFLINE');
+    }
+  },
 
   async init() {
     if (!APP_CONFIG.supabase || !APP_CONFIG.supabase.url || !APP_CONFIG.supabase.anonKey) {
@@ -51,7 +49,7 @@ var dbSupabase = {
       this._updateStore();
       return;
     }
-    console.log('🚀 Supabase: iniciando...');
+    console.log('🚀 dbOnline: iniciando...');
     this._updateStore();
 
     this._supa = supabase.createClient(APP_CONFIG.supabase.url, APP_CONFIG.supabase.anonKey, {
@@ -62,10 +60,10 @@ var dbSupabase = {
       const { data, error } = await this._supa.from('habilidades').select('id').limit(1);
       if (error) throw error;
       this._connected = true;
-      console.log('✅ Supabase: conexión establecida');
+      console.log('✅ dbOnline: conexión establecida');
     } catch (err) {
       this._connected = false;
-      console.warn('⚠️ Supabase: error de conexión:', err.message);
+      console.warn('⚠️ dbOnline: error de conexión:', err.message);
     }
     this._updateStore();
 
@@ -75,7 +73,7 @@ var dbSupabase = {
           { event: '*', schema: 'public' },
           payload => {
             console.log('📡 Realtime:', payload.eventType, payload.table);
-            this.schedulePull();
+            this._onRealtimeChange(payload.table);
           }
         )
         .subscribe(status => {
@@ -84,231 +82,184 @@ var dbSupabase = {
     }
 
     window.addEventListener('online', () => {
-      if (APP_CONFIG.supabase && APP_CONFIG.supabase.url && APP_CONFIG.supabase.anonKey) this.sync();
+      if (this._supa) this._connected = true;
     });
-
-    window.addEventListener('db-change', () => {
-      if (APP_CONFIG.supabase && APP_CONFIG.supabase.url && APP_CONFIG.supabase.anonKey) this.schedulePush();
+    window.addEventListener('offline', () => {
+      this._connected = false;
     });
-
-    this._pullInterval = setInterval(() => this.pull(), 60000);
   },
 
-  async _getRemoteUpdatedAtMap(table) {
+  async _onRealtimeChange(table) {
     try {
-      const { data, error } = await this._supa.from(table).select('id,updated_at');
+      if (!db || !db[table]) return;
+      const { data, error } = await this._supa.from(table).select('*');
       if (error) throw error;
-      const map = {};
-      for (const r of (data || [])) { map[r.id] = r.updated_at; }
-      return map;
-    } catch (e) { return {}; }
-  },
-
-  async push() {
-    if (!APP_CONFIG.supabase || !APP_CONFIG.supabase.url || !APP_CONFIG.supabase.anonKey) return;
-    if (!navigator.onLine) { console.log('ℹ️ Supabase push: offline, skip'); return; }
-
-    try {
-      const conflictedTables = [];
-      const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios'];
-
-      for (const table of tables) {
-        const records = this._mapFields(await db[table].toArray(), table, 'toRemote');
-        if (records.length === 0) continue;
-
-        const remoteMap = (table === 'perfiles' || table === 'usuarios')
-          ? await this._getRemoteUpdatedAtMap(table) : {};
-
-        const toPush = [];
-        const conflicts = [];
-
-        for (const r of records) {
-          const remoteUpdatedAt = remoteMap[r.id];
-          if (remoteUpdatedAt && r.updated_at && remoteUpdatedAt > r.updated_at) {
-            conflicts.push(r.nombre || r.id);
-          } else {
-            toPush.push(r);
-          }
-        }
-
-        if (toPush.length > 0) {
-          const { error } = await this._supa.from(table).upsert(toPush, { onConflict: 'id' });
-          if (error) throw error;
-        }
-        if (conflicts.length > 0) {
-          conflictedTables.push(`${table}: ${conflicts.join(', ')}`);
-        }
-      }
-
-      if (conflictedTables.length > 0) {
-        UI.toast(`Conflicto: ${conflictedTables.join('; ')}. Cargando datos más recientes...`, 'warning');
-        await this.pull();
-      }
-
-      this._connected = true;
-      this._updateStore();
-      this._lastPush = new Date().toISOString();
-      const conflictMsg = conflictedTables.length > 0 ? ` (${conflictedTables.length} conflicto(s) resuelto(s))` : '';
-      console.log('✅ Supabase push: OK' + conflictMsg);
+      const mapped = this._mapFields(data || [], table, 'toLocal');
+      await db[table].clear();
+      for (const r of mapped) await db[table].add(r);
+      console.log('📡 Cache actualizado:', table, mapped.length, 'registros');
+      window.dispatchEvent(new CustomEvent('db-change'));
     } catch (err) {
-      console.warn('⚠️ Supabase push error:', err.message);
+      console.warn('⚠️ Realtime refresh:', err.message);
     }
   },
 
-  async pull() {
-    if (!APP_CONFIG.supabase || !APP_CONFIG.supabase.url || !APP_CONFIG.supabase.anonKey) return;
-    if (!navigator.onLine) { console.log('ℹ️ Supabase pull: offline, skip'); return; }
+  // ─── CRUD: Lecturas ───
 
+  async getAll(table) {
     try {
-      const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios'];
-      const remoteData = {};
+      this._requireOnline();
+      const { data, error } = await this._supa.from(table).select('*');
+      if (error) throw error;
+      const mapped = this._mapFields(data || [], table, 'toLocal');
+      this._setCache(table, mapped).catch(() => {});
+      return mapped;
+    } catch (err) {
+      if (err.message === 'OFFLINE') {
+        console.log('ℹ️ dbOnline getAll(' + table + '): offline, usando caché');
+        return await db[table].toArray();
+      }
+      console.warn('⚠️ dbOnline getAll(' + table + '):', err.message, '→ caché');
+      return await db[table].toArray();
+    }
+  },
 
-      for (const table of tables) {
+  async get(table, id) {
+    try {
+      this._requireOnline();
+      const { data, error } = await this._supa.from(table).select('*').eq('id', id).maybeSingle();
+      if (error) throw error;
+      const mapped = this._mapFields([data].filter(Boolean), table, 'toLocal');
+      return mapped[0] || null;
+    } catch (err) {
+      if (err.message === 'OFFLINE') {
+        return await db[table].get(id) || null;
+      }
+      console.warn('⚠️ dbOnline get(' + table + '):', err.message, '→ caché');
+      return await db[table].get(id) || null;
+    }
+  },
+
+  async getWhere(table, field, value) {
+    try {
+      this._requireOnline();
+      const { data, error } = await this._supa.from(table).select('*').eq(field, value);
+      if (error) throw error;
+      return this._mapFields(data || [], table, 'toLocal');
+    } catch (err) {
+      if (err.message === 'OFFLINE') {
+        return await db[table].where(field).equals(value).toArray();
+      }
+      console.warn('⚠️ dbOnline getWhere(' + table + '):', err.message, '→ caché');
+      return await db[table].where(field).equals(value).toArray();
+    }
+  },
+
+  async count(table) {
+    try {
+      this._requireOnline();
+      const { data, error } = await this._supa.from(table).select('id');
+      if (error) throw error;
+      return (data || []).length;
+    } catch (err) {
+      if (err.message === 'OFFLINE') {
+        return await db[table].count();
+      }
+      console.warn('⚠️ dbOnline count(' + table + '):', err.message, '→ caché');
+      return await db[table].count();
+    }
+  },
+
+  // ─── CRUD: Escrituras ───
+
+  async add(table, data) {
+    this._requireOnline();
+    const remote = this._mapFields([data], table, 'toRemote')[0];
+    const { data: created, error } = await this._supa.from(table).insert(remote).select();
+    if (error) throw error;
+    const mapped = this._mapFields(created || [], table, 'toLocal');
+    if (mapped && mapped.length > 0) {
+      await db[table].add(mapped[0]).catch(() => {});
+      return mapped[0];
+    }
+    return data;
+  },
+
+  async update(table, id, data) {
+    this._requireOnline();
+    const remote = this._mapFields([data], table, 'toRemote')[0];
+    const { data: updated, error } = await this._supa.from(table).update(remote).eq('id', id).select();
+    if (error) throw error;
+    const mapped = this._mapFields(updated || [], table, 'toLocal');
+    if (mapped && mapped.length > 0) {
+      await db[table].put(mapped[0]).catch(() => {});
+      return mapped[0];
+    }
+    return data;
+  },
+
+  async delete(table, id) {
+    this._requireOnline();
+    const { error } = await this._supa.from(table).delete().eq('id', id);
+    if (error) throw error;
+    await db[table].delete(id).catch(() => {});
+    return true;
+  },
+
+  async bulkDelete(table, field, value) {
+    this._requireOnline();
+    const { error } = await this._supa.from(table).delete().eq(field, value);
+    if (error) throw error;
+    await db[table].where(field).equals(value).delete().catch(() => {});
+    return true;
+  },
+
+  // ─── Refresh / Cache ───
+
+  async refreshCache() {
+    const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios'];
+    for (const table of tables) {
+      try {
         const { data, error } = await this._supa.from(table).select('*');
         if (error) throw error;
-        remoteData[table] = this._mapFields(data || [], table, 'toLocal');
+        const mapped = this._mapFields(data || [], table, 'toLocal');
+        await db[table].clear();
+        for (const r of mapped) await db[table].add(r);
+      } catch (err) {
+        console.warn('⚠️ refreshCache(' + table + '):', err.message);
       }
-
-      if (!localStorage.getItem('skills_v2') && remoteData.habilidades && remoteData.habilidades.length > 0) {
-        await db.habilidades.clear();
-        localStorage.setItem('skills_v2', '1');
-        console.log('🔄 Migración skills_v2: limpiadas y re-importadas desde Supabase');
-      }
-
-      if (remoteData.habilidades && remoteData.habilidades.length > 0) {
-        await this._mergePull({ habilidades: remoteData.habilidades });
-      }
-
-      if (remoteData.perfiles && remoteData.perfiles.length > 0) {
-        const localUpdatedAt = await this._getLocalUpdatedAt();
-        const remoteUpdatedAt = this._getRemoteUpdatedAt(remoteData);
-        if (localUpdatedAt === '' || remoteUpdatedAt > localUpdatedAt) {
-          const merge = { perfiles: remoteData.perfiles };
-          if (remoteData['perfil_habilidades'] && remoteData['perfil_habilidades'].length > 0) {
-            merge['perfil_habilidades'] = remoteData['perfil_habilidades'];
-          }
-          if (remoteData.usuarios && remoteData.usuarios.length > 0) {
-            merge.usuarios = remoteData.usuarios;
-          }
-          await this._mergePull(merge);
-        }
-      }
-
-      this._connected = true;
-      this._updateStore();
-      this._lastPull = new Date().toISOString();
-      console.log('✅ Supabase pull: OK');
-    } catch (err) {
-      this._connected = false;
-      this._updateStore();
-      console.warn('⚠️ Supabase pull error:', err.message);
     }
+    window.dispatchEvent(new CustomEvent('db-change'));
+    console.log('✅ Cache refrescado desde Supabase');
   },
 
-  async _getLocalUpdatedAt() {
+  async refreshTableCache(table) {
     try {
-      const records = await db.perfiles.orderBy('updated_at').last();
-      return records ? (records.updated_at || '') : '';
-    } catch (e) { return ''; }
-  },
-
-  _getRemoteUpdatedAt(data) {
-    let max = '';
-    for (const p of (data.perfiles || [])) {
-      if (p.updated_at && p.updated_at > max) max = p.updated_at;
-    }
-    return max;
-  },
-
-  async _mergePull(data) {
-    if (!data) return;
-    let cambios = 0;
-
-    for (const p of (data.perfiles || [])) {
-      const local = await db.perfiles.get(p.id);
-      if (!local) {
-        await db.perfiles.add(p);
-        cambios++;
-      } else if (p.updated_at && local.updated_at && p.updated_at > local.updated_at) {
-        await db.perfiles.update(p.id, p);
-        cambios++;
-      }
-    }
-
-    for (const h of (data.habilidades || [])) {
-      const local = await db.habilidades.where('nombre').equals(h.nombre).first();
-      if (!local) {
-        await db.habilidades.add(h);
-        cambios++;
-      } else {
-        const { id, ...updates } = h;
-        if (h.created_at && (!local.created_at || h.created_at > local.created_at)) {
-          await db.habilidades.update(local.id, updates);
-          cambios++;
-        }
-      }
-    }
-
-    for (const r of (data['perfil_habilidades'] || [])) {
-      const local = await db.perfil_habilidades.get(r.id);
-      if (!local) {
-        await db.perfil_habilidades.add(r);
-        cambios++;
-      }
-    }
-
-    for (const u of (data.usuarios || [])) {
-      const local = await db.usuarios.get(u.id);
-      if (!local) {
-        await db.usuarios.add(u);
-        cambios++;
-      } else if (u.updated_at && local.updated_at && u.updated_at > local.updated_at) {
-        await db.usuarios.update(u.id, u);
-        cambios++;
-      }
-    }
-
-    if (cambios > 0) {
-      UI.toast('Datos sincronizados desde Supabase', 'success');
-      window.dispatchEvent(new CustomEvent('db-change'));
+      const { data, error } = await this._supa.from(table).select('*');
+      if (error) throw error;
+      const mapped = this._mapFields(data || [], table, 'toLocal');
+      await db[table].clear();
+      for (const r of mapped) await db[table].add(r);
+    } catch (err) {
+      console.warn('⚠️ refreshTableCache(' + table + '):', err.message);
     }
   },
 
-  async sync() {
-    await this.push();
-    await this.pull();
+  // ─── Cache helpers ───
+
+  async _setCache(table, records) {
+    await db[table].clear();
+    for (const r of records) await db[table].add(r);
   },
 
-  schedulePush() {
-    if (this._pushTimer) clearTimeout(this._pushTimer);
-    this._pushTimer = setTimeout(() => {
-      this.push();
-      this._pushTimer = null;
-    }, 2000);
-  },
+  // ─── Force refresh (desde Dashboard) ───
 
-  schedulePull() {
-    if (this._pullTimer) clearTimeout(this._pullTimer);
-    this._pullTimer = setTimeout(() => {
-      this.pull();
-      this._pullTimer = null;
-    }, 500);
-  },
-
-  startAutoPull() {
-    this._pullInterval = setInterval(() => this.pull(), 60000);
-  },
-
-  stopAutoPull() {
-    if (this._pullInterval) { clearInterval(this._pullInterval); this._pullInterval = null; }
-  },
-
-  async forceSync() {
-    UI.toast('Sincronizando...', 'info');
-    await this.push();
-    await this.pull();
-    UI.toast('Sincronización completada', 'success');
+  async forceRefresh() {
+    if (typeof UI !== 'undefined') UI.toast('Recargando desde Supabase...', 'info');
+    await this.refreshCache();
+    if (typeof UI !== 'undefined') UI.toast('Datos actualizados desde Supabase', 'success');
   }
 };
 
-window.dbSupabase = dbSupabase;
+window.dbOnline = dbOnline;
+window.dbSupabase = dbOnline;

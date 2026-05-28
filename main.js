@@ -4,8 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 💡 Inicializar stores Alpine antes de cualquier operación
   if (!Alpine.store('network')) Alpine.store('network', { online: navigator.onLine });
-  if (!Alpine.store('turso')) Alpine.store('turso', { status: 'disabled' });
-  if (!Alpine.store('supabase')) Alpine.store('supabase', { status: 'disabled' });
+  if (!Alpine.store('supabase')) Alpine.store('supabase', { status: 'disconnected' });
 
   try {
     // 💡 Listeners de conexión
@@ -22,24 +21,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     await db.open();
     console.log('✅ IndexedDB abierta');
 
-    // 💡 Inicializar SQLite (sql.js) como motor complementario
-    await dbSQLite.init();
-    console.log('✅ SQLite (sql.js) inicializado');
+    // 💡 Inicializar dbOnline (conecta a Supabase + inicia Realtime)
+    await dbOnline.init();
+    console.log('✅ dbOnline inicializado');
 
-    // 💡 Inicializar Supabase sync
-    await dbSupabase.init();
-    console.log('✅ Supabase sync inicializado');
+    // 💡 Refresh inicial: traer datos de Supabase a caché IndexedDB
+    await dbOnline.refreshCache();
 
-    // 💡 Pull inicial desde Supabase (si hay datos remotos)
-    await dbSupabase.pull();
-
-    // 💡 Auto-pull periódico (cada 30s)
-    dbSupabase.startAutoPull();
-
-    // 💡 Escuchar cambios: sync SQLite + push a Turso + refrescar módulo activo
+    // 💡 Escuchar cambios: refrescar módulo activo
     window.addEventListener('db-change', async () => {
-      await dbSQLite.sync();
-      dbSupabase.schedulePush();
       const modId = window._currentModule;
       if (modId && appRouter.modules[modId]) {
         const container = document.getElementById('app-content');
@@ -72,6 +62,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Auto-crear admin desde project.config.js si no existe en DB
     await appRouter._bootstrapAdmin();
 
+    // 💡 Crear dev demo con perfil completo (carlos@dev.com / dev123)
+    await appRouter._bootstrapDemoDev();
+
     // 💡 Cargar datos de ejemplo si es primera vez
     await seedInitialData();
 
@@ -81,17 +74,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Restaurar sesión y marcar auth como checked
     await appRouter.checkSession();
 
-    // 💡 Router primero (no bloquear UI con push)
+    // 💡 Router
     appRouter.init();
-
-    // 💡 Push inicial asíncrono si hay datos locales no subidos nunca
-    if (dbSupabase._connected) {
-      const hasLocalData = await db.perfiles.count() > 0 || await db.usuarios.count() > 0;
-      if (hasLocalData) {
-        console.log('📤 Push inicial automático...');
-        dbSupabase.push(); // fire-and-forget, no blocker
-      }
-    }
 
     console.log('✅ App inicializada correctamente');
   } catch (err) {

@@ -223,6 +223,16 @@
     .badge-skill-cloud { background: rgba(14,165,233,0.08); color: #0369a1; border: 1px solid rgba(14,165,233,0.15); }
     .badge-skill-testing { background: rgba(239,68,68,0.08); color: #b91c1c; border: 1px solid rgba(239,68,68,0.15); }
     .badge-skill-general { background: rgba(100,116,139,0.06); color: #475569; border: 1px solid rgba(100,116,139,0.12); }
+    .badge-skill-frontend { background: rgba(59,130,246,0.08); color: #1d4ed8; border: 1px solid rgba(59,130,246,0.15); }
+    .badge-skill-backend { background: rgba(139,92,246,0.08); color: #7e22ce; border: 1px solid rgba(139,92,246,0.15); }
+    .badge-skill-redes-seguridad { background: rgba(239,68,68,0.08); color: #b91c1c; border: 1px solid rgba(239,68,68,0.15); }
+    .badge-skill-soft-skills { background: rgba(34,197,94,0.08); color: #15803d; border: 1px solid rgba(34,197,94,0.15); }
+    .badge-skill-diseno-uxui-grafico, .badge-skill-diseño-uxui-gráfico { background: rgba(236,72,153,0.08); color: #be185d; border: 1px solid rgba(236,72,153,0.15); }
+    .badge-skill-devops-cloud { background: rgba(245,158,11,0.08); color: #a16207; border: 1px solid rgba(245,158,11,0.15); }
+    .badge-skill-analitica-de-datos, .badge-skill-analítica-de-datos { background: rgba(16,185,129,0.08); color: #047857; border: 1px solid rgba(16,185,129,0.15); }
+    .badge-skill-cms { background: rgba(107,114,128,0.08); color: #4b5563; border: 1px solid rgba(107,114,128,0.15); }
+    .badge-skill-herramientas { background: rgba(107,114,128,0.06); color: #525252; border: 1px solid rgba(107,114,128,0.12); }
+    .badge-skill-metodologias { background: rgba(168,85,247,0.08); color: #7e22ce; border: 1px solid rgba(168,85,247,0.15); }
 
     /* Tabla — subtle hover, no heavy borders */
     .table tr { transition: background var(--transition-fast); }
@@ -403,6 +413,27 @@
     }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
     @keyframes fadeOut { to { opacity: 0; transform: scale(0.8); } }
+
+    /* 🎯 Sidebar colapsable — solo en desktop */
+    .sidebar-aside { width: 16rem; }
+    @media (min-width: 1024px) {
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) { width: 68px; }
+    }
+    @media (max-width: 1023px) {
+      .sidebar-aside.sidebar-collapsed { width: 16rem; }
+    }
+    .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a {
+      justify-content: center;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a span { display: none; }
+    .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a i { margin: 0; font-size: 1.25rem; }
+
+    /* Drawer-side on desktop: match sidebar width for smooth grid */
+    @media (min-width: 1024px) {
+      .drawer.lg\:drawer-open > .drawer-side { width: auto; }
+    }
   </style>
 </head>
 <body>
@@ -425,48 +456,29 @@
 
     <!-- Main content -->
     <div class="drawer-content flex flex-col min-h-screen">
-      <!-- Topbar -->
-      <header class="navbar bg-white sticky top-0 z-40 px-4 lg:px-6 shrink-0" style="border-bottom: 1px solid var(--border);">
-        <div class="flex-none lg:hidden">
-          <label for="sidebar-drawer" class="btn btn-square btn-ghost">
-            <i class="bi bi-list text-xl"></i>
-          </label>
-        </div>
-        <div class="flex-1">
-          <h1 class="text-lg font-semibold tracking-heading flex items-center gap-2">
-            <i class="bi bi-code-square text-accent text-xl"></i>
-            <span>DevCardCV</span>
-          </h1>
-        </div>
-        <div class="flex-none flex items-center gap-2">
-          <div class="flex items-center gap-2" x-show="$store.auth.isLoggedIn">
-            <span class="text-sm text-base-content/50 hidden sm:inline">Hola,</span>
-            <span class="text-sm font-medium hidden sm:inline truncate max-w-[120px]" x-text="$store.auth.user?.nombre"></span>
-            <div class="avatar">
-              <div class="w-7 h-7 rounded-full ring-2 ring-accent/20">
-                <img x-show="$store.auth.fotoBase64" :src="$store.auth.fotoBase64" alt="" class="w-full h-full object-cover" />
-                <div x-show="!$store.auth.fotoBase64" class="w-full h-full flex items-center justify-center bg-base-200 rounded-full">
-                  <i class="bi bi-person-fill text-xs text-base-content/40"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-          <button class="btn btn-ghost btn-sm btn-square" onclick="window.dispatchEvent(new CustomEvent('auth-logout'))" title="Cerrar sesión" x-show="$store.auth.isLoggedIn">
-            <i class="bi bi-box-arrow-right text-lg"></i>
-          </button>
-          <span class="badge gap-1.5 text-xs font-medium"
-                :class="$store.supabase.status === 'connected' ? 'badge-ghost' : $store.network.online ? 'badge-warning' : 'badge-error'"
-                style="transition: all var(--transition-normal);"
-                :title="$store.supabase.status === 'connected' ? 'Sincronizado con Supabase' : $store.supabase.status === 'disabled' ? 'Supabase no configurado' : $store.network.online ? 'Supabase desconectado' : 'Sin conexión'">
-            <i :class="$store.supabase.status === 'connected' ? 'bi-cloud-check-fill text-accent' : $store.network.online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
-            <span x-text="$store.supabase.status === 'connected' ? 'Sync' : $store.network.online ? 'Local' : 'Offline'"></span>
-          </span>
-        </div>
-      </header>
+      <!-- Mobile hamburger toggle -->
+      <div class="lg:hidden fixed top-3 left-3 z-30" x-show="$store.auth.isLoggedIn">
+        <label for="sidebar-drawer" class="btn btn-square btn-ghost btn-sm bg-white shadow-card" style="border-radius: 8px; border: 1px solid var(--border);">
+          <i class="bi bi-list text-xl"></i>
+        </label>
+      </div>
 
       <!-- Page content -->
       <main id="app-content" class="flex-1 p-4 lg:p-8" role="main">
-        <!-- Cargado dinámicamente por el router -->
+        <div id="app-loading" class="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
+            <i class="bi bi-code-square text-accent text-2xl"></i>
+          </div>
+          <div class="text-center">
+            <p class="text-sm font-medium">DevCardCV</p>
+            <p class="text-xs" style="color: var(--ink-muted);">Cargando...</p>
+          </div>
+          <div class="flex gap-1.5 mt-2">
+            <span class="w-2 h-2 rounded-full bg-accent/40 animate-bounce" style="animation-delay:0s"></span>
+            <span class="w-2 h-2 rounded-full bg-accent/60 animate-bounce" style="animation-delay:0.15s"></span>
+            <span class="w-2 h-2 rounded-full bg-accent/80 animate-bounce" style="animation-delay:0.3s"></span>
+          </div>
+        </div>
       </main>
 
       <!-- Footer -->
@@ -481,24 +493,73 @@
       <!-- Sidebar -->
       <div class="drawer-side z-50">
         <label for="sidebar-drawer" class="drawer-overlay"></label>
-        <aside class="menu p-4 w-64 bg-white text-base-content" style="min-height: 100vh; border-right: 1px solid var(--border);">
-          <div class="mb-6 mt-2 px-1">
-            <h2 class="text-sm font-semibold tracking-heading flex items-center gap-2">
-              <i class="bi bi-code-square text-accent"></i> DevCardCV
-            </h2>
-            <p class="text-xs" style="color: var(--ink-muted);">Fichas técnicas de desarrollo</p>
+        <aside class="menu sidebar-aside bg-white text-base-content transition-all duration-200 overflow-y-auto flex flex-col"
+               :class="[
+                 $store.ui.sidebarCollapsed ? 'sidebar-collapsed' : '',
+                 hoverExpand ? 'hover-expand' : ''
+               ]"
+               @mouseenter="hoverExpand = true"
+               @mouseleave="hoverExpand = false"
+               x-data="{ hoverExpand: false }"
+               style="min-height: 100vh; border-right: 1px solid var(--border);">
+
+          <!-- Collapse toggle + Logo row -->
+          <div class="flex items-center justify-between px-3 py-4 border-b border-base-200 shrink-0" style="height: 57px;">
+            <div x-show="!$store.ui.sidebarCollapsed || hoverExpand" class="flex items-center gap-2" x-cloak>
+              <i class="bi bi-code-square text-accent text-lg"></i>
+              <span class="text-sm font-semibold tracking-heading">DevCardCV</span>
+            </div>
+            <div x-show="$store.ui.sidebarCollapsed && !hoverExpand" class="mx-auto" x-cloak>
+              <i class="bi bi-code-square text-accent text-lg"></i>
+            </div>
+            <button class="btn btn-ghost btn-xs btn-square shrink-0 hidden lg:inline-flex" @click="$store.ui.toggleSidebar()" title="Alternar sidebar">
+              <i :class="$store.ui.sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'" class="text-sm"></i>
+            </button>
           </div>
-          <ul id="nav-menu" class="menu menu-md gap-0.5">
+
+          <!-- User profile -->
+          <div x-show="$store.auth.isLoggedIn"
+               class="mx-2 my-3 p-2 rounded-lg shrink-0"
+               :class="$store.ui.sidebarCollapsed && !hoverExpand ? 'p-1.5' : ''"
+               style="background: var(--surface-muted);">
+            <div class="flex items-center gap-3" :class="$store.ui.sidebarCollapsed && !hoverExpand ? 'flex-col' : ''">
+              <div class="avatar cursor-pointer shrink-0"
+                   onclick="window.location.hash='#/cv/' + (Alpine.store('auth')?.perfil?.id || Alpine.store('auth')?.user?.perfilId || '')"
+                   title="Ver mi perfil">
+                <div class="w-9 h-9 rounded-full ring-2 ring-accent/20 overflow-hidden">
+                  <img x-show="$store.auth.fotoBase64" :src="$store.auth.fotoBase64" alt="" class="w-full h-full object-cover" />
+                  <div x-show="!$store.auth.fotoBase64" class="w-full h-full flex items-center justify-center bg-base-200 rounded-full">
+                    <span class="text-xs font-semibold text-base-content/40" x-text="($store.auth.perfil?.nombre || $store.auth.user?.nombre || '?').charAt(0)"></span>
+                  </div>
+                </div>
+              </div>
+              <div x-show="!$store.ui.sidebarCollapsed || hoverExpand" class="flex-1 min-w-0" x-cloak>
+                <p class="text-sm font-medium truncate" x-text="$store.auth.perfil?.nombre || $store.auth.user?.nombre"></p>
+                <div class="flex items-center gap-1 mt-0.5">
+                  <span class="badge badge-xs" :class="$store.auth.user?.rol === 'admin' ? 'badge-accent' : 'badge-ghost'"
+                        x-text="$store.auth.user?.rol === 'admin' ? 'Admin' : ($store.auth.perfil?.cargo || 'Dev')"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation menu -->
+          <ul id="nav-menu" class="menu menu-md gap-0.5 px-2 mt-2 flex-1">
             <!-- Generado dinámicamente por app.js -->
           </ul>
-          <div class="mt-auto pt-4 border-t border-base-200 px-1">
-            <div x-show="$store.auth.isLoggedIn" class="flex items-center justify-between mb-2">
-              <span class="text-xs font-medium truncate max-w-[140px]" x-text="$store.auth.user?.nombre"></span>
-              <button class="btn btn-ghost btn-xs gap-1" onclick="window.dispatchEvent(new CustomEvent('auth-logout'))" title="Cerrar sesión">
-                <i class="bi bi-box-arrow-right text-xs"></i>
-              </button>
-            </div>
-            <p class="text-xs" style="color: var(--ink-muted);">v1.0.0 &mdash; Offline-first</p>
+
+          <!-- Bottom: Logout -->
+          <div class="mt-auto px-2 py-3 border-t border-base-200 shrink-0">
+            <button x-show="$store.auth.isLoggedIn"
+                    class="btn btn-ghost btn-sm w-full justify-start gap-2"
+                    :class="$store.ui.sidebarCollapsed && !hoverExpand ? 'btn-square mx-auto' : ''"
+                    onclick="window.dispatchEvent(new CustomEvent('auth-logout'))"
+                    title="Cerrar sesión"
+                    style="border-radius: 8px;">
+              <i class="bi bi-box-arrow-right text-sm"></i>
+              <span x-show="!$store.ui.sidebarCollapsed || hoverExpand" x-cloak class="text-xs">Cerrar sesión</span>
+            </button>
+            <p x-show="!$store.ui.sidebarCollapsed || hoverExpand" class="text-xs text-center mt-2" style="color: var(--ink-muted);" x-cloak>v1.0.0</p>
           </div>
         </aside>
       </div>
@@ -509,40 +570,52 @@
     <i class="bi bi-person-plus-fill"></i>
   </button>
 
+  <!-- Sync status flotante -->
+  <div class="fixed bottom-4 left-4 z-40" x-show="$store.auth.isLoggedIn">
+    <span class="badge gap-1.5 text-xs font-medium shadow-card"
+          :class="$store.supabase.status === 'connected' ? 'badge-ghost' : $store.network.online ? 'badge-warning' : 'badge-error'"
+          :title="$store.supabase.status === 'connected' ? 'Sincronizado con Supabase' : $store.supabase.status === 'disabled' ? 'Supabase no configurado' : $store.network.online ? 'Supabase desconectado' : 'Sin conexión'"
+          style="border-radius: 20px; border: 1px solid var(--border); transition: all var(--transition-normal);">
+      <i :class="$store.supabase.status === 'connected' ? 'bi-cloud-check-fill text-accent' : $store.network.online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
+      <span x-text="$store.supabase.status === 'connected' ? 'Sync' : $store.network.online ? 'Local' : 'Offline'"></span>
+    </span>
+  </div>
+
   <!-- JS Librerías base -->
   <script src="assets/js/libs/alpine.js"></script>
   <script>
-    // 💡 Auth store temprano: Alpine necesita $store.auth antes de evaluar templates
-    if (!Alpine.store('auth')) {
-      Alpine.store('auth', {
-        user: null,
-        sessionToken: null,
-        fotoBase64: null,
-        get isLoggedIn() { return !!this.user; },
-        get isAdmin() { return this.user && this.user.rol === 'admin'; },
-        setSession(session) {
-          this.user = session;
-          this.sessionToken = session && session.token;
-          this.fotoBase64 = null;
-        },
-        clearSession() {
-          this.user = null;
-          this.sessionToken = null;
-          this.fotoBase64 = null;
-          var k = typeof APP_CONFIG !== 'undefined' && APP_CONFIG.auth ? APP_CONFIG.auth.sessionKey : '_auth_session';
-          try { localStorage.removeItem(k); } catch(e) {}
-        },
-        canEdit(perfilId) {
-          if (!this.user) return false;
-          if (this.user.rol === 'admin') return true;
-          return this.user.perfilId === perfilId;
-        },
-        canManageSkills() { return this.user && this.user.rol === 'admin'; },
-        canBackup() { return this.user && this.user.rol === 'admin'; }
-      });
+    // 🚨 alpine.js no auto-arranca (eliminamos queueMicrotask del bundle).
+    // Creamos stores AHORA (NO dentro de alpine:init, porque ese evento aún no ha ocurrido).
+    if (typeof Alpine !== 'undefined') {
+      if (!Alpine.store('auth')) {
+        Alpine.store('auth', {
+          user: null, sessionToken: null, perfil: null, fotoBase64: null,
+          get isLoggedIn() { return !!this.user; },
+          get isAdmin() { return this.user && this.user.rol === 'admin'; },
+          setSession(session) { this.user = session; this.sessionToken = session && session.token; },
+          setPerfil(p) { this.perfil = p; this.fotoBase64 = (p && p.fotoBase64) || null; },
+          clearSession() {
+            this.user = null; this.sessionToken = null; this.perfil = null; this.fotoBase64 = null;
+            try { localStorage.removeItem('_auth_session'); } catch(e) {}
+          },
+          canEdit(pid) { return this.user ? this.user.rol === 'admin' || this.user.perfilId === pid : false; },
+          canManageSkills() { return !!this.user; },
+          canBackup() { return this.user && this.user.rol === 'admin'; }
+        });
+      }
+      if (!Alpine.store('ui')) {
+        Alpine.store('ui', {
+          sidebarCollapsed: (() => { try { return localStorage.getItem('_sidebar_collapsed') === 'true'; } catch(e) { return false; } })(),
+          toggleSidebar() {
+            this.sidebarCollapsed = !this.sidebarCollapsed;
+            try { localStorage.setItem('_sidebar_collapsed', this.sidebarCollapsed); } catch(e) {}
+          }
+        });
+      }
     }
   </script>
   <script src="assets/js/libs/alpinejs-collapse.min.js"></script>
+  <script>Alpine.start();</script>
   <script src="assets/js/libs/dexie.js"></script>
   <script src="assets/js/libs/crypto-js.js"></script>
   <script src="assets/js/libs/pako.js"></script>

@@ -157,31 +157,31 @@ const appRouter = {
     if (!email || !password || !nombre) return;
     try {
       const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const exists = await db.usuarios.where('email_hash').equals(emailHash).first();
-      if (!exists) {
-        const hash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
-        await db.usuarios.add({
-          email: cryptoHelpers.encrypt(email),
-          email_hash: emailHash,
-          nombre: nombre,
-          password_hash: hash,
-          rol: 'admin',
-          perfilId: null,
-          created_at: new Date(),
-          updated_at: new Date()
-        });
-        window.dispatchEvent(new CustomEvent('db-change'));
-        console.log('✅ Admin auto-creado desde config');
-      }
+      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      if (existentes.length > 0) return true;
+      const hash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+      await dbOnline.add('usuarios', {
+        email: cryptoHelpers.encrypt(email), email_hash: emailHash, nombre, password_hash: hash, rol: 'admin', perfilId: null, created_at: new Date(), updated_at: new Date()
+      });
     } catch (e) { /* ignorar */ }
   },
 
-  // 💡 Inicializar store de autenticación
+  // 💡 Inicializar stores globales
   _initAuthStore() {
+    if (!Alpine.store('ui')) {
+      Alpine.store('ui', {
+        sidebarCollapsed: (() => { try { return localStorage.getItem('_sidebar_collapsed') === 'true'; } catch(e) { return false; } })(),
+        toggleSidebar() {
+          this.sidebarCollapsed = !this.sidebarCollapsed;
+          try { localStorage.setItem('_sidebar_collapsed', this.sidebarCollapsed); } catch(e) {}
+        }
+      });
+    }
     if (Alpine.store('auth')) return;
     Alpine.store('auth', {
       user: null,
       sessionToken: null,
+      perfil: null,
       fotoBase64: null,
 
       get isLoggedIn() { return !!this.user; },
@@ -190,12 +190,17 @@ const appRouter = {
       setSession(session) {
         this.user = session;
         this.sessionToken = session.token;
-        this.fotoBase64 = null;
+      },
+
+      setPerfil(p) {
+        this.perfil = p;
+        this.fotoBase64 = (p && p.fotoBase64) || null;
       },
 
       clearSession() {
         this.user = null;
         this.sessionToken = null;
+        this.perfil = null;
         this.fotoBase64 = null;
         localStorage.removeItem(APP_CONFIG.auth.sessionKey);
       },
@@ -206,7 +211,7 @@ const appRouter = {
         return this.user.perfilId === perfilId;
       },
 
-      canManageSkills() { return this.user?.rol === 'admin'; },
+      canManageSkills() { return !!this.user; },
       canBackup() { return this.user?.rol === 'admin'; }
     });
   },
@@ -218,17 +223,59 @@ const appRouter = {
     try {
       const session = JSON.parse(raw);
       // 💡 Verificar que el usuario aún existe en la DB
-      const exists = await db.usuarios.get(session.userId);
+      const exists = await dbOnline.get('usuarios', session.userId);
       if (exists) {
         Alpine.store('auth').setSession(session);
-        const perfil = exists.perfilId ? await db.perfiles.get(exists.perfilId) : null;
-        if (perfil && perfil.fotoBase64) {
-          Alpine.store('auth').fotoBase64 = perfil.fotoBase64;
-        }
+        const perfil = exists.perfilId ? await dbOnline.get('perfiles', exists.perfilId) : null;
+        Alpine.store('auth').setPerfil(perfil);
       } else {
         localStorage.removeItem(APP_CONFIG.auth.sessionKey);
       }
     } catch (e) { /* ignorar */ }
     this.authChecked = true;
+  },
+
+  // 💡 Crear dev demo si no existe
+  async _bootstrapDemoDev() {
+    try {
+      const email = 'carlos@dev.com';
+      const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
+      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      if (existentes.length > 0) return;
+
+      const perfil = await dbOnline.add('perfiles', {
+        nombre: 'Carlos Dev',
+        email: cryptoHelpers.encrypt(email),
+        cargo: 'Full Stack Developer',
+        bio: 'Desarrollador full stack con 5+ años de experiencia. Especialista en React, Node.js y PostgreSQL. Apasionado por construir aplicaciones escalables con buenas prácticas de UX y código limpio.',
+        fotoBase64: '',
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      const hash = CryptoJS.SHA256('dev123').toString(CryptoJS.enc.Hex);
+      await dbOnline.add('usuarios', {
+        email: cryptoHelpers.encrypt(email),
+        email_hash: emailHash,
+        nombre: 'Carlos Dev',
+        password_hash: hash,
+        rol: 'dev',
+        perfilId: perfil.id,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      const allSkills = await dbOnline.getAll('habilidades');
+      const devSkills = ['JavaScript', 'TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'Git', 'Python'];
+      for (const name of devSkills) {
+        const skill = allSkills.find(s => s.nombre.toLowerCase() === name.toLowerCase());
+        if (skill) {
+          await dbOnline.add('perfil_habilidades', { perfil_id: perfil.id, habilidad_id: skill.id });
+        }
+      }
+
+      window.dispatchEvent(new CustomEvent('db-change'));
+      console.log('✅ Dev demo creado: carlos@dev.com / dev123');
+    } catch (e) { /* ignorar */ }
   }
 };

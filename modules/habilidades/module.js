@@ -8,8 +8,8 @@ const Habilidades = {
   },
 
   async render(params = {}) {
-    const habilidades = await db.habilidades.orderBy('categoria').toArray();
-    const relaciones = await db.perfil_habilidades.toArray();
+    const habilidades = (await dbOnline.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
+    const relaciones = await dbOnline.getAll('perfil_habilidades');
 
     // 💡 Contar cuántos devs tienen cada skill
     const skillUses = {};
@@ -37,10 +37,10 @@ const Habilidades = {
       <p class="text-xs text-base-content/50 mt-1" x-text="Object.keys(cats).length + ' categorías, ' + Object.values(cats).flat().length + ' skills'"></p>
     </div>
     <div class="flex gap-2">
-      <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm" style="border-radius: 8px; border: 1px solid var(--border);" @click="showCatModal = true">
+      <button class="btn btn-ghost btn-sm" style="border-radius: 8px; border: 1px solid var(--border);" @click="showCatModal = true">
         <i class="bi bi-folder-plus"></i> Nueva categoría
       </button>
-      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="showSkillModal = true">
+      <button class="btn btn-primary btn-sm" style="border-radius: 8px;" @click="showSkillModal = true">
         <i class="bi bi-plus-lg"></i> Nueva habilidad
       </button>
     </div>
@@ -61,7 +61,7 @@ const Habilidades = {
               <span x-text="categoria"></span>
               <span class="badge badge-sm badge-ghost ml-1" style="border-radius: 4px;" x-text="skills.length"></span>
             </h3>
-            <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs text-error" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
+            <button class="btn btn-ghost btn-xs text-error" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
               <i class="bi bi-trash"></i>
             </button>
           </div>
@@ -75,10 +75,10 @@ const Habilidades = {
                 </div>
                 <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                   <span class="text-xs text-base-content/50" x-text="skill.uso"></span>
-                  <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
+                  <button class="btn btn-ghost btn-xs" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs text-error" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
+                  <button class="btn btn-ghost btn-xs text-error" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
                     <i class="bi bi-x-lg"></i>
                   </button>
                 </div>
@@ -177,8 +177,8 @@ function habilidadesData(categorias) {
       try {
         const skills = this.cats[cat];
         for (const skill of skills) {
-          await db.perfil_habilidades.where('habilidad_id').equals(skill.id).delete();
-          await db.habilidades.delete(skill.id);
+          await dbOnline.bulkDelete('perfil_habilidades', 'habilidad_id', skill.id);
+          await dbOnline.delete('habilidades', skill.id);
         }
         delete this.cats[cat];
         UI.toast('Categoría eliminada', 'success');
@@ -199,14 +199,14 @@ function habilidadesData(categorias) {
 
       try {
         if (this.editingSkill) {
-          await db.habilidades.update(this.editingSkill, {
+          await dbOnline.update('habilidades', this.editingSkill, {
             nombre: this.newSkill.nombre.trim(),
             categoria: this.newSkill.categoria,
             updated_at: new Date()
           });
           UI.toast('Habilidad actualizada', 'success');
         } else {
-          await db.habilidades.add({
+          await dbOnline.add('habilidades', {
             nombre: this.newSkill.nombre.trim(),
             categoria: this.newSkill.categoria,
             created_at: new Date()
@@ -227,8 +227,8 @@ function habilidadesData(categorias) {
       if (!ok) return;
 
       try {
-        await db.perfil_habilidades.where('habilidad_id').equals(skill.id).delete();
-        await db.habilidades.delete(skill.id);
+        await dbOnline.bulkDelete('perfil_habilidades', 'habilidad_id', skill.id);
+        await dbOnline.delete('habilidades', skill.id);
         UI.toast('Habilidad eliminada', 'success');
         window.dispatchEvent(new CustomEvent('db-change'));
       } catch (err) {

@@ -8,28 +8,16 @@ const Perfiles = {
   },
 
   async render(params = {}) {
-    const auth = Alpine.store('auth');
-    const esAdmin = auth && auth.isAdmin;
-    const userId = auth && auth.user ? auth.user.userId : null;
-
-    let perfiles = await db.perfiles.orderBy('nombre').toArray();
-    if (!esAdmin && userId) {
-      const user = await db.usuarios.get(userId);
-      if (user && user.perfilId) {
-        perfiles = perfiles.filter(p => p.id === user.perfilId);
-      } else {
-        perfiles = [];
-      }
-    }
-    const habilidades = await db.habilidades.orderBy('categoria').toArray();
-    const relaciones = await db.perfil_habilidades.toArray();
+    let perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = (await dbOnline.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
+    const relaciones = await dbOnline.getAll('perfil_habilidades');
 
     // 💡 Preparar perfiles con sus skills
     const perfilesData = [];
     for (const p of perfiles) {
       const perfilSkills = relaciones
-        .filter(r => r.perfil_id === p.id)
-        .map(r => habilidades.find(h => h.id === r.habilidad_id))
+        .filter(r => r.perfil_id == p.id)
+        .map(r => habilidades.find(h => h.id == r.habilidad_id))
         .filter(Boolean);
       perfilesData.push({
         ...p,
@@ -131,7 +119,7 @@ const Perfiles = {
             <button class="btn btn-ghost btn-xs" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
               <i class="bi bi-file-earmark-richtext"></i> CV
             </button>
-            <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-xs" @click="editar(dev.id)" aria-label="Editar" title="Editar">
+            <button x-show="$store.auth.canEdit(dev.id)" class="btn btn-ghost btn-xs" @click="editar(dev.id)" aria-label="Editar" title="Editar">
               <i class="bi bi-pencil"></i>
             </button>
             <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs text-error" @click="eliminar(dev.id)" aria-label="Eliminar" title="Eliminar">
@@ -418,8 +406,8 @@ function perfilesData(perfiles, categorias, habilidades) {
       if (!name) { UI.toast('Nombre de habilidad requerido', 'warning'); return; }
       const existente = this.categorias[cat].find(s => s.nombre.toLowerCase() === name.toLowerCase());
       if (existente) { UI.toast('Esa habilidad ya existe en la categoría', 'warning'); return; }
-      await db.habilidades.add({ nombre: name, categoria: cat, created_at: new Date() });
-      const hb = await db.habilidades.toArray();
+      await dbOnline.add('habilidades', { nombre: name, categoria: cat, created_at: new Date() });
+      const hb = await dbOnline.getAll('habilidades');
       this.habilidades = hb;
       this.categorias = {};
       hb.forEach(h => {
@@ -521,6 +509,18 @@ function perfilesData(perfiles, categorias, habilidades) {
         return;
       }
 
+      // Verificar email duplicado
+      const emailNormalizado = this.form.email.toLowerCase().trim();
+      const duplicado = this.perfiles.some(p =>
+        p.email?.toLowerCase().trim() === emailNormalizado &&
+        (this.editando ? p.id !== this.editando : true)
+      );
+      if (duplicado) {
+        this.formErrors.email = 'Ya existe un perfil con este email';
+        UI.toast('Ya existe un perfil con este email', 'warning');
+        return;
+      }
+
       const datos = {
         nombre: this.form.nombre,
         email: cryptoHelpers.encrypt(this.form.email),
@@ -536,27 +536,28 @@ function perfilesData(perfiles, categorias, habilidades) {
         let perfilId;
         if (this.editando) {
           datos.created_at = this.perfiles.find(p => p.id === this.editando)?.created_at || new Date();
-          await db.perfiles.update(this.editando, datos);
+          await dbOnline.update('perfiles', this.editando, datos);
           perfilId = this.editando;
           UI.toast('Perfil actualizado correctamente', 'success');
         } else {
           datos.created_at = new Date();
-          perfilId = await db.perfiles.add(datos);
+          const creado = await dbOnline.add('perfiles', datos);
+          perfilId = creado.id;
           UI.toast('Desarrollador creado correctamente', 'success');
         }
 
         // 💡 Actualizar habilidades
-        await db.perfil_habilidades.where('perfil_id').equals(perfilId).delete();
+        await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', perfilId);
         for (const skillId of this.form.skills) {
-          await db.perfil_habilidades.add({ perfil_id: perfilId, habilidad_id: skillId });
+          await dbOnline.add('perfil_habilidades', { perfil_id: perfilId, habilidad_id: skillId });
         }
 
         this.cerrarFormulario();
         window.dispatchEvent(new CustomEvent('db-change'));
         const authStore = Alpine.store('auth');
         if (authStore.isLoggedIn && authStore.user?.perfilId === perfilId) {
-          const perfilActualizado = await db.perfiles.get(perfilId);
-          authStore.fotoBase64 = (perfilActualizado && perfilActualizado.fotoBase64) || null;
+          const perfilActualizado = await dbOnline.get('perfiles', perfilId);
+          authStore.setPerfil(perfilActualizado);
         }
         window.location.hash = '#/perfiles';
       } catch (err) {
@@ -571,8 +572,8 @@ function perfilesData(perfiles, categorias, habilidades) {
       if (!ok) return;
 
       try {
-        await db.perfil_habilidades.where('perfil_id').equals(id).delete();
-        await db.perfiles.delete(id);
+        await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', id);
+        await dbOnline.delete('perfiles', id);
         UI.toast('Perfil eliminado', 'success');
         window.dispatchEvent(new CustomEvent('db-change'));
         window.location.hash = '#/perfiles';
@@ -587,10 +588,10 @@ function perfilesData(perfiles, categorias, habilidades) {
 
     async exportarPerfilJSON(dev) {
       try {
-        const relaciones = await db.perfil_habilidades.where('perfil_id').equals(dev.id).toArray();
-        const habilidades = await db.habilidades.toArray();
+        const relaciones = await dbOnline.getWhere('perfil_habilidades', 'perfil_id', dev.id);
+        const habilidades = await dbOnline.getAll('habilidades');
         const perfilSkills = relaciones
-          .map(r => habilidades.find(h => h.id === r.habilidad_id))
+          .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
 
         const perfilData = {
@@ -640,14 +641,14 @@ function perfilesData(perfiles, categorias, habilidades) {
         if (!ok) return;
 
         // 💡 Buscar si ya existe por email
-        const todos = await db.perfiles.toArray();
+        const todos = await dbOnline.getAll('perfiles');
         const existente = todos.find(p => cryptoHelpers.decrypt(p.email || '') === perfil.email);
 
         // 💡 Asegurar que las habilidades existen
         for (const skill of (data.habilidades || [])) {
-          const existe = await db.habilidades.where('nombre').equals(skill.nombre).first();
-          if (!existe) {
-            await db.habilidades.add({ nombre: skill.nombre, categoria: skill.categoria, created_at: new Date(), updated_at: new Date() });
+          const existentes = await dbOnline.getWhere('habilidades', 'nombre', skill.nombre);
+          if (existentes.length === 0) {
+            await dbOnline.add('habilidades', { nombre: skill.nombre, categoria: skill.categoria, created_at: new Date(), updated_at: new Date() });
           }
         }
 
@@ -665,22 +666,23 @@ function perfilesData(perfiles, categorias, habilidades) {
 
         if (existente) {
           datos.created_at = existente.created_at;
-          await db.perfiles.update(existente.id, datos);
+          await dbOnline.update('perfiles', existente.id, datos);
           perfilId = existente.id;
-          await db.perfil_habilidades.where('perfil_id').equals(perfilId).delete();
+          await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', perfilId);
           UI.toast(`Perfil de "${perfil.nombre}" actualizado`, 'success');
         } else {
           datos.created_at = new Date();
-          perfilId = await db.perfiles.add(datos);
+          const creadoImport = await dbOnline.add('perfiles', datos);
+          perfilId = creadoImport.id;
           UI.toast(`Perfil de "${perfil.nombre}" importado`, 'success');
         }
 
         // 💡 Asignar habilidades
-        const todasHabilidades = await db.habilidades.toArray();
+        const todasHabilidades = await dbOnline.getAll('habilidades');
         for (const skill of (data.habilidades || [])) {
           const hab = todasHabilidades.find(h => h.nombre === skill.nombre);
           if (hab) {
-            await db.perfil_habilidades.add({ perfil_id: perfilId, habilidad_id: hab.id });
+            await dbOnline.add('perfil_habilidades', { perfil_id: perfilId, habilidad_id: hab.id });
           }
         }
 

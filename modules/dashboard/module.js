@@ -8,9 +8,10 @@ const Dashboard = {
   },
 
   async render(params = {}) {
-    const perfiles = await db.perfiles.orderBy('nombre').toArray();
-    const habilidades = await db.habilidades.toArray();
-    const relaciones = await db.perfil_habilidades.toArray();
+    const perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = await dbOnline.getAll('habilidades');
+    const relaciones = await dbOnline.getAll('perfil_habilidades');
+    const usuarios = await dbOnline.getAll('usuarios');
 
     // 💡 Contar skills por categoría
     const categorias = {};
@@ -21,7 +22,7 @@ const Dashboard = {
     // 💡 Skills más comunes
     const skillCount = {};
     relaciones.forEach(r => {
-      const hab = habilidades.find(h => h.id === r.habilidad_id);
+      const hab = habilidades.find(h => h.id == r.habilidad_id);
       if (hab) {
         skillCount[hab.nombre] = (skillCount[hab.nombre] || 0) + 1;
       }
@@ -34,18 +35,22 @@ const Dashboard = {
     const perfilesData = [];
     for (const p of perfiles) {
       const perfilSkills = relaciones
-        .filter(r => r.perfil_id === p.id)
-        .map(r => habilidades.find(h => h.id === r.habilidad_id))
+        .filter(r => r.perfil_id == p.id)
+        .map(r => habilidades.find(h => h.id == r.habilidad_id))
         .filter(Boolean);
+      const usuario = usuarios.find(u => u.perfilId === p.id);
       perfilesData.push({
         ...p,
         skills: perfilSkills.map(s => s.nombre),
-        skillCount: perfilSkills.length
+        skillCount: perfilSkills.length,
+        rol: usuario ? usuario.rol : 'dev',
+        userId: usuario ? usuario.id : null
       });
     }
 
+    const adminCount = usuarios.filter(u => u.rol === 'admin').length;
     return `
-<div x-data="dashboardData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(topSkills).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')})"
+<div x-data="dashboardData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(topSkills).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${adminCount})"
      x-init="initChart()">
 
   <!-- Header con contador -->
@@ -123,25 +128,25 @@ const Dashboard = {
       </h3>
 
       <!-- Estado de sync -->
-      <div class="flex items-center gap-3 mb-4 p-3 rounded-lg" :style="syncStatusBg"
+      <div class="flex items-center gap-3 mb-4 p-3 rounded-lg"
            style="background: var(--surface-muted);">
-        <div class="w-3 h-3 rounded-full" :style="'background: ' + syncStatusColor"></div>
+        <div class="w-3 h-3 rounded-full"
+             :style="'background: ' + (syncStatus === 'connected' ? '#22C55E' : '#EF4444')"></div>
         <div class="flex-1">
-          <p class="text-sm font-medium" x-text="syncStatusLabel"></p>
+          <p class="text-sm font-medium" x-text="'Supabase: ' + onlineLabel"></p>
           <p class="text-xs" style="color: var(--ink-muted);">
-            <span x-show="syncLastPush">Último push: <span x-text="syncLastPush"></span></span>
-            <span x-show="syncLastPull" class="ml-2">Último pull: <span x-text="syncLastPull"></span></span>
+            <span>Sincronización vía WebSocket en tiempo real</span>
           </p>
         </div>
         <button class="btn btn-ghost btn-sm" style="border-radius: 8px; border: 1px solid var(--border);"
-                @click="forceSync()" :disabled="syncing">
+                @click="forceRefresh()" :disabled="syncing">
           <i class="bi" :class="syncing ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-repeat'"></i>
-          <span x-text="syncing ? 'Sincronizando...' : 'Sincronizar ahora'"></span>
+          <span x-text="syncing ? 'Refrescando...' : 'Refrescar'"></span>
         </button>
       </div>
 
       <div class="text-xs" style="color: var(--ink-muted);">
-        <i class="bi bi-check-circle text-accent"></i> Sincronización vía Supabase PostgreSQL (desde <code>project.config.js</code>)
+        <i class="bi bi-check-circle text-accent"></i> Realtime: los cambios aparecen automáticamente en todos los dispositivos
       </div>
     </div>
   </div>
@@ -173,7 +178,7 @@ const Dashboard = {
   </div>
 
   <!-- Reporte SQL (sql.js) -->
-  <div class="card bg-white mb-6" x-data="{ open: false }">
+  <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
     <div class="card-body p-4">
       <h3 class="section-label mb-1 flex items-center gap-2 cursor-pointer select-none" @click="open = !open">
         <i class="bi bi-code-slash text-accent"></i> Reporte SQL
@@ -286,6 +291,7 @@ const Dashboard = {
               <th class="section-label font-semibold">Nombre</th>
               <th class="section-label font-semibold">Cargo</th>
               <th class="section-label font-semibold">Skills</th>
+              <th class="section-label font-semibold">Rol</th>
               <th class="text-right section-label font-semibold">Acciones</th>
             </tr>
           </thead>
@@ -321,12 +327,30 @@ const Dashboard = {
                     <span x-show="dev.skills.length > 4" class="badge badge-sm badge-ghost" style="border-radius: 4px;" x-text=" '+' + (dev.skills.length - 4)"></span>
                   </div>
                 </td>
+                <td>
+                  <span x-show="$store.auth.isAdmin && dev.userId !== $store.auth.user?.userId && !(dev.rol === 'admin' && esUltimoAdmin)"
+                        class="badge badge-sm cursor-pointer gap-1"
+                        :class="dev.rol === 'admin' ? 'badge-accent' : 'badge-ghost'"
+                        @click="cambiarRol(dev)"
+                        :title="dev.rol === 'admin' ? 'Cambiar a Dev' : 'Cambiar a Admin'">
+                    <i class="bi bi-arrow-repeat text-[10px]"></i>
+                    <span x-text="dev.rol === 'admin' ? 'Admin' : 'Dev'"></span>
+                  </span>
+                  <span x-show="dev.rol === 'admin' && esUltimoAdmin && (!$store.auth.isAdmin || dev.userId === $store.auth.user?.userId)"
+                        class="badge badge-sm badge-accent cursor-not-allowed"
+                        title="Debe haber al menos un administrador"
+                        x-text="'Admin'"></span>
+                  <span x-show="(!$store.auth.isAdmin || dev.userId === $store.auth.user?.userId) && !(dev.rol === 'admin' && esUltimoAdmin)"
+                        class="badge badge-sm"
+                        :class="dev.rol === 'admin' ? 'badge-accent' : 'badge-ghost'"
+                        x-text="dev.rol === 'admin' ? 'Admin' : 'Dev'"></span>
+                </td>
                 <td class="text-right">
                   <div class="flex justify-end gap-1">
                     <button class="btn btn-ghost btn-xs" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
                       <i class="bi bi-file-earmark-richtext"></i>
                     </button>
-                    <button class="btn btn-ghost btn-xs" @click="editarPerfil(dev.id)" aria-label="Editar perfil" title="Editar perfil">
+                    <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-xs" @click="editarPerfil(dev.id)" aria-label="Editar perfil" title="Editar perfil">
                       <i class="bi bi-pencil"></i>
                     </button>
                   </div>
@@ -353,7 +377,7 @@ const Dashboard = {
 };
 
 // 💡 Alpine data factory
-function dashboardData(perfiles, topSkills, categorias) {
+function dashboardData(perfiles, topSkills, categorias, adminCount) {
   const catColors = ['#0f172a', '#15803d', '#3b82f6', '#F59E0B', '#8B5CF6', '#22C55E', '#06b6d4', '#ec4899'];
   const catNames = Object.keys(categorias);
   const catValues = catNames.map(c => categorias[c]);
@@ -371,6 +395,9 @@ function dashboardData(perfiles, topSkills, categorias) {
     categorias,
     catList,
     catColors,
+    adminCount,
+
+    get esUltimoAdmin() { return this.adminCount <= 1; },
 
     get filtered() {
       if (!this.search) return this.perfiles;
@@ -406,10 +433,10 @@ function dashboardData(perfiles, topSkills, categorias) {
 
     async exportarJSON() {
       try {
-        const perfiles = await db.perfiles.toArray();
-        const habilidades = await db.habilidades.toArray();
-        const relaciones = await db.perfil_habilidades.toArray();
-        const usuarios = await db.usuarios.toArray();
+        const perfiles = await dbOnline.getAll('perfiles');
+        const habilidades = await dbOnline.getAll('habilidades');
+        const relaciones = await dbOnline.getAll('perfil_habilidades');
+        const usuarios = await dbOnline.getAll('usuarios');
 
         const backup = {
           version: APP_CONFIG.app.version,
@@ -494,8 +521,8 @@ function dashboardData(perfiles, topSkills, categorias) {
 
         // 💡 Insertar habilidades primero (necesarias para relaciones)
         for (const hab of (data.habilidades || [])) {
-          delete hab.id; // Dexie auto-genera ID
-          await db.habilidades.add(hab);
+          delete hab.id;
+          await dbOnline.add('habilidades', hab);
         }
 
         // 💡 Insertar perfiles con cifrado
@@ -508,26 +535,25 @@ function dashboardData(perfiles, topSkills, categorias) {
             created_at: p.created_at ? new Date(p.created_at) : new Date(),
             updated_at: p.updated_at ? new Date(p.updated_at) : new Date()
           };
-          await db.perfiles.add(registro);
+          await dbOnline.add('perfiles', registro);
         }
 
         // 💡 Reconstruir relaciones
-        const perfilesNuevos = await db.perfiles.toArray();
-        const habilidadesNuevas = await db.habilidades.toArray();
+        const perfilesNuevos = await dbOnline.getAll('perfiles');
+        const habilidadesNuevas = await dbOnline.getAll('habilidades');
 
         for (const rel of (data.relaciones || [])) {
-          // 💡 Buscar IDs nuevos por nombre/email
           const perfil = perfilesNuevos.find(p => p.email === cryptoHelpers.encrypt(data.perfiles.find(dp => dp.id === rel.perfil_id)?.email || ''));
           const habilidad = habilidadesNuevas.find(h => h.nombre === (data.habilidades.find(dh => dh.id === rel.habilidad_id)?.nombre));
           if (perfil && habilidad) {
-            await db.perfil_habilidades.add({ perfil_id: perfil.id, habilidad_id: habilidad.id });
+            await dbOnline.add('perfil_habilidades', { perfil_id: perfil.id, habilidad_id: habilidad.id });
           }
         }
 
         // 💡 Restaurar usuarios
         for (const u of (data.usuarios || [])) {
           delete u.id;
-          await db.usuarios.add({
+          await dbOnline.add('usuarios', {
             ...u,
             email: cryptoHelpers.encrypt(u.email || ''),
             created_at: u.created_at ? new Date(u.created_at) : new Date(),
@@ -569,53 +595,56 @@ function dashboardData(perfiles, topSkills, categorias) {
       }, 100);
     },
 
-    // 💡 Cloud sync state
+    // 💡 Sync state (simplificado — Realtime es automático)
     syncing: false,
 
-    get _syncStatus() {
-      const store = typeof Alpine !== 'undefined' && Alpine.store('supabase');
-      return store && store.status ? store.status : dbSupabase.status;
+    get syncStatus() {
+      const store = Alpine.store('supabase');
+      return store ? store.status : 'disconnected';
     },
 
-    get syncStatusColor() {
-      switch (this._syncStatus) {
-        case 'connected': return '#22C55E';
-        case 'offline': return '#F59E0B';
-        case 'disconnected': return '#EF4444';
-        default: return '#94A3B8';
-      }
+    get onlineLabel() {
+      return this.syncStatus === 'connected' ? 'Conectado' : 'Sin conexión';
     },
 
-    get syncStatusBg() {
-      switch (this._syncStatus) {
-        case 'connected': return 'background: rgba(34,197,94,0.06)';
-        case 'offline': return 'background: rgba(245,158,11,0.06)';
-        case 'disconnected': return 'background: rgba(239,68,68,0.06)';
-        default: return 'background: var(--surface-muted)';
-      }
-    },
-
-    get syncStatusLabel() {
-      switch (this._syncStatus) {
-        case 'connected': return 'Conectado a Supabase PostgreSQL';
-        case 'offline': return 'Sin conexión a internet';
-        case 'disconnected': return 'Error de conexión con Supabase';
-        default: return 'Supabase no configurado';
-      }
-    },
-
-    get syncLastPush() {
-      return dbSupabase.lastPush ? dayjs(dbSupabase.lastPush).format('HH:mm:ss') : null;
-    },
-
-    get syncLastPull() {
-      return dbSupabase.lastPull ? dayjs(dbSupabase.lastPull).format('HH:mm:ss') : null;
-    },
-
-    async forceSync() {
+    async forceRefresh() {
       this.syncing = true;
-      await dbSupabase.forceSync();
+      try {
+        await dbOnline.refreshCache();
+        UI.toast('Datos refrescados desde Supabase', 'success');
+      } catch (e) {
+        UI.toast('Error al refrescar: ' + e.message, 'error');
+      }
       this.syncing = false;
+    },
+
+    async cambiarRol(dev) {
+      const nuevoRol = dev.rol === 'admin' ? 'dev' : 'admin';
+      if (nuevoRol === 'dev' && this.esUltimoAdmin) {
+        UI.toast('Debe haber al menos un administrador en el sistema', 'error');
+        return;
+      }
+      const ok = await UI.confirm(
+        `¿Cambiar a "${dev.nombre}" de <strong>${dev.rol}</strong> a <strong>${nuevoRol}</strong>?`,
+        'Cambiar rol'
+      );
+      if (!ok) return;
+      try {
+        await dbOnline.update('usuarios', dev.userId, { rol: nuevoRol, updated_at: new Date() });
+        dev.rol = nuevoRol;
+        if (nuevoRol === 'admin') this.adminCount++;
+        else this.adminCount--;
+        const authUser = Alpine.store('auth').user;
+        if (authUser && dev.userId === authUser.userId) {
+          const session = { ...authUser, rol: nuevoRol };
+          Alpine.store('auth').setSession(session);
+          Alpine.store('auth').user.rol = nuevoRol;
+        }
+        UI.toast(`Rol de "${dev.nombre}" actualizado a ${nuevoRol}`, 'success');
+        window.dispatchEvent(new CustomEvent('db-change'));
+      } catch (err) {
+        UI.toast('Error al cambiar rol: ' + err.message, 'error');
+      }
     },
 
 

@@ -9,7 +9,7 @@ const Auth = {
 
   async render(params = {}) {
     const view = params.params[0] || 'login';
-    const userCount = await db.usuarios.count();
+    const userCount = await dbOnline.count('usuarios');
 
     if (userCount === 0 && view !== 'setup') {
       window.location.hash = '#/auth/setup';
@@ -160,7 +160,8 @@ function authLogin() {
     async login() {
       this.error = '';
       const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const user = await db.usuarios.where('email_hash').equals(emailHash).first();
+      const users = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      const user = users[0] || null;
       if (!user) { this.error = 'Credenciales incorrectas'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
       if (user.password_hash !== hash) { this.error = 'Credenciales incorrectas'; return; }
@@ -168,10 +169,8 @@ function authLogin() {
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
       if (user.perfilId) {
-        const perfil = await db.perfiles.get(user.perfilId);
-        if (perfil && perfil.fotoBase64) {
-          Alpine.store('auth').fotoBase64 = perfil.fotoBase64;
-        }
+        const perfil = await dbOnline.get('perfiles', user.perfilId);
+        Alpine.store('auth').setPerfil(perfil);
       }
       UI.toast('Bienvenido, ' + user.nombre, 'success');
       window.location.hash = '#/dashboard';
@@ -191,10 +190,10 @@ function authSetup() {
       this.error = '';
       if (this.masterKey !== APP_CONFIG.auth.masterKey) { this.error = 'Clave maestra incorrecta'; return; }
       const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existente = await db.usuarios.where('email_hash').equals(emailHash).first();
-      if (existente) { this.error = 'Ya existe un usuario con ese email'; return; }
+      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      if (existentes.length > 0) { this.error = 'Ya existe un usuario con ese email'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
-      const id = await db.usuarios.add({
+      const creado = await dbOnline.add('usuarios', {
         email: cryptoHelpers.encrypt(this.email),
         email_hash: emailHash,
         nombre: this.nombre,
@@ -205,7 +204,7 @@ function authSetup() {
         updated_at: new Date()
       });
       window.dispatchEvent(new CustomEvent('db-change'));
-      const session = { userId: id, email: this.email, nombre: this.nombre, rol: 'admin', perfilId: null, token: CryptoJS.SHA256(id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
+      const session = { userId: creado.id, email: this.email, nombre: this.nombre, rol: 'admin', perfilId: null, token: CryptoJS.SHA256(creado.id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
       UI.toast('Admin creado correctamente', 'success');
@@ -224,14 +223,15 @@ function authRegister() {
     async register() {
       this.error = '';
       const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existente = await db.usuarios.where('email_hash').equals(emailHash).first();
-      if (existente) { this.error = 'Ya existe un usuario con ese email'; return; }
+      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      if (existentes.length > 0) { this.error = 'Ya existe un usuario con ese email'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
-      const perfilId = await db.perfiles.add({
+      const perfilCreado = await dbOnline.add('perfiles', {
         nombre: this.nombre, email: cryptoHelpers.encrypt(this.email), cargo: '', bio: '',
         fotoBase64: '', created_at: new Date(), updated_at: new Date()
       });
-      const id = await db.usuarios.add({
+      const perfilId = perfilCreado.id;
+      const userCreado = await dbOnline.add('usuarios', {
         email: cryptoHelpers.encrypt(this.email),
         email_hash: emailHash,
         nombre: this.nombre,
@@ -242,13 +242,11 @@ function authRegister() {
         updated_at: new Date()
       });
       window.dispatchEvent(new CustomEvent('db-change'));
-      const session = { userId: id, email: this.email, nombre: this.nombre, rol: 'dev', perfilId: perfilId, token: CryptoJS.SHA256(id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
+      const session = { userId: userCreado.id, email: this.email, nombre: this.nombre, rol: 'dev', perfilId: perfilId, token: CryptoJS.SHA256(userCreado.id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
-      const perfilNuevo = await db.perfiles.get(perfilId);
-      if (perfilNuevo && perfilNuevo.fotoBase64) {
-        Alpine.store('auth').fotoBase64 = perfilNuevo.fotoBase64;
-      }
+      const perfilNuevo = await dbOnline.get('perfiles', perfilId);
+      Alpine.store('auth').setPerfil(perfilNuevo);
       UI.toast('Cuenta creada. Bienvenido, ' + this.nombre, 'success');
       window.location.hash = '#/perfiles';
     },
