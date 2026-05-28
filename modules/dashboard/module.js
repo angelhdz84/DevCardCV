@@ -232,15 +232,27 @@ const Dashboard = {
     </div>
   </div>
 
-  <!-- Gráfico + Tabla -->
+  <!-- Gráficos -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <!-- Gráfico de skills -->
-    <div class="card bg-white">
-      <div class="card-body p-4">
-        <h3 class="section-label mb-2 flex items-center gap-2">
-          <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
-        </h3>
-        <div id="skills-chart" style="min-height: 250px;"></div>
+    <div class="flex flex-col gap-6">
+      <!-- Gráfico de skills -->
+      <div class="card bg-white">
+        <div class="card-body p-4">
+          <h3 class="section-label mb-2 flex items-center gap-2">
+            <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
+          </h3>
+          <div id="skills-chart" style="min-height: 250px;"></div>
+        </div>
+      </div>
+
+      <!-- Treemap: Skills por desarrollador -->
+      <div class="card bg-white">
+        <div class="card-body p-4">
+          <h3 class="section-label mb-2 flex items-center gap-2">
+            <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por desarrollador
+          </h3>
+          <div id="skills-per-dev-chart" style="min-height: 280px;"></div>
+        </div>
       </div>
     </div>
 
@@ -590,6 +602,39 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
             });
             chart1.render();
             window._dashboardCharts.push(chart1);
+          }
+        }
+
+        // 💡 Treemap — Skills por desarrollador
+        if (this.perfiles.length > 0 && typeof ApexCharts !== 'undefined') {
+          const el = document.querySelector('#skills-per-dev-chart');
+          if (el) {
+            const data = [...this.perfiles]
+              .sort((a, b) => b.skillCount - a.skillCount)
+              .map(p => ({ x: p.nombre, y: p.skillCount || 0 }));
+            const palette = ['#15803d','#3b82f6','#F59E0B','#8B5CF6','#22C55E','#06b6d4','#ec4899','#0f172a','#f97316','#6366f1'];
+            const chart2 = new ApexCharts(el, {
+              chart: { type: 'treemap', height: 280, toolbar: { show: false }, animations: { enabled: false } },
+              series: [{ data }],
+              colors: palette,
+              plotOptions: {
+                treemap: {
+                  distributed: true,
+                  enableShades: false
+                }
+              },
+              dataLabels: {
+                enabled: true,
+                style: { fontSize: '12px', fontWeight: 600, colors: ['#fff'] },
+                offsetY: -4
+              },
+              tooltip: {
+                y: { formatter: v => v + (v === 1 ? ' skill' : ' skills') }
+              },
+              grid: { show: false }
+            });
+            chart2.render();
+            window._dashboardCharts.push(chart2);
           }
         }
       }, 100);
