@@ -38,7 +38,7 @@ const Dashboard = {
         .filter(r => r.perfil_id == p.id)
         .map(r => habilidades.find(h => h.id == r.habilidad_id))
         .filter(Boolean);
-      const usuario = usuarios.find(u => u.perfilId === p.id);
+      const usuario = usuarios.find(u => u.perfilId != null && u.perfilId == p.id);
       perfilesData.push({
         ...p,
         skills: perfilSkills.map(s => s.nombre),
@@ -355,7 +355,7 @@ const Dashboard = {
                     <button class="btn btn-ghost btn-xs btn-square" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
                       <i class="bi bi-file-earmark-richtext"></i>
                     </button>
-                    <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs btn-square" @click="cambiarPassword(dev)" aria-label="Cambiar contraseña" title="Cambiar contraseña">
+                    <button x-show="$store.auth.isAdmin && dev.userId" class="btn btn-ghost btn-xs btn-square" @click="cambiarPassword(dev)" aria-label="Cambiar contraseña" title="Cambiar contraseña">
                       <i class="bi bi-key"></i>
                     </button>
                     <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-xs btn-square" @click="editarPerfil(dev.id)" aria-label="Editar perfil" title="Editar perfil">
@@ -709,6 +709,7 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
     },
 
     async cambiarRol(dev) {
+      if (!dev.userId) { UI.toast('Este perfil no tiene usuario asociado', 'error'); return; }
       const nuevoRol = dev.rol === 'admin' ? 'dev' : 'admin';
       if (nuevoRol === 'dev' && this.esUltimoAdmin) {
         UI.toast('Debe haber al menos un administrador en el sistema', 'error');
@@ -738,6 +739,7 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
     },
 
     async cambiarPassword(dev) {
+      if (!dev.userId) { UI.toast('Este perfil no tiene usuario asociado', 'error'); return; }
       const nuevaPass = prompt(`Nueva contraseña para "${dev.nombre}":`, '');
       if (!nuevaPass || nuevaPass.length < 6) {
         if (nuevaPass) UI.toast('La contraseña debe tener al menos 6 caracteres', 'warning');

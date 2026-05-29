@@ -221,6 +221,7 @@ const appRouter = {
     if (!raw) { this.authChecked = true; return; }
     try {
       const session = JSON.parse(raw);
+      if (!session.userId) { localStorage.removeItem(APP_CONFIG.auth.sessionKey); this.authChecked = true; return; }
       // 💡 Verificar que el usuario aún existe en la DB
       const exists = await dbOnline.get('usuarios', session.userId);
       if (exists) {
