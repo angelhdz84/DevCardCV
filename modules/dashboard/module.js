@@ -44,7 +44,8 @@ const Dashboard = {
         skills: perfilSkills.map(s => s.nombre),
         skillCount: perfilSkills.length,
         rol: usuario ? usuario.rol : 'dev',
-        userId: usuario ? usuario.id : null
+        userId: usuario ? usuario.id : null,
+        edad: calcularEdad(cryptoHelpers.decrypt(p.dni || ''))
       });
     }
 
@@ -313,6 +314,9 @@ const Dashboard = {
                           </template>
                         </div>
                       </div>
+                      <div class="w-7 h-7 rounded-full bg-accent flex-shrink-0 flex items-center justify-center text-white font-bold text-xs"
+                           x-show="dev.edad" x-text="dev.edad">
+                      </div>
                     <div>
                       <p class="font-medium text-sm" x-text="dev.nombre"></p>
                       <p class="text-xs text-faint font-mono-data" x-text="UI.formatDateRelative(dev.created_at)"></p>
@@ -472,7 +476,6 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
     async exportarExcel() {
       try {
         const perfiles = await dbOnline.getAll('perfiles');
-        const dnisDashboard = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
         const relaciones = await dbOnline.getAll('perfil_habilidades');
         const habilidades = await dbOnline.getAll('habilidades');
 
@@ -484,7 +487,7 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
           return {
             'Nombre': p.nombre,
             'Cargo': p.cargo,
-            'DNI': cryptoHelpers.decrypt(dnisDashboard[p.id] || p.dni || ''),
+            'DNI': cryptoHelpers.decrypt(p.dni || ''),
             'Email': cryptoHelpers.decrypt(p.email || ''),
             'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
             'Dirección': cryptoHelpers.decrypt(p.direccion || ''),

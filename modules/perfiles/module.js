@@ -13,19 +13,20 @@ const Perfiles = {
     const relaciones = await dbOnline.getAll('perfil_habilidades');
 
     // 💡 Preparar perfiles con sus skills
-    const dnisLocales = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
     const perfilesData = [];
     for (const p of perfiles) {
       const perfilSkills = relaciones
         .filter(r => r.perfil_id == p.id)
         .map(r => habilidades.find(h => h.id == r.habilidad_id))
         .filter(Boolean);
+      const dniDecrypted = cryptoHelpers.decrypt(p.dni || '');
       perfilesData.push({
         ...p,
         email: cryptoHelpers.decrypt(p.email || ''),
         telefono: cryptoHelpers.decrypt(p.telefono || ''),
         direccion: cryptoHelpers.decrypt(p.direccion || ''),
-        dni: cryptoHelpers.decrypt(dnisLocales[p.id] || p.dni || ''),
+        dni: dniDecrypted,
+        edad: calcularEdad(dniDecrypted),
         skills: perfilSkills.map(s => s.id),
         skillNames: perfilSkills.map(s => s.nombre)
       });
@@ -83,6 +84,9 @@ const Perfiles = {
                   <i class="bi bi-person-fill text-xl text-faint"></i>
                 </template>
               </div>
+            </div>
+            <div class="w-10 h-10 rounded-full bg-accent flex-shrink-0 flex items-center justify-center text-white font-bold text-sm"
+                 x-show="dev.edad" x-text="dev.edad">
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="font-semibold text-sm tracking-heading truncate" x-text="dev.nombre"></h3>
@@ -538,12 +542,12 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         return;
       }
 
-      const dniValue = this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : '';
       const datos = {
         nombre: this.form.nombre,
         email: cryptoHelpers.encrypt(this.form.email),
         telefono: this.form.telefono ? cryptoHelpers.encrypt(this.form.telefono) : '',
         direccion: this.form.direccion ? cryptoHelpers.encrypt(this.form.direccion) : '',
+        dni: this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : '',
         cargo: this.form.cargo,
         bio: this.form.bio,
         fotoBase64: this.form.fotoBase64,
@@ -563,10 +567,6 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           perfilId = creado.id;
           UI.toast('Desarrollador creado correctamente', 'success');
         }
-        // Persistir DNI solo localmente (no en Supabase)
-        const dnis = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
-        dnis[perfilId] = dniValue;
-        localStorage.setItem('devcard_dnis', JSON.stringify(dnis));
 
         // 💡 Actualizar habilidades
         await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', perfilId);
@@ -596,9 +596,6 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
       try {
         await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', id);
         await dbOnline.delete('perfiles', id);
-        const dnis = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
-        delete dnis[id];
-        localStorage.setItem('devcard_dnis', JSON.stringify(dnis));
         UI.toast('Perfil eliminado', 'success');
         window.dispatchEvent(new CustomEvent('db-change'));
         window.location.hash = '#/perfiles';
@@ -679,11 +676,11 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
         // 💡 Insertar o actualizar perfil
         let perfilId;
-        const dniImport = perfil.dni ? cryptoHelpers.encrypt(perfil.dni) : '';
         const datos = {
           nombre: perfil.nombre,
           email: cryptoHelpers.encrypt(perfil.email || ''),
           telefono: perfil.telefono ? cryptoHelpers.encrypt(perfil.telefono) : '',
+          dni: perfil.dni ? cryptoHelpers.encrypt(perfil.dni) : '',
           cargo: perfil.cargo,
           bio: perfil.bio || '',
           fotoBase64: perfil.fotoBase64 || '',
@@ -702,9 +699,6 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           perfilId = creadoImport.id;
           UI.toast(`Perfil de "${perfil.nombre}" importado`, 'success');
         }
-        const dnisImport = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
-        dnisImport[perfilId] = dniImport;
-        localStorage.setItem('devcard_dnis', JSON.stringify(dnisImport));
 
         // 💡 Asignar habilidades
         const todasHabilidades = await dbOnline.getAll('habilidades');
@@ -726,7 +720,6 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
     async exportarExcel() {
       try {
         const todos = await dbOnline.getAll('perfiles');
-        const dnisExcel = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
         const relaciones = await dbOnline.getAll('perfil_habilidades');
         const habilidades = await dbOnline.getAll('habilidades');
 
@@ -738,7 +731,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           return {
             'Nombre': p.nombre,
             'Cargo': p.cargo,
-            'DNI': cryptoHelpers.decrypt(dnisExcel[p.id] || p.dni || ''),
+            'DNI': cryptoHelpers.decrypt(p.dni || ''),
             'Email': cryptoHelpers.decrypt(p.email || ''),
             'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
             'Dirección': cryptoHelpers.decrypt(p.direccion || ''),

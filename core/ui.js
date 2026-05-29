@@ -193,3 +193,20 @@ const UI = {
 };
 
 window.UI = UI;
+
+// ─── Calcular edad desde CI cubano (AAMMDDxxxxx) ───
+window.calcularEdad = function(dni) {
+  if (!dni) return null;
+  const nums = dni.replace(/\D/g, '');
+  if (nums.length < 6) return null;
+  const yy = parseInt(nums.substring(0, 2), 10);
+  const mm = parseInt(nums.substring(2, 4), 10);
+  const dd = parseInt(nums.substring(4, 6), 10);
+  if (!mm || !dd || mm > 12 || dd > 31) return null;
+  const actual = dayjs();
+  const actualYY = actual.year() % 100;
+  const siglo = yy > actualYY ? 1900 : 2000;
+  const nac = dayjs(`${siglo + yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`);
+  if (!nac.isValid()) return null;
+  return actual.diff(nac, 'year');
+};

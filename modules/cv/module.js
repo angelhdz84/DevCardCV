@@ -32,13 +32,14 @@ const CV = {
         if (!skillsByCat[s.categoria].includes(s.nombre)) skillsByCat[s.categoria].push(s.nombre);
       });
 
-      const dnisCV = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
+      const dniDecrypted = cryptoHelpers.decrypt(perfil.dni || '');
       perfilData = {
         ...perfil,
         email: cryptoHelpers.decrypt(perfil.email || ''),
         telefono: perfil.telefono ? cryptoHelpers.decrypt(perfil.telefono) : '',
         direccion: perfil.direccion ? cryptoHelpers.decrypt(perfil.direccion) : '',
-        dni: cryptoHelpers.decrypt(dnisCV[perfil.id] || perfil.dni || ''),
+        dni: dniDecrypted,
+        edad: calcularEdad(dniDecrypted),
         skillsByCat
       };
     }
@@ -95,6 +96,9 @@ const CV = {
                     <i class="bi bi-person-fill text-3xl text-white/30" role="img" aria-label="Avatar por defecto"></i>
                   </template>
                 </div>
+              </div>
+              <div class="w-12 h-12 rounded-full bg-white/20 flex-shrink-0 flex items-center justify-center text-white font-bold text-base ring-2 ring-white/10"
+                   x-show="perfil.edad" x-text="perfil.edad">
               </div>
               <div>
                 <h1 class="text-lg font-semibold text-white tracking-heading" x-text="perfil.nombre"></h1>
@@ -291,7 +295,23 @@ function cvData(perfiles, perfil, currentId) {
         } catch (_) {}
       }
 
-      const textX = hasAvatar ? m + avatarSize + 7 : m;
+      // ── Age circle ──
+      let circleEnd = 0;
+      const edadNum = calcularEdad(dniDecrypted);
+      if (hasAvatar && edadNum != null) {
+        const circleR = 5.5;
+        const circleY = (hh - avatarSize) / 2 + avatarSize / 2;
+        const circleX = m + avatarSize + 6;
+        pdf.setFillColor(acc[0], acc[1], acc[2]);
+        pdf.circle(circleX, circleY, circleR, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, 'bold');
+        pdf.text(String(edadNum), circleX, circleY + 0.35, { align: 'center' });
+        circleEnd = circleX + circleR + 4;
+      }
+
+      const textX = circleEnd || (hasAvatar ? m + avatarSize + 7 : m);
       const textY = hasAvatar ? (hh - avatarSize) / 2 + 6 : 16;
       pdf.setTextColor(darkFg[0], darkFg[1], darkFg[2]);
       pdf.setFontSize(22);
