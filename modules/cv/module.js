@@ -32,11 +32,13 @@ const CV = {
         if (!skillsByCat[s.categoria].includes(s.nombre)) skillsByCat[s.categoria].push(s.nombre);
       });
 
+      const dnisCV = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
       perfilData = {
         ...perfil,
         email: cryptoHelpers.decrypt(perfil.email || ''),
         telefono: perfil.telefono ? cryptoHelpers.decrypt(perfil.telefono) : '',
         direccion: perfil.direccion ? cryptoHelpers.decrypt(perfil.direccion) : '',
+        dni: cryptoHelpers.decrypt(dnisCV[perfil.id] || perfil.dni || ''),
         skillsByCat
       };
     }
@@ -112,6 +114,10 @@ const CV = {
                 <div class="flex items-center gap-2 text-muted">
                   <i class="bi bi-envelope text-accent/60"></i>
                   <span x-text="perfil.email"></span>
+                </div>
+                <div class="flex items-center gap-2 text-muted" x-show="perfil.dni">
+                  <i class="bi bi-card-text text-accent/60"></i>
+                  <span x-text="perfil.dni"></span>
                 </div>
                 <div class="flex items-center gap-2 text-muted" x-show="perfil.telefono">
                   <i class="bi bi-phone text-accent/60"></i>
@@ -246,6 +252,7 @@ function cvData(perfiles, perfil, currentId) {
       const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) || p.email : '';
       const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) || p.telefono : '';
       const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) || p.direccion : '';
+      const dniDecrypted = p.dni ? cryptoHelpers.decrypt(p.dni) || p.dni : '';
 
       const checkPage = (delta) => { if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; } };
 
@@ -257,7 +264,7 @@ function cvData(perfiles, perfil, currentId) {
       const bodyFg = [60, 70, 85];
 
       // ── Header: emerald bar ──
-      const hh = 46;
+      const hh = 52;
       pdf.setFillColor(darkBg[0], darkBg[1], darkBg[2]);
       pdf.rect(0, 0, pw, hh, 'F');
       pdf.setFillColor(5, 150, 105);
@@ -273,13 +280,13 @@ function cvData(perfiles, perfil, currentId) {
       }
 
       let hasAvatar = false;
-      const avatarSize = 20;
+      const avatarSize = 28;
       if (p.fotoBase64) {
         try {
           pdf.addImage(p.fotoBase64, 'JPEG', m, (hh - avatarSize) / 2, avatarSize, avatarSize, undefined, 'FAST');
           pdf.setDrawColor(255, 255, 255);
-          pdf.setLineWidth(0.5);
-          pdf.circle(m + avatarSize / 2, hh / 2, avatarSize / 2);
+          pdf.setLineWidth(1);
+          pdf.roundedRect(m, (hh - avatarSize) / 2, avatarSize, avatarSize, 1.5, 1.5, 'S');
           hasAvatar = true;
         } catch (_) {}
       }
@@ -287,61 +294,118 @@ function cvData(perfiles, perfil, currentId) {
       const textX = hasAvatar ? m + avatarSize + 7 : m;
       const textY = hasAvatar ? (hh - avatarSize) / 2 + 6 : 16;
       pdf.setTextColor(darkFg[0], darkFg[1], darkFg[2]);
-      pdf.setFontSize(18);
+      pdf.setFontSize(22);
       pdf.setFont(undefined, 'bold');
       pdf.text(p.nombre, textX, textY);
       if (p.cargo) {
-        pdf.setFontSize(9);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFontSize(11);
+        pdf.setFont(undefined, 'bold');
         pdf.setTextColor(mutedFg[0], mutedFg[1], mutedFg[2]);
-        pdf.text(p.cargo, textX, textY + 6);
+        pdf.text(p.cargo, textX, textY + 8);
       }
 
       // ── Contact info bar ──
       y = hh + 9;
       const visible = [];
       visible.push(['Email', emailDecrypted]);
+      if (dniDecrypted) visible.push(['DNI', dniDecrypted]);
       if (telDecrypted) visible.push(['Tel', telDecrypted]);
       if (dirDecrypted) visible.push(['Direccion', dirDecrypted]);
 
       if (visible.length) {
-        pdf.setFillColor(240, 245, 250);
-        pdf.rect(m - 3, y - 3.5, pw - m * 2 + 6, 11, 'F');
-        let cx = m;
-        visible.forEach(([label, val]) => {
-          pdf.setFontSize(7);
-          pdf.setFont(undefined, 'normal');
-          pdf.setTextColor(140, 150, 165);
-          pdf.text(label + ':', cx, y);
+        const contactPad = 5;
+        const contactPillH = 5;
+        const contactPillPad = 2;
+        const contactTagH = 5;
+        const contactCardH = contactPad + contactPillH + contactPillPad + contactTagH + contactPad;
+        const contactGap = 6;
+
+        const drawContactCard = (label, val, cx, cy, cw) => {
+          pdf.setFillColor(248, 249, 251);
+          pdf.roundedRect(cx, cy, cw, contactCardH, 2, 2, 'F');
+          pdf.setDrawColor(224, 228, 234);
+          pdf.setLineWidth(0.3);
+          pdf.roundedRect(cx, cy, cw, contactCardH, 2, 2, 'S');
+          pdf.setFillColor(acc[0], acc[1], acc[2]);
+          pdf.roundedRect(cx + contactPad, cy + contactPad, cw - contactPad * 2, contactPillH, 1, 1, 'F');
+          pdf.setFontSize(6.5);
+          pdf.setFont(undefined, 'bold');
+          pdf.setTextColor(255, 255, 255);
+          pdf.text(label.toUpperCase(), cx + contactPad + 2.5, cy + contactPad + 3.5);
+          const tagY = cy + contactPad + contactPillH + contactPillPad;
+          pdf.setFillColor(255, 255, 255);
+          pdf.roundedRect(cx + contactPad, tagY, cw - contactPad * 2, contactTagH, 0.8, 0.8, 'F');
+          pdf.setDrawColor(215, 220, 227);
+          pdf.setLineWidth(0.2);
+          pdf.roundedRect(cx + contactPad, tagY, cw - contactPad * 2, contactTagH, 0.8, 0.8, 'S');
           pdf.setFontSize(8);
-          pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-          const trunc = val.length > 30 ? val.slice(0, 28) + '\u2026' : val;
-          pdf.text(trunc, cx + (label === 'Email' ? 16 : 12), y);
-          cx += (pw - m * 2) / visible.length;
-        });
-        y += 13;
+          pdf.setFont(undefined, 'normal');
+          pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
+          const trunc = val.length > 35 ? val.slice(0, 33) + '\u2026' : val;
+          pdf.text(trunc, cx + contactPad + 3, tagY + 3.8);
+        };
+
+        for (let i = 0; i < visible.length; i += 2) {
+          const [label1, val1] = visible[i];
+          const pairContact = visible[i + 1];
+
+          if (pairContact) {
+            const contactW = (pw - m * 2 - contactGap) / 2;
+            drawContactCard(label1, val1, m, y, contactW);
+            drawContactCard(pairContact[0], pairContact[1], m + contactW + contactGap, y, contactW);
+            y += contactCardH + 3;
+          } else {
+            const contactFullW = pw - m * 2;
+            drawContactCard(label1, val1, m, y, contactFullW);
+            y += contactCardH + 3;
+          }
+        }
       }
 
       // ── Bio section ──
       if (p.bio) {
-        checkPage(20);
-        pdf.setFillColor(acc[0], acc[1], acc[2]);
-        pdf.roundedRect(m, y, 4, 12, 0.8, 0.8, 'F');
-        pdf.setFontSize(10);
-        pdf.setFont(undefined, 'bold');
-        pdf.setTextColor(headingFg[0], headingFg[1], headingFg[2]);
-        pdf.text('PERFIL PROFESIONAL', m + 8, y + 4);
-        y += 14;
-        pdf.setFont(undefined, 'normal');
+        const bioPad = 6;
+        const bioPillH = 5.5;
+        const bioPillPad = 3;
+        const bioLineH = 4.2;
+        const bioFullW = pw - m * 2;
+
         pdf.setFontSize(9);
+        pdf.setFont(undefined, 'normal');
+        const bioLines = pdf.splitTextToSize(p.bio, bioFullW - bioPad * 2 - 6);
+        const bioTagH = bioLines.length * bioLineH;
+        const bioCardH = bioPad + bioPillH + bioPillPad + bioTagH + bioPad;
+
+        checkPage(bioCardH + 5);
+
+        pdf.setFillColor(248, 249, 251);
+        pdf.roundedRect(m, y, bioFullW, bioCardH, 2, 2, 'F');
+        pdf.setDrawColor(224, 228, 234);
+        pdf.setLineWidth(0.3);
+        pdf.roundedRect(m, y, bioFullW, bioCardH, 2, 2, 'S');
+
+        pdf.setFillColor(acc[0], acc[1], acc[2]);
+        pdf.roundedRect(m + bioPad, y + bioPad, bioFullW - bioPad * 2, bioPillH, 1, 1, 'F');
+        pdf.setFontSize(6.5);
+        pdf.setFont(undefined, 'bold');
+        pdf.setTextColor(255, 255, 255);
+        pdf.text('PERFIL PROFESIONAL', m + bioPad + 2.5, y + bioPad + 3.5);
+
+        const bioTagY = y + bioPad + bioPillH + bioPillPad;
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(m + bioPad, bioTagY, bioFullW - bioPad * 2, bioTagH, 0.8, 0.8, 'F');
+        pdf.setDrawColor(215, 220, 227);
+        pdf.setLineWidth(0.2);
+        pdf.roundedRect(m + bioPad, bioTagY, bioFullW - bioPad * 2, bioTagH, 0.8, 0.8, 'S');
+
+        pdf.setFontSize(9);
+        pdf.setFont(undefined, 'normal');
         pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-        const bioLines = pdf.splitTextToSize(p.bio, pw - m * 2 - 6);
-        bioLines.forEach(line => {
-          checkPage(4);
-          pdf.text(line, m + 3, y);
-          y += 4.2;
+        bioLines.forEach((line, li) => {
+          pdf.text(line, m + bioPad + 3, bioTagY + 3.8 + li * bioLineH);
         });
-        y += 5;
+
+        y += bioCardH + 5;
       }
 
       // ── Skills section ──
@@ -373,53 +437,85 @@ function cvData(perfiles, perfil, currentId) {
         pdf.text('HABILIDADES TECNICAS', m + 8, y + 4);
         y += 14;
 
-        for (const [cat, skills] of Object.entries(skillsByCat)) {
-          checkPage(28);
+        const innerPad = 6;
+        const innerCols = 2;
+        const pillH = 5.5;
+        const pillPad = 3;
+        const tagH = 5;
+        const colGap = 4;
+        const cardGap = 8;
+        const cardW = (pw - m * 2 - cardGap) / 2;
+
+        const cardH = (skills, cw) => {
+          const iw = (cw - innerPad * 2 - (innerCols - 1) * colGap) / innerCols;
+          const rows = Math.ceil(skills.length / innerCols);
+          return innerPad + pillH + pillPad + rows * (tagH + 1.2) + innerPad;
+        };
+
+        const drawCard = (cat, skills, x, yp, cw) => {
+          const ch = cardH(skills, cw);
           const c = catColors[cat] || acc;
+          pdf.setFillColor(248, 249, 251);
+          pdf.roundedRect(x, yp, cw, ch, 2, 2, 'F');
+          pdf.setDrawColor(224, 228, 234);
+          pdf.setLineWidth(0.3);
+          pdf.roundedRect(x, yp, cw, ch, 2, 2, 'S');
           pdf.setFillColor(c[0], c[1], c[2]);
-          pdf.roundedRect(m, y, 55, 5.5, 1.2, 1.2, 'F');
-          pdf.setFontSize(7);
+          pdf.roundedRect(x + innerPad, yp + innerPad, cw - innerPad * 2, pillH, 1, 1, 'F');
+          pdf.setFontSize(6.5);
           pdf.setFont(undefined, 'bold');
           pdf.setTextColor(255, 255, 255);
-          pdf.text(cat.toUpperCase(), m + 3, y + 4);
-          y += 9;
-
-          const cols = 3;
-          const gap = 6;
-          const tagW = (pw - m * 2 - (cols - 1) * gap) / cols;
-          const startY = y;
-          const rows = Math.ceil(skills.length / cols);
-          const rowH = 7;
-          for (let r = 0; r < rows; r++) {
-            if (r % 2 === 1) {
-              pdf.setFillColor(245, 247, 250);
-              pdf.rect(m, startY + r * rowH - 0.5, pw - m * 2, rowH, 'F');
-            }
-          }
-          skills.forEach((skill, i) => {
-            checkPage(7);
-            const col = i % cols;
-            const row = Math.floor(i / cols);
-            const ax = m + col * (tagW + gap);
-            const ay = startY + row * rowH;
-            pdf.setFillColor(245, 247, 250);
-            pdf.roundedRect(ax, ay, tagW, 5.5, 1, 1, 'F');
+          pdf.text(cat.toUpperCase(), x + innerPad + 2.5, yp + innerPad + 4);
+          const tagStartY = yp + innerPad + pillH + pillPad;
+          const iw = (cw - innerPad * 2 - (innerCols - 1) * colGap) / innerCols;
+          skills.forEach((skill, si) => {
+            const scol = si % innerCols;
+            const srow = Math.floor(si / innerCols);
+            const sx = x + innerPad + scol * (iw + colGap);
+            const sy = tagStartY + srow * (tagH + 1.2);
+            pdf.setFillColor(255, 255, 255);
+            pdf.roundedRect(sx, sy, iw, tagH, 0.8, 0.8, 'F');
+            pdf.setDrawColor(215, 220, 227);
+            pdf.setLineWidth(0.2);
+            pdf.roundedRect(sx, sy, iw, tagH, 0.8, 0.8, 'S');
             pdf.setFillColor(c[0], c[1], c[2]);
-            pdf.circle(ax + 3.5, ay + 2.75, 0.8, 'F');
-            pdf.setFontSize(7);
+            pdf.circle(sx + 3, sy + tagH / 2, 0.8, 'F');
+            pdf.setFontSize(6.5);
             pdf.setFont(undefined, 'normal');
             pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
-            const display = skill.length > 18 ? skill.slice(0, 16) + '\u2026' : skill;
-            pdf.text(display, ax + 5.5, ay + 4);
+            const display = skill.length > 14 ? skill.slice(0, 12) + '\u2026' : skill;
+            pdf.text(display, sx + 5, sy + 3.8);
           });
-          y = startY + rows * rowH + 6;
+          return ch;
+        };
+
+        const entries = Object.entries(skillsByCat);
+        for (let i = 0; i < entries.length; i += 2) {
+          const [cat1, skills1] = entries[i];
+          const pair = entries[i + 1];
+
+          if (pair) {
+            const h1 = cardH(skills1, cardW);
+            const h2 = cardH(pair[1], cardW);
+            const maxH = Math.max(h1, h2);
+            checkPage(maxH + 10);
+            drawCard(cat1, skills1, m, y, cardW);
+            drawCard(pair[0], pair[1], m + cardW + cardGap, y, cardW);
+            y += maxH + 3;
+          } else {
+            const fullW = pw - m * 2;
+            const h = cardH(skills1, fullW);
+            checkPage(h + 10);
+            drawCard(cat1, skills1, m, y, fullW);
+            y += h + 3;
+          }
         }
       }
 
       // ── Footer ──
       const drawFooter = (pageNum) => {
         pdf.setDrawColor(215, 220, 230);
-        pdf.setLineWidth(0.3);
+        pdf.setLineWidth(0.6);
         pdf.line(m, ph - 13, pw - m, ph - 13);
         pdf.setFontSize(7);
         pdf.setTextColor(155, 165, 180);
@@ -489,7 +585,8 @@ function cvData(perfiles, perfil, currentId) {
             ...p,
             email: p.email || '',
             telefono: p.telefono ? p.telefono : '',
-            direccion: p.direccion ? p.direccion : ''
+            direccion: p.direccion ? p.direccion : '',
+            dni: p.dni ? p.dni : ''
           },
           habilidades: perfilSkills.map(s => ({ nombre: s.nombre, categoria: s.categoria }))
         };
@@ -537,9 +634,10 @@ function cvData(perfiles, perfil, currentId) {
           tipo: 'perfil_individual',
           perfil: {
             ...this.perfil,
-            email: cryptoHelpers.decrypt(this.perfil.email || ''),
-            telefono: this.perfil.telefono ? cryptoHelpers.decrypt(this.perfil.telefono) : '',
-            direccion: this.perfil.direccion ? cryptoHelpers.decrypt(this.perfil.direccion) : ''
+            email: this.perfil.email || '',
+            telefono: this.perfil.telefono || '',
+            direccion: this.perfil.direccion || '',
+            dni: this.perfil.dni || ''
           },
           habilidades: perfilSkills.map(s => ({ nombre: s.nombre, categoria: s.categoria }))
         };

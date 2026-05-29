@@ -13,6 +13,7 @@ const Perfiles = {
     const relaciones = await dbOnline.getAll('perfil_habilidades');
 
     // 💡 Preparar perfiles con sus skills
+    const dnisLocales = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
     const perfilesData = [];
     for (const p of perfiles) {
       const perfilSkills = relaciones
@@ -24,6 +25,7 @@ const Perfiles = {
         email: cryptoHelpers.decrypt(p.email || ''),
         telefono: cryptoHelpers.decrypt(p.telefono || ''),
         direccion: cryptoHelpers.decrypt(p.direccion || ''),
+        dni: cryptoHelpers.decrypt(dnisLocales[p.id] || p.dni || ''),
         skills: perfilSkills.map(s => s.id),
         skillNames: perfilSkills.map(s => s.nombre)
       });
@@ -52,6 +54,9 @@ const Perfiles = {
         <i class="bi bi-upload"></i> Importar
         <input type="file" accept=".json" class="hidden" @change="importarPerfilJSON($event)">
       </label>
+      <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-sm gap-1.5 radius-sm" @click="exportarExcel()">
+        <i class="bi bi-file-earmark-spreadsheet-fill text-accent"></i> Excel
+      </button>
       <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="abrirFormulario()">
         <i class="bi bi-person-plus-fill"></i> Nuevo desarrollador
       </button>
@@ -91,6 +96,9 @@ const Perfiles = {
 
           <!-- Contacto -->
           <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-muted">
+            <span x-show="dev.dni" class="flex items-center gap-1">
+              <i class="bi bi-card-text"></i> <span x-text="dev.dni"></span>
+            </span>
             <span x-show="dev.email" class="flex items-center gap-1">
               <i class="bi bi-envelope"></i> <span x-text="dev.email"></span>
             </span>
@@ -205,6 +213,10 @@ const Perfiles = {
                 <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">Biografía</span>
                 <textarea x-model="form.bio" class="textarea textarea-bordered w-full h-20 radius-sm" placeholder="Breve descripción profesional..."></textarea>
               </label>
+              <label class="form-control w-full">
+                <span class="label-text font-medium text-xs uppercase tracking-wider text-base-content/50 mb-1.5">DNI / Documento de identidad</span>
+                <input type="text" x-model="form.dni" class="input input-bordered w-full radius-sm" placeholder="Ej: 12345678A">
+              </label>
             </div>
           </div>
 
@@ -279,7 +291,7 @@ const Perfiles = {
       <!-- Footer sticky -->
       <div class="flex justify-between items-center px-6 py-4 shrink-0 border-t-default bg-elevated">
         <div class="text-xs text-base-content/50">
-          <i class="bi bi-shield-lock text-[10px]"></i> <span>Email, teléfono y dirección se cifran automáticamente</span>
+          <i class="bi bi-shield-lock text-[10px]"></i> <span>Email, teléfono, DNI y dirección se cifran automáticamente</span>
         </div>
         <div class="flex gap-2">
           <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
@@ -369,6 +381,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
       email: '',
       telefono: '',
       direccion: '',
+      dni: '',
       cargo: '',
       bio: '',
       fotoBase64: '',
@@ -423,7 +436,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
     abrirFormulario() {
       this.formErrors = { nombre: '', email: '', cargo: '' };
-      this.form = { id: null, nombre: '', email: '', telefono: '', direccion: '', cargo: '', bio: '', fotoBase64: '', skills: [] };
+      this.form = { id: null, nombre: '', email: '', telefono: '', direccion: '', dni: '', cargo: '', bio: '', fotoBase64: '', skills: [] };
       this.editando = null;
       this.showModal = true;
     },
@@ -437,6 +450,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         email: dev.email || '',
         telefono: dev.telefono || '',
         direccion: dev.direccion || '',
+        dni: dev.dni || '',
         cargo: dev.cargo,
         bio: dev.bio || '',
         fotoBase64: dev.fotoBase64 || '',
@@ -524,6 +538,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         return;
       }
 
+      const dniValue = this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : '';
       const datos = {
         nombre: this.form.nombre,
         email: cryptoHelpers.encrypt(this.form.email),
@@ -548,6 +563,10 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           perfilId = creado.id;
           UI.toast('Desarrollador creado correctamente', 'success');
         }
+        // Persistir DNI solo localmente (no en Supabase)
+        const dnis = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
+        dnis[perfilId] = dniValue;
+        localStorage.setItem('devcard_dnis', JSON.stringify(dnis));
 
         // 💡 Actualizar habilidades
         await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', perfilId);
@@ -577,6 +596,9 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
       try {
         await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', id);
         await dbOnline.delete('perfiles', id);
+        const dnis = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
+        delete dnis[id];
+        localStorage.setItem('devcard_dnis', JSON.stringify(dnis));
         UI.toast('Perfil eliminado', 'success');
         window.dispatchEvent(new CustomEvent('db-change'));
         window.location.hash = '#/perfiles';
@@ -604,8 +626,8 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           tipo: 'perfil_individual',
           perfil: {
             ...dev,
-            email: cryptoHelpers.decrypt(dev.email || ''),
-            telefono: dev.telefono ? cryptoHelpers.decrypt(dev.telefono) : ''
+            email: dev.email || '',
+            telefono: dev.telefono || ''
           },
           habilidades: perfilSkills.map(s => ({ nombre: s.nombre, categoria: s.categoria }))
         };
@@ -657,6 +679,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
         // 💡 Insertar o actualizar perfil
         let perfilId;
+        const dniImport = perfil.dni ? cryptoHelpers.encrypt(perfil.dni) : '';
         const datos = {
           nombre: perfil.nombre,
           email: cryptoHelpers.encrypt(perfil.email || ''),
@@ -679,6 +702,9 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           perfilId = creadoImport.id;
           UI.toast(`Perfil de "${perfil.nombre}" importado`, 'success');
         }
+        const dnisImport = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
+        dnisImport[perfilId] = dniImport;
+        localStorage.setItem('devcard_dnis', JSON.stringify(dnisImport));
 
         // 💡 Asignar habilidades
         const todasHabilidades = await dbOnline.getAll('habilidades');
@@ -695,6 +721,56 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         UI.toast('Error al importar: ' + err.message, 'error');
       }
       event.target.value = '';
+    },
+
+    async exportarExcel() {
+      try {
+        const todos = await dbOnline.getAll('perfiles');
+        const dnisExcel = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
+        const relaciones = await dbOnline.getAll('perfil_habilidades');
+        const habilidades = await dbOnline.getAll('habilidades');
+
+        const rows = todos.map(p => {
+          const perfilSkills = relaciones
+            .filter(r => r.perfil_id == p.id)
+            .map(r => habilidades.find(h => h.id == r.habilidad_id))
+            .filter(Boolean);
+          return {
+            'Nombre': p.nombre,
+            'Cargo': p.cargo,
+            'DNI': cryptoHelpers.decrypt(dnisExcel[p.id] || p.dni || ''),
+            'Email': cryptoHelpers.decrypt(p.email || ''),
+            'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
+            'Dirección': cryptoHelpers.decrypt(p.direccion || ''),
+            'Biografía': p.bio || '',
+            'Skills': perfilSkills.map(s => s.nombre).join(', '),
+            'Categorías': [...new Set(perfilSkills.map(s => s.categoria))].join(', '),
+            'Creado': p.created_at ? dayjs(p.created_at).format('DD/MM/YYYY') : '',
+            'Actualizado': p.updated_at ? dayjs(p.updated_at).format('DD/MM/YYYY HH:mm') : ''
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = [
+          { wch: 25 }, { wch: 20 }, { wch: 15 },
+          { wch: 30 }, { wch: 15 }, { wch: 30 },
+          { wch: 40 }, { wch: 40 }, { wch: 30 },
+          { wch: 14 }, { wch: 18 }
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Desarrolladores');
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buf], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `devcardcv_devs_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        UI.toast(`Excel exportado: ${rows.length} desarrolladores`, 'success');
+      } catch (err) {
+        UI.toast('Error al exportar Excel: ' + err.message, 'error');
+      }
     },
 
     init() {

@@ -156,6 +156,9 @@ const Dashboard = {
           <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="exportarJSON()">
             <i class="bi bi-download"></i> Exportar JSON
           </button>
+          <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="exportarExcel()">
+            <i class="bi bi-file-earmark-spreadsheet-fill"></i> Exportar Excel
+          </button>
           <label class="btn btn-ghost btn-sm cursor-pointer radius-sm">
             <i class="bi bi-upload"></i> Importar JSON
             <input type="file" accept=".json" class="hidden" @change="importarJSON($event)">
@@ -463,6 +466,56 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
         UI.toast(`Backup exportado: ${perfiles.length} perfiles, ${habilidades.length} habilidades`, 'success');
       } catch (err) {
         UI.toast('Error al exportar: ' + err.message, 'error');
+      }
+    },
+
+    async exportarExcel() {
+      try {
+        const perfiles = await dbOnline.getAll('perfiles');
+        const dnisDashboard = JSON.parse(localStorage.getItem('devcard_dnis') || '{}');
+        const relaciones = await dbOnline.getAll('perfil_habilidades');
+        const habilidades = await dbOnline.getAll('habilidades');
+
+        const rows = perfiles.map(p => {
+          const perfilSkills = relaciones
+            .filter(r => r.perfil_id == p.id)
+            .map(r => habilidades.find(h => h.id == r.habilidad_id))
+            .filter(Boolean);
+          return {
+            'Nombre': p.nombre,
+            'Cargo': p.cargo,
+            'DNI': cryptoHelpers.decrypt(dnisDashboard[p.id] || p.dni || ''),
+            'Email': cryptoHelpers.decrypt(p.email || ''),
+            'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
+            'Dirección': cryptoHelpers.decrypt(p.direccion || ''),
+            'Biografía': p.bio || '',
+            'Skills': perfilSkills.map(s => s.nombre).join(', '),
+            'Categorías': [...new Set(perfilSkills.map(s => s.categoria))].join(', '),
+            'Creado': p.created_at ? dayjs(p.created_at).format('DD/MM/YYYY') : '',
+            'Actualizado': p.updated_at ? dayjs(p.updated_at).format('DD/MM/YYYY HH:mm') : ''
+          };
+        });
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = [
+          { wch: 25 }, { wch: 20 }, { wch: 15 },
+          { wch: 30 }, { wch: 15 }, { wch: 30 },
+          { wch: 40 }, { wch: 40 }, { wch: 30 },
+          { wch: 14 }, { wch: 18 }
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Desarrolladores');
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buf], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `devcardcv_devs_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        UI.toast(`Excel exportado: ${rows.length} desarrolladores`, 'success');
+      } catch (err) {
+        UI.toast('Error al exportar Excel: ' + err.message, 'error');
       }
     },
 
