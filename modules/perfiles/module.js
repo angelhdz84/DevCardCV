@@ -140,7 +140,7 @@ const Perfiles = {
             <i class="bi bi-person-badge text-accent"></i>
             <span x-text="editando ? 'Editar perfil' : 'Nuevo desarrollador'"></span>
           </h3>
-          <p class="text-xs text-base-content/35 mt-0.5" x-text="editando ? 'Actualiza los datos del desarrollador' : 'Completa la información para crear la ficha'"></p>
+          <p class="text-xs text-muted mt-0.5" x-text="editando ? 'Actualiza los datos del desarrollador' : 'Completa la información para crear la ficha'"></p>
         </div>
         <button class="btn btn-ghost btn-sm btn-circle radius-sm" @click="cerrarFormulario()" title="Cerrar">
           <i class="bi bi-x-lg text-sm"></i>
@@ -149,11 +149,11 @@ const Perfiles = {
 
       <!-- Scrollable body -->
       <div class="overflow-y-auto flex-1 px-6 py-5">
-        <div class="space-y-6">
+        <div class="divide-y divide-[var(--border)]">
           <!-- Sección: Foto + Identidad -->
-          <div>
+          <div class="pb-5 mb-5 border-b-default">
             <span class="section-label block mb-3">Foto e identidad</span>
-            <div class="flex items-start gap-5 p-4 rounded-lg bg-muted border-default">
+            <div class="flex items-start gap-5 p-4 rounded-lg bg-muted border-default" @dragover.prevent="dragOver = true" @dragleave.prevent="dragOver = false" @drop.prevent="procesarArchivo($event.dataTransfer.files[0])">
               <!-- Avatar preview -->
               <div class="shrink-0">
                 <div class="w-20 h-20 rounded-xl overflow-hidden flex items-center justify-center ring-1 ring-base-200 transition-all"
@@ -169,11 +169,11 @@ const Perfiles = {
                 </div>
               </div>
               <!-- Upload controls -->
-              <div class="flex-1 pt-1" @dragover.prevent="dragOver = true" @dragleave.prevent="dragOver = false" @drop.prevent="procesarArchivo($event.dataTransfer.files[0])">
+               <div class="flex-1 pt-1">
                 <p class="text-sm font-medium mb-1">Foto de perfil</p>
                 <p class="text-xs text-base-content/35 mb-3">JPG o PNG. Se almacena localmente en la base de datos.</p>
                 <div class="flex gap-2">
-                  <label class="btn btn-sm gap-1.5 radius-sm border-default" for="foto-input" style="background: transparent;"
+                  <label class="btn btn-sm gap-1.5 radius-sm border-default cursor-pointer" for="foto-input" style="background: transparent;"
                          :style="dragOver ? 'border-color: var(--accent); background: rgba(21,128,61,0.08);' : ''">
                     <i class="bi bi-camera text-xs"></i>
                     <span x-text="form.fotoBase64 ? 'Cambiar' : 'Subir foto'"></span>
@@ -188,7 +188,7 @@ const Perfiles = {
           </div>
 
           <!-- Sección: Datos personales -->
-          <div>
+          <div class="pb-5 mb-5 border-b-default">
             <span class="section-label block mb-3">Datos personales</span>
             <div class="space-y-3">
               <label class="form-control w-full">
@@ -209,7 +209,7 @@ const Perfiles = {
           </div>
 
           <!-- Sección: Contacto -->
-          <div>
+          <div class="pb-5 mb-5 border-b-default">
             <span class="section-label block mb-3">Contacto</span>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <label class="form-control w-full">
@@ -246,14 +246,14 @@ const Perfiles = {
             </div>
             <div class="space-y-3 max-h-56 overflow-y-auto pr-1">
               <template x-for="(skills, categoria) in categorias" :key="categoria">
-                <div class="p-3 rounded-lg stagger-enter bg-muted border-default" :style="'animation-delay: ' + (Object.keys(categorias).indexOf(categoria) * 0.05) + 's'">
+                <div class="p-2.5 rounded-lg stagger-enter bg-muted border-default" :style="'animation-delay: ' + (Object.keys(categorias).indexOf(categoria) * 0.05) + 's'">
                   <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <i class="bi bi-folder-fill text-accent/50 text-[10px]"></i>
                     <span x-text="categoria"></span>
                   </p>
                   <div class="flex flex-wrap gap-1">
                     <template x-for="skill in skills" :key="skill.id">
-                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md cursor-pointer transition-all hover:bg-base-200 radius-sm"
+                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md cursor-pointer transition-all hover:bg-base-200 radius-sm transition-spring"
                              style="border: 1px solid transparent;"
                              :style="form.skills.includes(skill.id) ? 'background: var(--accent-light); border-color: var(--accent-border);' : ''">
                         <input type="checkbox" class="checkbox checkbox-xs"
@@ -276,7 +276,7 @@ const Perfiles = {
       <!-- Footer sticky -->
       <div class="flex justify-between items-center px-6 py-4 shrink-0 border-t-default bg-elevated">
         <div class="text-xs text-base-content/50">
-          <i class="bi bi-shield-lock text-[10px]"></i> Email, teléfono y dirección se cifran automáticamente
+          <i class="bi bi-shield-lock text-[10px]"></i> <span>Email, teléfono y dirección se cifran automáticamente</span>
         </div>
         <div class="flex gap-2">
           <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
@@ -292,7 +292,7 @@ const Perfiles = {
   <!-- Modal: Nueva categoría -->
   <div x-show="showCatModal" class="modal modal-open" data-modal="cat" @keydown.escape.window="showCatModal = false">
     <div class="modal-box w-11/12 max-w-md radius-lg">
-      <div class="flex justify-between items-center mb-4">
+      <div class="flex items-center justify-between mb-4">
         <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
           <i class="bi bi-folder-plus text-accent"></i> Nueva categoría
         </h3>
@@ -313,7 +313,7 @@ const Perfiles = {
   <!-- Modal: Nueva habilidad -->
   <div x-show="showSkillModal" class="modal modal-open" data-modal="skill" @keydown.escape.window="showSkillModal = false">
     <div class="modal-box w-11/12 max-w-md radius-lg">
-      <div class="flex justify-between items-center mb-4">
+      <div class="flex items-center justify-between mb-4">
         <h3 class="font-semibold text-base tracking-heading flex items-center gap-2">
           <i class="bi bi-plus-lg text-accent"></i> Nueva habilidad
         </h3>

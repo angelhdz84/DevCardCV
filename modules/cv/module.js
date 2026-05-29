@@ -51,7 +51,7 @@ const CV = {
       <h2 class="text-xl font-semibold tracking-heading flex items-center gap-2">
         <i class="bi bi-file-earmark-richtext-fill text-accent"></i> CV del Desarrollador
       </h2>
-      <p class="text-xs text-base-content/50 mt-1" x-show="perfil" x-text="perfil.nombre + ' — ' + perfil.cargo"></p>
+      <p class="text-xs text-muted mt-1" x-show="perfil" x-text="perfil.nombre + ' — ' + perfil.cargo"></p>
     </div>
     <div class="flex gap-2">
       <select x-model="selectedId" @change="cambiarPerfil()" class="select select-bordered select-sm radius-md">
@@ -78,9 +78,9 @@ const CV = {
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Vista previa del CV -->
       <div class="lg:col-span-2">
-        <div id="cv-preview" class="card bg-white overflow-hidden">
+        <div id="cv-preview" class="card bg-white overflow-hidden shadow-card">
           <!-- Encabezado con foto — Firecrawl gradient -->
-          <div class="relative p-6" style="background: linear-gradient(135deg, #065f46 0%, #059669 100%);">
+          <div class="relative p-6" style="background: linear-gradient(135deg, #065f46 0%, #047857 100%);">
             <div class="flex items-center gap-5">
               <div class="avatar">
                 <div class="w-16 h-16 rounded-xl ring-2 ring-white/20 overflow-hidden bg-white/10 flex items-center justify-center">
@@ -107,15 +107,15 @@ const CV = {
                 <i class="bi bi-person-badge"></i> Contacto
               </h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                <div class="flex items-center gap-2 text-base-content/60">
+                <div class="flex items-center gap-2 text-muted">
                   <i class="bi bi-envelope text-accent/60"></i>
                   <span x-text="perfil.email"></span>
                 </div>
-                <div class="flex items-center gap-2 text-base-content/60" x-show="perfil.telefono">
+                <div class="flex items-center gap-2 text-muted" x-show="perfil.telefono">
                   <i class="bi bi-phone text-accent/60"></i>
                   <span x-text="perfil.telefono"></span>
                 </div>
-                <div class="flex items-center gap-2 text-base-content/60" x-show="perfil.direccion">
+                <div class="flex items-center gap-2 text-muted" x-show="perfil.direccion">
                   <i class="bi bi-geo-alt text-accent/60"></i>
                   <span x-text="perfil.direccion"></span>
                 </div>
@@ -127,7 +127,7 @@ const CV = {
               <h3 class="section-label mb-3 flex items-center gap-2">
                 <i class="bi bi-person-lines-fill"></i> Perfil Profesional
               </h3>
-              <p class="text-sm text-base-content leading-relaxed" x-text="perfil.bio"></p>
+              <p class="text-sm text-[var(--ink-secondary)] leading-relaxed" x-text="perfil.bio"></p>
             </div>
 
             <!-- Skills por categoría — tinted badges -->
@@ -138,19 +138,19 @@ const CV = {
               <div class="space-y-3">
                 <template x-for="(skills, cat) in perfil.skillsByCat" :key="cat">
                   <div>
-                    <p class="text-xs font-medium text-base-content/40 mb-1.5" x-text="cat"></p>
+                    <p class="text-xs font-medium text-faint mb-1.5" x-text="cat"></p>
                     <div class="flex flex-wrap gap-1.5">
                       <template x-for="(skill, i) in skills" :key="skill">
-                        <span class="badge badge-sm stagger-enter radius-sm" :class="'badge-skill-' + _sanitizeCat(cat)" x-text="skill" :style="'animation-delay: ' + (i * 40) + 'ms'"></span>
+                        <span class="badge badge-sm stagger-enter radius-sm transition-spring" :class="'badge-skill-' + _sanitizeCat(cat)" x-text="skill" :style="'animation-delay: ' + (i * 40) + 'ms'"></span>
                       </template>
                       <template x-if="Object.keys(perfil.skillsByCat).length === 0">
-                        <p class="text-sm text-base-content/50" role="alert">No hay habilidades registradas.</p>
+                        <p class="text-sm text-muted" role="alert">No hay habilidades registradas.</p>
                       </template>
               </div>
             </div>
 
             <!-- Footer -->
-            <div class="mt-6 pt-4 border-t border-base-100 text-xs text-base-content/40 text-center">
+            <div class="mt-6 pt-4 border-t border-base-100 text-xs text-faint text-center">
               Generado por DevCardCV — <span x-text="UI.formatDate(new Date(), 'DD/MM/YYYY HH:mm')"></span>
             </div>
           </div>
@@ -160,7 +160,7 @@ const CV = {
       <!-- Panel lateral -->
       <div class="space-y-3">
         <!-- Exportar -->
-        <div class="card bg-white">
+        <div class="card bg-white border-default">
           <div class="card-body p-4">
             <h3 class="section-label mb-3 flex items-center gap-2">
               <i class="bi bi-download text-accent"></i> Exportar
@@ -177,29 +177,29 @@ const CV = {
         </div>
 
         <!-- Compartir CV (destacado) — Firecrawl accent -->
-        <div class="card" style="background: var(--accent-light); border: 1px solid var(--accent-border); box-shadow: none;">
+        <div class="card border-default" style="background: var(--accent-light); box-shadow: none;">
           <div class="card-body p-4">
             <h3 class="section-label mb-3 flex items-center gap-2" style="color: var(--accent);">
               <i class="bi bi-share-fill"></i> Compartir CV
             </h3>
-            <button class="btn w-full btn-sm gap-2 radius-md" style="background: var(--accent); color: white; border: none;" @click="compartirCV()" :disabled="!perfil || compartiendo" aria-label="Compartir CV">
+            <button class="btn btn-magnetic w-full btn-sm gap-2 radius-md" style="background: var(--accent); color: white; border: none;" @click="compartirCV()" :disabled="!perfil || compartiendo" aria-label="Compartir CV">
               <i class="bi bi-share-fill"></i>
               <span x-show="!compartiendo">Compartir PDF + JSON</span>
               <span x-show="compartiendo" class="loading loading-spinner loading-xs"></span>
             </button>
-            <p class="text-xs text-base-content/50 mt-1.5">
+            <p class="text-xs text-muted mt-1.5">
               Comparte ambos archivos para importar después
             </p>
           </div>
         </div>
 
         <!-- Info -->
-        <div class="card bg-white">
+        <div class="card bg-white border-default">
           <div class="card-body p-4">
             <h3 class="section-label mb-3 flex items-center gap-2">
               <i class="bi bi-info-circle text-accent"></i> Info
             </h3>
-            <div class="text-xs text-base-content/50 space-y-1.5">
+            <div class="text-xs text-muted space-y-1.5">
               <p class="flex items-center gap-1.5"><i class="bi bi-calendar3 text-[10px]"></i> Creado: <span x-text="UI.formatDate(perfil.created_at)"></span></p>
               <p class="flex items-center gap-1.5"><i class="bi bi-pencil text-[10px]"></i> Actualizado: <span x-text="UI.formatDate(perfil.updated_at)"></span></p>
               <p class="flex items-center gap-1.5"><i class="bi bi-tools text-[10px]"></i> Skills: <span x-text="Object.values(perfil.skillsByCat).flat().length"></span></p>
@@ -260,6 +260,8 @@ function cvData(perfiles, perfil, currentId) {
       pdf.rect(0, 0, pw, hh, 'F');
       pdf.setFillColor(5, 150, 105);
       pdf.rect(0, hh - 3, pw, 3, 'F');
+      pdf.setFillColor(3, 85, 60);
+      pdf.rect(pw - 30, 0, 30, hh, 'F');
       pdf.setFillColor(5, 150, 105);
       pdf.rect(pw - 28, hh - 8, 22, 4, 'F');
 
@@ -296,21 +298,28 @@ function cvData(perfiles, perfil, currentId) {
       if (dirDecrypted) visible.push(['Direccion', dirDecrypted]);
 
       if (visible.length) {
-        pdf.setFillColor(246, 248, 250);
-        pdf.rect(m - 3, y - 3.5, pw - m * 2 + 6, 11, 'F');
+        pdf.setDrawColor(220, 225, 235);
+        pdf.setLineWidth(0.3);
+        pdf.line(m, y, pw - m, y);
+        y += 4;
         let cx = m;
         visible.forEach(([label, val]) => {
-          pdf.setFontSize(7);
+          pdf.setFontSize(6.5);
           pdf.setFont(undefined, 'normal');
           pdf.setTextColor(140, 150, 165);
           pdf.text(label + ':', cx, y);
           pdf.setFontSize(8);
+          pdf.setFont(undefined, 'bold');
           pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
           const trunc = val.length > 30 ? val.slice(0, 28) + '\u2026' : val;
           pdf.text(trunc, cx + (label === 'Email' ? 16 : 12), y);
           cx += (pw - m * 2) / visible.length;
         });
-        y += 13;
+        y += 4;
+        pdf.setDrawColor(220, 225, 235);
+        pdf.setLineWidth(0.3);
+        pdf.line(m, y, pw - m, y);
+        y += 7;
       }
 
       // ── Bio section ──
@@ -368,12 +377,12 @@ function cvData(perfiles, perfil, currentId) {
           checkPage(28);
           const c = catColors[cat] || acc;
           pdf.setFillColor(c[0], c[1], c[2]);
-          pdf.roundedRect(m, y, 55, 5.5, 1.2, 1.2, 'F');
-          pdf.setFontSize(7);
+          pdf.roundedRect(m, y, 52, 5.5, 1.2, 1.2, 'F');
+          pdf.setFontSize(6.5);
           pdf.setFont(undefined, 'bold');
           pdf.setTextColor(255, 255, 255);
-          pdf.text(cat.toUpperCase(), m + 3, y + 4);
-          y += 9;
+          pdf.text(cat.toUpperCase(), m + 2.5, y + 4);
+          y += 8;
 
           const cols = 3;
           const gap = 6;
@@ -393,13 +402,13 @@ function cvData(perfiles, perfil, currentId) {
             const row = Math.floor(i / cols);
             const ax = m + col * (tagW + gap);
             const ay = startY + row * rowH;
-            pdf.setFillColor(240, 244, 248);
-            pdf.roundedRect(ax, ay, tagW, 5.5, 1, 1, 'F');
-            pdf.setFontSize(7);
+            pdf.setFillColor(245, 247, 250);
+            pdf.roundedRect(ax, ay, tagW, 5, 0.8, 0.8, 'F');
+            pdf.setFontSize(6.5);
             pdf.setFont(undefined, 'normal');
-            pdf.setTextColor(c[0], c[1], c[2]);
-            const display = skill.length > 18 ? skill.slice(0, 16) + '\u2026' : skill;
-            pdf.text(display, ax + 2.5, ay + 4);
+            pdf.setTextColor(bodyFg[0], bodyFg[1], bodyFg[2]);
+            const display = skill.length > 20 ? skill.slice(0, 18) + '\u2026' : skill;
+            pdf.text(display, ax + 2, ay + 3.5);
           });
           y = startY + rows * rowH + 6;
         }
@@ -407,8 +416,8 @@ function cvData(perfiles, perfil, currentId) {
 
       // ── Footer ──
       const drawFooter = (pageNum) => {
-        pdf.setDrawColor(215, 220, 230);
-        pdf.setLineWidth(0.3);
+        pdf.setDrawColor(225, 230, 240);
+        pdf.setLineWidth(0.2);
         pdf.line(m, ph - 13, pw - m, ph - 13);
         pdf.setFontSize(7);
         pdf.setTextColor(155, 165, 180);
