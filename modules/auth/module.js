@@ -43,7 +43,7 @@ const Auth = {
             <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
             <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="••••••••" required>
           </label>
-          <button type="submit" class="btn btn-primary w-full radius-md" :disabled="!email || !password">
+          <button type="submit" class="btn btn-primary btn-magnetic w-full radius-md" :disabled="!email || !password">
             <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
           </button>
           <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>
@@ -91,7 +91,7 @@ const Auth = {
             <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
             <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="Mínimo 6 caracteres" minlength="6" required>
           </label>
-          <button type="submit" class="btn btn-primary w-full radius-md" :disabled="!masterKey || !nombre || !email || !password">
+          <button type="submit" class="btn btn-primary btn-magnetic w-full radius-md" :disabled="!masterKey || !nombre || !email || !password">
             <i class="bi bi-check-lg"></i> Crear Administrador
           </button>
           <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>
@@ -130,7 +130,7 @@ const Auth = {
             <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
             <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="Mínimo 6 caracteres" minlength="6" required>
           </label>
-          <button type="submit" class="btn btn-primary w-full radius-md" :disabled="!nombre || !email || !password">
+          <button type="submit" class="btn btn-primary btn-magnetic w-full radius-md" :disabled="!nombre || !email || !password">
             <i class="bi bi-person-plus-fill"></i> Crear cuenta
           </button>
           <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>

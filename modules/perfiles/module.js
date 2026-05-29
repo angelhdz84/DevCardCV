@@ -52,7 +52,7 @@ const Perfiles = {
         <i class="bi bi-upload"></i> Importar
         <input type="file" accept=".json" class="hidden" @change="importarPerfilJSON($event)">
       </label>
-      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-sm gap-1.5 radius-sm" @click="abrirFormulario()">
+      <button x-show="$store.auth.isAdmin" class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="abrirFormulario()">
         <i class="bi bi-person-plus-fill"></i> Nuevo desarrollador
       </button>
     </div>
@@ -65,7 +65,7 @@ const Perfiles = {
 
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="perfiles.length > 0">
     <template x-for="(dev, index) in perfiles" :key="dev.id">
-      <div class="card bg-white group stagger-enter" :style="'animation-delay: ' + (index * 60) + 'ms'">
+      <div class="card bg-white group stagger-enter card-hover" :style="'animation-delay: ' + (index * 60) + 'ms'">
         <div class="card-body p-5">
           <!-- Foto + Nombre -->
           <div class="flex items-start gap-4">
@@ -105,9 +105,9 @@ const Perfiles = {
           <!-- Skills -->
           <div class="flex flex-wrap gap-1.5 mt-3">
             <template x-for="skill in dev.skillNames.slice(0, 5)" :key="skill">
-              <span class="badge badge-sm" style="border-radius: 4px;" x-text="skill"></span>
+              <span class="badge badge-sm radius-sm" x-text="skill"></span>
             </template>
-            <span x-show="dev.skillNames.length > 5" class="badge badge-sm badge-ghost" style="border-radius: 4px;" x-text=" '+' + (dev.skillNames.length - 5)"></span>
+            <span x-show="dev.skillNames.length > 5" class="badge badge-sm badge-ghost radius-sm" x-text=" '+' + (dev.skillNames.length - 5)"></span>
           </div>
 
           <!-- Acciones -->
@@ -253,8 +253,8 @@ const Perfiles = {
                   </p>
                   <div class="flex flex-wrap gap-1">
                     <template x-for="skill in skills" :key="skill.id">
-                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md cursor-pointer transition-all hover:bg-base-200"
-                             style="border-radius: 4px; border: 1px solid transparent;"
+                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md cursor-pointer transition-all hover:bg-base-200 radius-sm"
+                             style="border: 1px solid transparent;"
                              :style="form.skills.includes(skill.id) ? 'background: var(--accent-light); border-color: var(--accent-border);' : ''">
                         <input type="checkbox" class="checkbox checkbox-xs"
                                style="border-radius: 3px; --chkbg: var(--accent);"
@@ -280,7 +280,7 @@ const Perfiles = {
         </div>
         <div class="flex gap-2">
           <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
-          <button class="btn btn-primary btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo">
+          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo">
             <i class="bi bi-check-lg"></i>
             <span x-text="editando ? 'Actualizar' : 'Guardar'"></span>
           </button>
@@ -303,7 +303,7 @@ const Perfiles = {
       </label>
       <div class="modal-action">
         <button class="btn btn-ghost btn-sm radius-sm" @click="showCatModal = false">Cancelar</button>
-        <button class="btn btn-primary btn-sm radius-sm" @click="guardarCategoria()" :disabled="!newCat.trim()">
+        <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="guardarCategoria()" :disabled="!newCat.trim()">
           <i class="bi bi-check-lg"></i> Crear
         </button>
       </div>
@@ -334,7 +334,7 @@ const Perfiles = {
       </div>
       <div class="modal-action">
         <button class="btn btn-ghost btn-sm radius-sm" @click="showSkillModal = false">Cancelar</button>
-        <button class="btn btn-primary btn-sm radius-sm" @click="guardarSkill()" :disabled="!newSkillNombre.trim()">
+        <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="guardarSkill()" :disabled="!newSkillNombre.trim()">
           <i class="bi bi-check-lg"></i> Crear
         </button>
       </div>

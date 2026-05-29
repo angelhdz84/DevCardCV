@@ -20,18 +20,22 @@
     [x-cloak] { display: none !important; }
     html { overflow: auto !important; }
 
-    /* Design tokens — Developer Tool: Slate + Code Green, Linear-inspired */
+    /* Design tokens — Slate + Code Green, Linear-inspired */
     :root {
-      --canvas: #f1f5f9;
+      --canvas: #f8fafc;
+      --canvas-subtle: #f1f5f9;
       --surface: #ffffff;
       --surface-muted: #f8fafc;
       --surface-elevated: #ffffff;
+      --surface-raised: #ffffff;
       --ink: #0f172a;
       --ink-secondary: #1e293b;
       --ink-muted: #64748b;
       --ink-faint: #94a3b8;
+      --ink-code: #475569;
       --border: rgba(15,23,42,0.06);
       --border-hover: rgba(15,23,42,0.10);
+      --border-light: rgba(15,23,42,0.04);
 
       --accent: #15803d;
       --accent-hover: #166534;
@@ -40,14 +44,21 @@
       --accent-secondary: #2563eb;
       --accent-secondary-light: rgba(37,99,235,0.07);
 
+      --status-success: #22c55e;
+      --status-warning: #f59e0b;
+      --status-error: #ef4444;
+      --status-info: #3b82f6;
+
       --shadow-border: 0 0 0 1px var(--border);
       --shadow-card: 0 0 0 1px var(--border);
-      --shadow-elevated: 0 0 0 1px var(--border-hover), 0 4px 20px rgba(0,0,0,0.05);
+      --shadow-card-hover: 0 0 0 1px var(--border-hover), 0 2px 8px rgba(15,23,42,0.06);
+      --shadow-elevated: 0 0 0 1px var(--border-hover), 0 4px 20px rgba(15,23,42,0.06);
       --shadow-fab: 0 4px 14px rgba(21,128,61,0.3);
 
       --radius-sm: 6px;
       --radius-md: 8px;
       --radius-lg: 12px;
+      --radius-pill: 9999px;
 
       --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
       --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -95,22 +106,19 @@
     .bg-secondary\/5 { background-color: rgba(59,130,246,0.05) !important; }
     .bg-secondary\/10 { background-color: rgba(59,130,246,0.1) !important; }
 
-    /* btn-primary — Code Green, shadow-as-border */
     .btn-primary {
-      background-color: var(--accent) !important;
-      border-color: var(--accent) !important;
-      color: #ffffff !important;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+      background: var(--accent) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: var(--radius-sm) !important;
+      transition: all var(--transition-spring) !important;
     }
     .btn-primary:hover {
-      background-color: var(--accent-hover) !important;
-      border-color: var(--accent-hover) !important;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+      background: var(--accent-hover) !important;
+      transform: scale(1.02);
     }
     .btn-primary:active {
-      background-color: #14532d !important;
-      border-color: #14532d !important;
-      transform: scale(0.97);
+      transform: scale(0.98);
     }
     .btn-primary[disabled], .btn-primary.btn-disabled {
       background-color: var(--ink-faint) !important;
@@ -127,6 +135,16 @@
     .checkbox-primary:checked {
       background-color: var(--accent) !important;
       border-color: var(--accent) !important;
+    }
+
+    /* btn-ghost */
+    .btn-ghost {
+      background: transparent !important;
+      border-radius: var(--radius-sm) !important;
+      transition: all var(--transition-normal) !important;
+    }
+    .btn-ghost:hover {
+      background: var(--surface-muted) !important;
     }
 
     /* badge-ghost = sutil */
@@ -452,11 +470,34 @@
     .shadow-card { box-shadow: var(--shadow-card); }
     .shadow-elevated { box-shadow: var(--shadow-elevated); }
     .shadow-border { box-shadow: var(--shadow-border); }
-    .transition-spring { transition: transform var(--transition-spring), box-shadow var(--transition-spring); }
+    .transition-spring { transition: all var(--transition-spring); }
     .transition-fast { transition: all var(--transition-fast); }
     .transition-normal { transition: all var(--transition-normal); }
     .tracking-display { letter-spacing: -0.04em; }
     .tracking-heading { letter-spacing: -0.025em; }
+    .radius-pill { border-radius: var(--radius-pill); }
+
+    /* Status indicators */
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }
+    .status-dot-success { background: var(--status-success); }
+    .status-dot-error { background: var(--status-error); }
+    .status-dot-warning { background: var(--status-warning); }
+    .status-dot-info { background: var(--status-info); }
+
+    /* Hover card lift */
+    .card-hover { transition: all var(--transition-normal); cursor: pointer; }
+    .card-hover:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
+
+    /* Magnetic button */
+    .btn-magnetic { transition: transform var(--transition-spring), box-shadow var(--transition-normal); }
+    .btn-magnetic:hover { transform: scale(1.02); }
+    .btn-magnetic:active { transform: scale(0.98); }
+
+    /* Section label — Linear style */
+    .section-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
+
+    /* Monospace for code-like data */
+    .font-mono-data { font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace; font-size: 0.75rem; letter-spacing: -0.02em; }
   </style>
 </head>
 <body>
@@ -586,7 +627,7 @@
   </div>
 
   <!-- FAB — Agregar desarrollador rápido -->
-  <button class="fab" id="fab-add-dev" aria-label="Agregar desarrollador" title="Agregar desarrollador" onclick="window.location.hash='#/perfiles/nuevo/'+Date.now()">
+  <button class="fab btn-magnetic" id="fab-add-dev" aria-label="Agregar desarrollador" title="Agregar desarrollador" onclick="window.location.hash='#/perfiles/nuevo/'+Date.now()">
     <i class="bi bi-person-plus-fill"></i>
   </button>
 

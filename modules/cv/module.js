@@ -60,7 +60,7 @@ const CV = {
           <option :value="p.id" x-text="p.nombre + ' — ' + p.cargo" :selected="p.id === currentId"></option>
         </template>
       </select>
-      <button class="btn btn-primary btn-sm radius-md" @click="exportarPDF()" :disabled="!perfil || exporting" aria-label="Exportar CV en PDF">
+      <button class="btn btn-primary btn-magnetic btn-sm radius-md" @click="exportarPDF()" :disabled="!perfil || exporting" aria-label="Exportar CV en PDF">
         <i class="bi bi-file-earmark-pdf-fill"></i>
         <span x-show="!exporting">Exportar PDF</span>
         <span x-show="exporting" class="loading loading-spinner loading-xs"></span>
@@ -141,7 +141,7 @@ const CV = {
                     <p class="text-xs font-medium text-base-content/40 mb-1.5" x-text="cat"></p>
                     <div class="flex flex-wrap gap-1.5">
                       <template x-for="(skill, i) in skills" :key="skill">
-                        <span class="badge badge-sm stagger-enter" :class="'badge-skill-' + _sanitizeCat(cat)" x-text="skill" :style="'animation-delay: ' + (i * 40) + 'ms; border-radius: 4px;'"></span>
+                        <span class="badge badge-sm stagger-enter radius-sm" :class="'badge-skill-' + _sanitizeCat(cat)" x-text="skill" :style="'animation-delay: ' + (i * 40) + 'ms'"></span>
                       </template>
                       <template x-if="Object.keys(perfil.skillsByCat).length === 0">
                         <p class="text-sm text-base-content/50" role="alert">No hay habilidades registradas.</p>
@@ -165,7 +165,7 @@ const CV = {
             <h3 class="section-label mb-3 flex items-center gap-2">
               <i class="bi bi-download text-accent"></i> Exportar
             </h3>
-            <button class="btn btn-primary w-full btn-sm radius-md" @click="exportarPDF()" :disabled="exporting" aria-label="Exportar CV en PDF">
+            <button class="btn btn-primary btn-magnetic w-full btn-sm radius-md" @click="exportarPDF()" :disabled="exporting" aria-label="Exportar CV en PDF">
               <i class="bi bi-file-earmark-pdf-fill"></i>
               <span x-show="!exporting">Descargar PDF</span>
               <span x-show="exporting" class="loading loading-spinner loading-xs"></span>

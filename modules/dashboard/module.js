@@ -127,7 +127,7 @@ const Dashboard = {
         <i class="bi bi-cloud-arrow-up text-accent"></i> Sincronización Cloud
       </h3>
       <div class="flex items-center gap-3 p-3 rounded-lg bg-muted">
-        <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="syncStatus === 'connected' ? 'bg-success' : 'bg-error'"></div>
+        <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="syncStatus === 'connected' ? 'status-dot-success' : 'status-dot-error'"></div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium" x-text="'Supabase: ' + onlineLabel"></p>
           <p class="text-xs mt-0.5 text-muted">WebSocket en tiempo real</p>
@@ -153,7 +153,7 @@ const Dashboard = {
       <p class="text-xs mt-1 mb-4 text-faint">Exportación/importación local sin conexión cloud</p>
       <div x-show="open" x-collapse>
         <div class="flex flex-wrap items-center gap-3">
-          <button class="btn btn-primary btn-sm radius-sm" @click="exportarJSON()">
+          <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="exportarJSON()">
             <i class="bi bi-download"></i> Exportar JSON
           </button>
           <label class="btn btn-ghost btn-sm cursor-pointer radius-sm">
@@ -312,7 +312,7 @@ const Dashboard = {
                       </div>
                     <div>
                       <p class="font-medium text-sm" x-text="dev.nombre"></p>
-                      <p class="text-xs text-faint" x-text="UI.formatDateRelative(dev.created_at)"></p>
+                      <p class="text-xs text-faint font-mono-data" x-text="UI.formatDateRelative(dev.created_at)"></p>
                     </div>
                   </div>
                 </td>
@@ -320,9 +320,9 @@ const Dashboard = {
                 <td>
                   <div class="flex flex-wrap gap-1">
                     <template x-for="skill in dev.skills.slice(0, 4)" :key="skill">
-                      <span class="badge badge-sm" style="border-radius: 4px;" x-text="skill"></span>
+                      <span class="badge badge-sm radius-sm" x-text="skill"></span>
                     </template>
-                    <span x-show="dev.skills.length > 4" class="badge badge-sm badge-ghost" style="border-radius: 4px;" x-text=" '+' + (dev.skills.length - 4)"></span>
+                    <span x-show="dev.skills.length > 4" class="badge badge-sm badge-ghost radius-sm" x-text=" '+' + (dev.skills.length - 4)"></span>
                   </div>
                 </td>
                 <td>

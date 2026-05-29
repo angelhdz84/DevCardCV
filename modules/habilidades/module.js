@@ -40,7 +40,7 @@ const Habilidades = {
       <button class="btn btn-ghost btn-sm gap-1.5 radius-sm" @click="showCatModal = true">
         <i class="bi bi-folder-plus"></i> Nueva categoría
       </button>
-      <button class="btn btn-primary btn-sm gap-1.5 radius-sm" @click="showSkillModal = true">
+      <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="showSkillModal = true">
         <i class="bi bi-plus-lg"></i> Nueva habilidad
       </button>
     </div>
@@ -59,7 +59,7 @@ const Habilidades = {
             <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 text-muted">
               <i class="bi bi-folder-fill text-accent"></i>
               <span x-text="categoria"></span>
-              <span class="badge badge-sm badge-ghost ml-1" style="border-radius: 4px;" x-text="skills.length"></span>
+              <span class="badge badge-sm badge-ghost ml-1 radius-pill" x-text="skills.length"></span>
             </h3>
             <button class="btn btn-ghost btn-xs btn-square text-faint" @click="eliminarCategoria(categoria)" aria-label="Eliminar categoría" title="Eliminar categoría">
               <i class="bi bi-trash"></i>
@@ -102,7 +102,7 @@ const Habilidades = {
       </label>
       <div class="modal-action">
         <button class="btn btn-ghost btn-sm radius-md" @click="showCatModal = false">Cancelar</button>
-        <button class="btn btn-primary btn-sm radius-md" @click="guardarCategoria()" :disabled="!newCat.trim()">
+        <button class="btn btn-primary btn-magnetic btn-sm radius-md" @click="guardarCategoria()" :disabled="!newCat.trim()">
           <i class="bi bi-check-lg"></i> Crear
         </button>
       </div>
@@ -133,7 +133,7 @@ const Habilidades = {
       </div>
       <div class="modal-action">
         <button class="btn btn-ghost btn-sm radius-md" @click="showSkillModal = false; editingSkill = null">Cancelar</button>
-        <button class="btn btn-primary btn-sm radius-md" @click="guardarSkill()" :disabled="!newSkill.nombre || !newSkill.categoria">
+        <button class="btn btn-primary btn-magnetic btn-sm radius-md" @click="guardarSkill()" :disabled="!newSkill.nombre || !newSkill.categoria">
           <i class="bi bi-check-lg"></i> <span x-text="editingSkill ? 'Actualizar' : 'Crear'"></span>
         </button>
       </div>
