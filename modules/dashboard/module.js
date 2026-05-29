@@ -50,8 +50,22 @@ const Dashboard = {
     }
 
     const adminCount = usuarios.filter(u => u.rol === 'admin').length;
+
+    // 💡 Heatmap: skills por categoría por dev
+    const heatCats = Object.keys(categorias).sort();
+    const heatRows = perfiles.map(p => {
+      const perfilRs = relaciones.filter(r => r.perfil_id == p.id);
+      return heatCats.map(cat =>
+        perfilRs.filter(r => {
+          const hab = habilidades.find(h => h.id == r.habilidad_id);
+          return hab && hab.categoria === cat;
+        }).length
+      );
+    });
+    const heatDevs = perfilesData.map(p => p.nombre);
+
     return `
-<div x-data="dashboardData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(topSkills).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${adminCount})"
+<div x-data="dashboardData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(topSkills).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${adminCount}, ${JSON.stringify(heatDevs).replace(/"/g, '&quot;')}, ${JSON.stringify(heatCats).replace(/"/g, '&quot;')}, ${JSON.stringify(heatRows).replace(/"/g, '&quot;')})"
      x-init="initChart()">
 
   <!-- Header con contador -->
@@ -246,30 +260,48 @@ const Dashboard = {
       </div>
     </div>
 
-    <!-- Distribución por categoría — barras horizontales -->
+    <!-- Heatmap: skills por categoría por dev -->
     <div class="card bg-white">
       <div class="card-body p-5">
-        <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted">
-          <i class="bi bi-bar-chart-fill text-accent"></i> Por categoría
+        <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+          <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por categoría
+          <span class="badge badge-ghost badge-xs radius-sm ml-auto">dev → cat</span>
         </h3>
-        <div class="space-y-3" id="category-bars">
-          <template x-for="(cat, index) in catList" :key="cat.name">
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full" :style="'background: ' + catColors[index % catColors.length]"></span>
-                  <span class="text-sm font-medium" style="color: var(--ink-secondary);" x-text="cat.name"></span>
-                </div>
-                <span class="text-xs font-semibold text-muted" x-text="cat.count + ' skills'"></span>
-              </div>
-              <div class="w-full rounded-md overflow-hidden bg-muted" style="height: 16px;">
-                <div class="rounded-md transition-all duration-500 flex items-center justify-end pr-1.5"
-                     :style="'width: ' + cat.pct + '%; background: ' + catColors[index % catColors.length]">
-                  <span class="text-[10px] font-bold text-white leading-none" x-show="cat.pct >= 10" x-text="cat.pct + '%'"></span>
-                </div>
-              </div>
-            </div>
-          </template>
+        <div class="overflow-x-auto -mx-5 px-5">
+          <table class="w-full text-xs border-collapse">
+            <thead>
+              <tr>
+                <th class="text-left text-muted font-medium px-1.5 py-1 sticky left-0 bg-white z-10 min-w-[90px]"></th>
+                <template x-for="cat in heatCats" :key="cat">
+                  <th class="text-center text-muted font-medium px-1.5 py-1 w-8" x-text="cat.substring(0, 4)" :title="cat"></th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(dev, di) in heatDevs" :key="dev">
+                <tr>
+                  <td class="text-left px-1.5 py-1 sticky left-0 bg-white z-10 truncate max-w-[100px] font-medium" x-text="dev" :title="dev"></td>
+                  <template x-for="(val, ci) in heatRows[di]" :key="ci">
+                    <td class="text-center rounded-sm text-[11px] font-semibold leading-none"
+                        :style="'background: ' + heatColor(val)"
+                        :title="heatCats[ci] + ': ' + val + (val === 1 ? ' skill' : ' skills')"
+                        x-text="val || ''"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center gap-3 mt-3 text-[10px] text-muted">
+          <span>0</span>
+          <span class="w-4 h-3 rounded-xs" style="background: #f1f5f9"></span>
+          <span class="w-4 h-3 rounded-xs" style="background: #dcfce7"></span>
+          <span class="w-4 h-3 rounded-xs" style="background: #bbf7d0"></span>
+          <span class="w-4 h-3 rounded-xs" style="background: #86efac"></span>
+          <span class="w-4 h-3 rounded-xs" style="background: #4ade80"></span>
+          <span class="w-4 h-3 rounded-xs" style="background: #22c55e"></span>
+          <span class="w-4 h-3 rounded-xs" style="background: #15803d"></span>
+          <span>5+</span>
         </div>
       </div>
     </div>
@@ -385,7 +417,7 @@ const Dashboard = {
 };
 
 // 💡 Alpine data factory
-function dashboardData(perfiles, topSkills, categorias, adminCount) {
+function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, heatCats, heatRows) {
   const catColors = ['#0f172a', '#15803d', '#3b82f6', '#F59E0B', '#8B5CF6', '#22C55E', '#06b6d4', '#ec4899'];
   const catNames = Object.keys(categorias);
   const catValues = catNames.map(c => categorias[c]);
@@ -404,6 +436,20 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
     catList,
     catColors,
     adminCount,
+    heatDevs,
+    heatCats,
+    heatRows,
+
+    heatColor(count) {
+      if (count === 0) return '#f1f5f9';
+      if (count === 1) return '#dcfce7';
+      if (count === 2) return '#bbf7d0';
+      if (count === 3) return '#86efac';
+      if (count === 4) return '#4ade80';
+      if (count === 5) return '#22c55e';
+      if (count >= 6) return '#15803d';
+      return '#f1f5f9';
+    },
 
     get esUltimoAdmin() { return this.adminCount <= 1; },
 
