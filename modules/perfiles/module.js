@@ -235,34 +235,37 @@ const Perfiles = {
             <div class="flex items-center justify-between mb-3">
               <span class="section-label">Habilidades técnicas</span>
               <div class="flex gap-2">
-                <button type="button" class="btn btn-ghost btn-xs gap-1 radius-sm" @click="agregarCategoria()" title="Nueva categoría">
+                <button type="button" class="btn btn-ghost btn-xs gap-1 radius-sm transition-spring" @click="agregarCategoria()" title="Nueva categoría">
                   <i class="bi bi-folder-plus text-accent"></i> <span class="text-xs">Categoría</span>
                 </button>
-                <button type="button" class="btn btn-ghost btn-xs gap-1 radius-sm" @click="agregarSkill()" title="Nueva habilidad">
+                <button type="button" class="btn btn-ghost btn-xs gap-1 radius-sm transition-spring" @click="agregarSkill()" title="Nueva habilidad">
                   <i class="bi bi-plus-lg text-accent"></i> <span class="text-xs">Habilidad</span>
                 </button>
-                <span class="text-xs text-base-content/50" x-text="form.skills.length + ' seleccionadas'"></span>
+                <span class="badge badge-sm badge-ghost radius-sm text-muted font-normal" x-text="form.skills.length + ' seleccionadas'"></span>
               </div>
             </div>
             <div class="space-y-3 max-h-56 overflow-y-auto pr-1">
               <template x-for="(skills, categoria) in categorias" :key="categoria">
                 <div class="p-2.5 rounded-lg stagger-enter bg-muted border-default" :style="'animation-delay: ' + (Object.keys(categorias).indexOf(categoria) * 0.05) + 's'">
-                  <p class="text-xs font-semibold text-base-content/50 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <i class="bi bi-folder-fill text-accent/50 text-[10px]"></i>
-                    <span x-text="categoria"></span>
-                  </p>
+                  <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-muted">
+                      <i class="bi bi-folder-fill text-accent/50 text-[10px]"></i>
+                      <span x-text="categoria"></span>
+                    </p>
+                    <span class="badge badge-xs badge-ghost text-faint font-mono-data" x-text="skills.length"></span>
+                  </div>
                   <div class="flex flex-wrap gap-1">
                     <template x-for="skill in skills" :key="skill.id">
-                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md cursor-pointer transition-all hover:bg-base-200 radius-sm transition-spring"
-                             style="border: 1px solid transparent;"
-                             :style="form.skills.includes(skill.id) ? 'background: var(--accent-light); border-color: var(--accent-border);' : ''">
+                      <label class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md cursor-pointer transition-spring radius-sm"
+                             :class="form.skills.includes(skill.id) ? 'bg-accent/10 border-accent-border' : 'bg-base-200/50 hover:bg-base-200'"
+                             style="border: 1px solid transparent;">
                         <input type="checkbox" class="checkbox checkbox-xs"
                                style="border-radius: 3px; --chkbg: var(--accent);"
                                :aria-label="'Seleccionar ' + skill.nombre"
                                :value="skill.id"
                                :checked="form.skills.includes(skill.id)"
                                @change="toggleSkill(skill.id, $event)">
-                        <span class="text-xs" x-text="skill.nombre"></span>
+                        <span class="text-xs" :class="form.skills.includes(skill.id) ? 'text-accent font-medium' : 'text-base-content/70'" x-text="skill.nombre"></span>
                       </label>
                     </template>
                   </div>
