@@ -355,6 +355,9 @@ const Dashboard = {
                     <button class="btn btn-ghost btn-xs btn-square" @click="verCV(dev.id)" aria-label="Ver CV" title="Ver CV">
                       <i class="bi bi-file-earmark-richtext"></i>
                     </button>
+                    <button x-show="$store.auth.isAdmin" class="btn btn-ghost btn-xs btn-square" @click="cambiarPassword(dev)" aria-label="Cambiar contraseña" title="Cambiar contraseña">
+                      <i class="bi bi-key"></i>
+                    </button>
                     <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-xs btn-square" @click="editarPerfil(dev.id)" aria-label="Editar perfil" title="Editar perfil">
                       <i class="bi bi-pencil"></i>
                     </button>
@@ -734,6 +737,26 @@ function dashboardData(perfiles, topSkills, categorias, adminCount) {
       }
     },
 
+    async cambiarPassword(dev) {
+      const nuevaPass = prompt(`Nueva contraseña para "${dev.nombre}":`, '');
+      if (!nuevaPass || nuevaPass.length < 6) {
+        if (nuevaPass) UI.toast('La contraseña debe tener al menos 6 caracteres', 'warning');
+        return;
+      }
+      const confirmacion = prompt('Confirma la nueva contraseña:', '');
+      if (nuevaPass !== confirmacion) {
+        UI.toast('Las contraseñas no coinciden', 'error');
+        return;
+      }
+      try {
+        const hash = CryptoJS.SHA256(nuevaPass).toString(CryptoJS.enc.Hex);
+        await dbOnline.update('usuarios', dev.userId, { password_hash: hash, updated_at: new Date() });
+        UI.toast(`Contraseña de "${dev.nombre}" actualizada`, 'success');
+        window.dispatchEvent(new CustomEvent('db-change'));
+      } catch (err) {
+        UI.toast('Error al cambiar contraseña: ' + err.message, 'error');
+      }
+    }
 
   };
 }
