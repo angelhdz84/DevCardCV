@@ -95,8 +95,8 @@ const Dashboard = {
     <div class="card bg-white">
       <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--accent-light);">
-            <i class="bi bi-tools text-lg text-accent"></i>
+          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+            <i class="bi bi-tools text-lg" style="color: var(--ink);"></i>
           </div>
           <div class="min-w-0">
             <p class="text-xs font-medium uppercase tracking-wider text-muted">Habilidades</p>
@@ -109,8 +109,8 @@ const Dashboard = {
     <div class="card bg-white">
       <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--accent-secondary-light);">
-            <i class="bi bi-tag-fill text-lg" style="color: var(--accent-secondary);"></i>
+          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+            <i class="bi bi-tag-fill text-lg" style="color: var(--ink);"></i>
           </div>
           <div class="min-w-0">
             <p class="text-xs font-medium uppercase tracking-wider text-muted">Categorías</p>
@@ -123,8 +123,8 @@ const Dashboard = {
     <div class="card bg-white">
       <div class="card-body p-5">
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0" style="background: var(--accent-light);">
-            <i class="bi bi-graph-up text-lg text-accent"></i>
+          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+            <i class="bi bi-graph-up text-lg" style="color: var(--ink);"></i>
           </div>
           <div class="min-w-0">
             <p class="text-xs font-medium uppercase tracking-wider text-muted">Promedio Skills</p>
@@ -209,10 +209,10 @@ const Dashboard = {
             <tbody>
               <template x-for="row in sqlReport" :key="row.pid + '-' + row.hid">
                 <tr class="stagger-enter" :style="'animation-delay: ' + ($el.parentElement.children.length * 0.02) + 's'">
-                  <td class="font-medium text-xs" x-text="row.nombre"></td>
-                  <td class="text-xs" x-text="row.cargo"></td>
-                  <td class="text-xs" x-text="row.skill"></td>
-                  <td class="text-xs text-muted" x-text="row.categoria"></td>
+                  <td class="font-medium text-sm" x-text="row.nombre"></td>
+                  <td class="text-sm" x-text="row.cargo"></td>
+                  <td class="text-sm" x-text="row.skill"></td>
+                  <td class="text-sm text-muted" x-text="row.categoria"></td>
                 </tr>
               </template>
             </tbody>

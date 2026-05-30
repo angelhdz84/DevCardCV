@@ -27,10 +27,12 @@ const cryptoHelpers = {
     try {
       const key = this.getKey();
       const bytes = CryptoJS.AES.decrypt(cipherText, key);
-      return bytes.toString(CryptoJS.enc.Utf8);
+      const text = bytes.toString(CryptoJS.enc.Utf8);
+      if (!text) throw new Error('Empty decryption');
+      return text;
     } catch (e) {
       console.warn('⚠️ Error descifrando:', e.message);
-      return cipherText; // Si falla, devuelve el texto original
+      return ''; // No mostrar basura cifrada en la UI
     }
   },
 

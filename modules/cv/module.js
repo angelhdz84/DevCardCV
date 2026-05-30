@@ -56,7 +56,7 @@ const CV = {
       </h2>
       <p class="text-xs text-muted mt-1" x-show="perfil" x-text="perfil.nombre + ' — ' + perfil.cargo"></p>
     </div>
-    <div class="flex gap-2">
+    <div class="flex flex-wrap gap-2">
       <select x-model="selectedId" @change="cambiarPerfil()" class="select select-bordered select-sm radius-md">
         <option value="" disabled>Seleccionar perfil</option>
         <template x-for="p in perfiles" :key="p.id">
@@ -67,8 +67,6 @@ const CV = {
         <i class="bi bi-file-earmark-pdf-fill"></i>
         <span x-show="!exporting">Exportar PDF</span>
         <span x-show="exporting" class="loading loading-spinner loading-xs" role="status" aria-label="Exportando PDF"></span>
-            </button>
-            <button class="btn btn-ghost w-full btn-sm mt-1 radius-md border-default transition-spring" @click="exportarPerfilJSON()">
       </button>
     </div>
   </div>
@@ -253,10 +251,10 @@ function cvData(perfiles, perfil, currentId) {
       const m = 22;
       let y = 0;
 
-      const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) || p.email : '';
-      const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) || p.telefono : '';
-      const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) || p.direccion : '';
-      const dniDecrypted = p.dni ? cryptoHelpers.decrypt(p.dni) || p.dni : '';
+      const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) : '';
+      const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) : '';
+      const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) : '';
+      const dniDecrypted = p.dni ? cryptoHelpers.decrypt(p.dni) : '';
 
       const checkPage = (delta) => { if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; } };
 
