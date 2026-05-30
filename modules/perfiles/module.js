@@ -154,9 +154,9 @@ const Perfiles = {
           </h3>
           <p class="text-xs text-muted mt-0.5" x-text="editando ? 'Actualiza los datos del desarrollador' : 'Completa la información para crear la ficha'"></p>
         </div>
-        <button class="btn btn-ghost btn-sm btn-circle radius-sm" @click="cerrarFormulario()" title="Cerrar">
-          <i class="bi bi-x-lg text-sm"></i>
-        </button>
+<button class="btn btn-ghost btn-sm btn-circle radius-sm" @click="cerrarFormulario()" title="Cerrar" aria-label="Cerrar">
+  <i class="bi bi-x-lg text-sm"></i>
+</button>
       </div>
 
       <!-- Scrollable body -->

@@ -46,13 +46,22 @@ const Habilidades = {
     </div>
   </div>
 
+  <!-- Buscador -->
+  <div class="mb-4" x-show="Object.keys(cats).length > 0">
+    <div class="relative">
+      <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted"></i>
+      <input type="search" x-model="searchSkill" placeholder="Buscar habilidad..."
+             class="input input-bordered w-full max-w-xs pl-8 radius-md text-sm">
+    </div>
+  </div>
+
   <!-- Categorías y skills -->
-  <template x-if="Object.keys(cats).length === 0">
-    <div x-html="UI.emptyState('No hay habilidades. Crea categorías y habilidades.', 'bi-tools', { handler: 'showCatModal=true', label: 'Crear categoría', icon: 'bi-folder-plus' })"></div>
+  <template x-if="Object.keys(filteredCats).length === 0">
+    <div x-html="UI.emptyState(searchSkill ? 'No se encontraron habilidades para "' + searchSkill + '"' : 'No hay habilidades. Crea categorías y habilidades.', 'bi-tools', searchSkill ? {} : { handler: 'showCatModal=true', label: 'Crear categoría', icon: 'bi-folder-plus' })"></div>
   </template>
 
-  <div class="space-y-4" x-show="Object.keys(cats).length > 0">
-    <template x-for="(skills, categoria) in cats" :key="categoria">
+  <div class="space-y-4" x-show="Object.keys(filteredCats).length > 0">
+    <template x-for="(skills, categoria) in filteredCats" :key="categoria">
       <div class="card bg-white stagger-enter" :style="'animation-delay: ' + (Object.keys(cats).indexOf(categoria) * 0.06) + 's'" :aria-label="'Categoría: ' + categoria">
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-4">
@@ -151,12 +160,24 @@ const Habilidades = {
 function habilidadesData(categorias) {
   return {
     cats: categorias,
+    searchSkill: '',
     showCatModal: false,
     showSkillModal: false,
     newCat: '',
     newSkill: { nombre: '', categoria: '' },
     editingSkill: null,
     _prevFocus: null,
+
+    get filteredCats() {
+      if (!this.searchSkill.trim()) return this.cats;
+      const q = this.searchSkill.toLowerCase().trim();
+      const result = {};
+      for (const [cat, skills] of Object.entries(this.cats)) {
+        const matching = skills.filter(s => s.nombre.toLowerCase().includes(q));
+        if (matching.length > 0) result[cat] = matching;
+      }
+      return result;
+    },
 
     async guardarCategoria() {
       if (!this.newCat.trim()) return;

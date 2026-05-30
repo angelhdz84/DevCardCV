@@ -498,6 +498,14 @@
 
     /* Monospace for code-like data */
     .font-mono-data { font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace; font-size: 0.75rem; letter-spacing: -0.02em; }
+
+    /* Touch targets ≥44px on mobile */
+    @media (pointer: coarse) {
+      .btn-xs { min-height: 44px; min-width: 44px; }
+      .btn-sm { min-height: 44px; }
+      .btn-ghost.btn-xs { min-height: 44px; min-width: 44px; }
+      .btn-square.btn-xs { min-height: 44px; min-width: 44px; }
+    }
   </style>
 </head>
 <body>
@@ -514,16 +522,16 @@
   </div>
 
   <!-- App Shell -->
-  <div class="drawer lg:drawer-open">
+  <div class="drawer lg:drawer-open" x-data @keydown.window.escape="$el.querySelector('#sidebar-drawer').checked = false">
     <input id="sidebar-drawer" type="checkbox" class="drawer-toggle" />
 
     <!-- Main content -->
     <div class="drawer-content flex flex-col min-h-screen">
       <!-- Mobile hamburger toggle -->
       <div class="lg:hidden fixed top-3 left-3 z-30" x-show="$store.auth.isLoggedIn">
-        <label for="sidebar-drawer" class="btn btn-square btn-ghost btn-sm bg-white shadow-card radius-md border-default">
-          <i class="bi bi-list text-xl"></i>
-        </label>
+<label for="sidebar-drawer" class="btn btn-square btn-ghost btn-sm bg-white shadow-card radius-md border-default" aria-label="Abrir menú" title="Abrir menú">
+  <i class="bi bi-list text-xl"></i>
+</label>
       </div>
 
       <!-- Page content -->
@@ -575,9 +583,9 @@
             <div x-show="$store.ui.sidebarCollapsed && !hoverExpand" class="mx-auto" x-cloak>
               <i class="bi bi-code-square text-accent text-lg"></i>
             </div>
-            <button class="btn btn-ghost btn-xs btn-square shrink-0 hidden lg:inline-flex" @click="$store.ui.toggleSidebar()" title="Alternar sidebar">
-              <i :class="$store.ui.sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'" class="text-sm"></i>
-            </button>
+<button class="btn btn-ghost btn-xs btn-square shrink-0 hidden lg:inline-flex" @click="$store.ui.toggleSidebar()" title="Alternar sidebar" aria-label="Alternar sidebar">
+  <i :class="$store.ui.sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'" class="text-sm"></i>
+</button>
           </div>
 
           <!-- User profile -->
