@@ -22,9 +22,9 @@ const Perfiles = {
       const dniDecrypted = cryptoHelpers.decrypt(p.dni || '');
       perfilesData.push({
         ...p,
-        email: cryptoHelpers.decrypt(p.email || ''),
-        telefono: cryptoHelpers.decrypt(p.telefono || ''),
-        direccion: cryptoHelpers.decrypt(p.direccion || ''),
+        email: cryptoHelpers.decrypt(p.email || '') || (p.email ? '·· Reingresar ··' : ''),
+        telefono: cryptoHelpers.decrypt(p.telefono || '') || (p.telefono ? '·· Reingresar ··' : ''),
+        direccion: cryptoHelpers.decrypt(p.direccion || '') || (p.direccion ? '·· Reingresar ··' : ''),
         dni: dniDecrypted,
         edad: calcularEdad(dniDecrypted),
         skills: perfilSkills.map(s => s.id),

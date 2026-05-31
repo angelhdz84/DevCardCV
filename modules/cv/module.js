@@ -35,9 +35,9 @@ const CV = {
       const dniDecrypted = cryptoHelpers.decrypt(perfil.dni || '');
       perfilData = {
         ...perfil,
-        email: cryptoHelpers.decrypt(perfil.email || ''),
-        telefono: perfil.telefono ? cryptoHelpers.decrypt(perfil.telefono) : '',
-        direccion: perfil.direccion ? cryptoHelpers.decrypt(perfil.direccion) : '',
+        email: cryptoHelpers.decrypt(perfil.email || '') || (perfil.email ? '·· Reingresar ··' : ''),
+        telefono: perfil.telefono ? (cryptoHelpers.decrypt(perfil.telefono) || '·· Reingresar ··') : '',
+        direccion: perfil.direccion ? (cryptoHelpers.decrypt(perfil.direccion) || '·· Reingresar ··') : '',
         dni: dniDecrypted,
         edad: calcularEdad(dniDecrypted),
         skillsByCat
@@ -149,6 +149,7 @@ const CV = {
                 <template x-for="(entry, i) in catEntries" :key="entry.cat">
                   <div :class="(entry.total % 2 === 1 && i === entry.total - 1) ? 'col-span-2' : ''">
                     <p class="text-xs font-medium text-muted mb-1.5 flex items-center gap-1.5"><i class="bi bi-folder-fill text-accent/40 text-[10px]"></i> <span x-text="entry.cat"></span></p>
+                    <div class="border-t-default my-1.5"></div>
                     <div class="flex flex-wrap gap-1.5">
                       <template x-for="(skill, j) in entry.skills" :key="skill">
                         <span class="badge badge-sm stagger-enter radius-sm" :class="'badge-skill-' + _sanitizeCat(entry.cat)" x-text="skill" :style="'animation-delay: ' + (j * 40) + 'ms'"></span>
@@ -265,10 +266,10 @@ function cvData(perfiles, perfil, currentId) {
       const m = 22;
       let y = 0;
 
-      const emailDecrypted = p.email ? cryptoHelpers.decrypt(p.email) : '';
-      const telDecrypted = p.telefono ? cryptoHelpers.decrypt(p.telefono) : '';
-      const dirDecrypted = p.direccion ? cryptoHelpers.decrypt(p.direccion) : '';
-      const dniDecrypted = p.dni ? cryptoHelpers.decrypt(p.dni) : '';
+      const emailDecrypted = p.email ? (cryptoHelpers.decrypt(p.email) || '') : '';
+      const telDecrypted = p.telefono ? (cryptoHelpers.decrypt(p.telefono) || '') : '';
+      const dirDecrypted = p.direccion ? (cryptoHelpers.decrypt(p.direccion) || '') : '';
+      const dniDecrypted = p.dni ? (cryptoHelpers.decrypt(p.dni) || '') : '';
 
       const checkPage = (delta) => { if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; } };
 
