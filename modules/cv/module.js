@@ -145,17 +145,22 @@ const CV = {
               <h3 class="section-label mb-3 flex items-center gap-2">
                 <i class="bi bi-tools"></i> Habilidades Técnicas
               </h3>
-              <div class="space-y-3">
-                <template x-for="(skills, cat) in perfil.skillsByCat" :key="cat">
-                  <div>
-                    <p class="text-xs font-medium text-muted mb-1.5 flex items-center gap-1.5"><i class="bi bi-folder-fill text-accent/40 text-[10px]"></i> <span x-text="cat"></span></p>
+              <div class="grid grid-cols-2 gap-3">
+                <template x-for="(entry, i) in catEntries" :key="entry.cat">
+                  <div :class="(entry.total % 2 === 1 && i === entry.total - 1) ? 'col-span-2' : ''">
+                    <p class="text-xs font-medium text-muted mb-1.5 flex items-center gap-1.5"><i class="bi bi-folder-fill text-accent/40 text-[10px]"></i> <span x-text="entry.cat"></span></p>
                     <div class="flex flex-wrap gap-1.5">
-                      <template x-for="(skill, i) in skills" :key="skill">
-                        <span class="badge badge-sm stagger-enter radius-sm" :class="'badge-skill-' + _sanitizeCat(cat)" x-text="skill" :style="'animation-delay: ' + (i * 40) + 'ms'"></span>
+                      <template x-for="(skill, j) in entry.skills" :key="skill">
+                        <span class="badge badge-sm stagger-enter radius-sm" :class="'badge-skill-' + _sanitizeCat(entry.cat)" x-text="skill" :style="'animation-delay: ' + (j * 40) + 'ms'"></span>
                       </template>
-                      <template x-if="Object.keys(perfil.skillsByCat).length === 0">
-                        <p class="text-sm text-base-content/50" role="alert">No hay habilidades registradas.</p>
-                      </template>
+                    </div>
+                  </div>
+                </template>
+                <template x-if="!catEntries.length">
+                  <div class="col-span-2">
+                    <p class="text-sm text-base-content/50" role="alert">No hay habilidades registradas.</p>
+                  </div>
+                </template>
               </div>
             </div>
 
@@ -237,6 +242,15 @@ function cvData(perfiles, perfil, currentId) {
     selectedId: currentId || '',
     exporting: false,
     compartiendo: false,
+
+    get catEntries() {
+      if (!this.perfil?.skillsByCat) return [];
+      return Object.entries(this.perfil.skillsByCat).map(([cat, skills], idx) => ({
+        cat, skills,
+        idx,
+        total: Object.keys(this.perfil.skillsByCat).length
+      }));
+    },
 
     async cambiarPerfil() {
       window.location.hash = `#/cv/${this.selectedId}`;
