@@ -192,20 +192,18 @@ const CV = {
           </div>
         </div>
 
-        <!-- Compartir CV -->
-        <div class="card border-default" style="background: var(--accent-light);">
+        <!-- Exportar Excel (solo admin) -->
+        <div x-show="$store.auth.isAdmin" class="card bg-white">
           <div class="card-body p-4">
-            <h3 class="section-label mb-3 flex items-center gap-2 text-accent">
-              <i class="bi bi-share-fill"></i> Compartir CV
+            <h3 class="section-label mb-3 flex items-center gap-2">
+              <i class="bi bi-file-earmark-spreadsheet text-accent"></i> Exportar Excel
             </h3>
-            <button class="btn w-full btn-sm gap-2 radius-md btn-magnetic" style="background: var(--accent); color: white; border: none;" @click="compartirCV()" :disabled="!perfil || compartiendo" aria-label="Compartir CV">
-              <i class="bi bi-share-fill"></i>
-              <span x-show="!compartiendo">Compartir PDF + JSON</span>
-              <span x-show="compartiendo" class="loading loading-spinner loading-xs" role="status" aria-label="Compartiendo CV"></span>
+            <button class="btn btn-primary btn-magnetic w-full btn-sm radius-md" @click="exportarExcelUnico()" :disabled="!perfil">
+              <i class="bi bi-person-fill"></i> Este desarrollador
             </button>
-            <p class="text-xs text-muted mt-1.5">
-              Comparte ambos archivos para importar después
-            </p>
+            <button class="btn btn-ghost w-full btn-sm mt-1 radius-md border-default transition-spring" @click="exportarExcelTodos()">
+              <i class="bi bi-people-fill"></i> Todos los desarrolladores
+            </button>
           </div>
         </div>
 
@@ -242,7 +240,6 @@ function cvData(perfiles, perfil, currentId) {
     currentId,
     selectedId: currentId || '',
     exporting: false,
-    compartiendo: false,
 
     get catEntries() {
       if (!this.perfil?.skillsByCat) return [];
@@ -257,7 +254,7 @@ function cvData(perfiles, perfil, currentId) {
       window.location.hash = `#/cv/${this.selectedId}`;
     },
 
-    // ── Helper: generar PDF (compartido entre exportarPDF y compartirCV) ──
+    // ── Helper: generar PDF ──
     _generarPDF(p, perfilSkills) {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF('p', 'mm', 'a4');
@@ -592,10 +589,8 @@ function cvData(perfiles, perfil, currentId) {
       }
     },
 
-    async compartirCV() {
+    async exportarExcelUnico() {
       if (!this.perfil) return;
-      this.compartiendo = true;
-      UI.toast('Preparando para compartir...', 'info');
       try {
         const p = this.perfil;
         const relaciones = await dbOnline.getWhere('perfil_habilidades', 'perfil_id', p.id);
@@ -603,51 +598,79 @@ function cvData(perfiles, perfil, currentId) {
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
-        const pdf = this._generarPDF(p, perfilSkills);
-        const pdfBlob = pdf.output('blob');
-        const nombre = p.nombre.replace(/\s+/g, '_');
-        const fecha = dayjs().format('YYYYMMDD');
-        const pdfName = `CV_${nombre}_${fecha}.pdf`;
-
-        const perfilData = {
-          version: APP_CONFIG.app.version,
-          fecha: new Date().toISOString(),
-          app: APP_CONFIG.app.nombre,
-          tipo: 'perfil_individual',
-          perfil: {
-            ...p,
-            email: p.email || '',
-            telefono: p.telefono ? p.telefono : '',
-            direccion: p.direccion ? p.direccion : '',
-            dni: p.dni ? p.dni : ''
-          },
-          habilidades: perfilSkills.map(s => ({ nombre: s.nombre, categoria: s.categoria }))
+        const row = {
+          'Nombre': p.nombre,
+          'Cargo': p.cargo,
+          'DNI': p.dni || '',
+          'Email': p.email || '',
+          'Teléfono': p.telefono || '',
+          'Dirección': p.direccion || '',
+          'Biografía': p.bio || '',
+          'Skills': perfilSkills.map(s => s.nombre).join(', '),
+          'Categorías': [...new Set(perfilSkills.map(s => s.categoria))].join(', ')
         };
-        const jsonBlob = new Blob([JSON.stringify(perfilData, null, 2)], { type: 'application/json' });
-        const jsonName = `CV_${nombre}_${fecha}.json`;
-
-        const pdfFile = new File([pdfBlob], pdfName, { type: 'application/pdf' });
-        const jsonFile = new File([jsonBlob], jsonName, { type: 'application/json' });
-
-        if (window.isSecureContext && navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile, jsonFile] })) {
-          await navigator.share({
-            files: [pdfFile, jsonFile],
-            title: `CV de ${p.nombre}`,
-            text: `CV + datos importables de ${p.nombre} — ${p.cargo}`
-          });
-          UI.toast('CV compartido exitosamente', 'success');
-        } else {
-          UI.toast('Tu navegador no soporta compartir archivos. Usa "Descargar PDF".', 'warning');
-        }
+        const ws = XLSX.utils.json_to_sheet([row]);
+        ws['!cols'] = [{ wch: 25 }, { wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 40 }, { wch: 30 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Desarrollador');
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buf], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CV_${p.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        UI.toast(`Excel exportado: ${p.nombre}`, 'success');
       } catch (err) {
-        if (err.name === 'AbortError') {
-          UI.toast('Compartir cancelado', 'info');
-        } else {
-          console.error('Error compartiendo CV:', err);
-          UI.toast('Error: ' + err.message, 'error');
-        }
-      } finally {
-        this.compartiendo = false;
+        UI.toast('Error al exportar Excel: ' + err.message, 'error');
+      }
+    },
+
+    async exportarExcelTodos() {
+      try {
+        const perfiles = await dbOnline.getAll('perfiles');
+        const relaciones = await dbOnline.getAll('perfil_habilidades');
+        const habilidades = await dbOnline.getAll('habilidades');
+        const rows = perfiles.map(p => {
+          const perfilSkills = relaciones
+            .filter(r => r.perfil_id == p.id)
+            .map(r => habilidades.find(h => h.id == r.habilidad_id))
+            .filter(Boolean);
+          return {
+            'Nombre': p.nombre,
+            'Cargo': p.cargo,
+            'DNI': cryptoHelpers.decrypt(p.dni || ''),
+            'Email': cryptoHelpers.decrypt(p.email || ''),
+            'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
+            'Dirección': cryptoHelpers.decrypt(p.direccion || ''),
+            'Biografía': p.bio || '',
+            'Skills': perfilSkills.map(s => s.nombre).join(', '),
+            'Categorías': [...new Set(perfilSkills.map(s => s.categoria))].join(', '),
+            'Creado': p.created_at ? dayjs(p.created_at).format('DD/MM/YYYY') : '',
+            'Actualizado': p.updated_at ? dayjs(p.updated_at).format('DD/MM/YYYY HH:mm') : ''
+          };
+        });
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = [
+          { wch: 25 }, { wch: 20 }, { wch: 15 },
+          { wch: 30 }, { wch: 15 }, { wch: 30 },
+          { wch: 40 }, { wch: 40 }, { wch: 30 },
+          { wch: 14 }, { wch: 18 }
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Desarrolladores');
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([buf], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DevCardCV_todos_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        UI.toast(`Excel exportado: ${rows.length} desarrolladores`, 'success');
+      } catch (err) {
+        UI.toast('Error al exportar Excel: ' + err.message, 'error');
       }
     },
 
