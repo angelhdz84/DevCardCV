@@ -13,7 +13,8 @@ const APP_CONFIG = {
     'dashboard',
     'perfiles',
     'habilidades',
-    'cv'
+    'cv',
+    'proyectos'
   ],
 
   tema: {

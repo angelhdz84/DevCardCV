@@ -7,7 +7,11 @@ var dbOnline = {
     perfiles: { toRemote: { fotoBase64: 'foto_base64' }, toLocal: { foto_base64: 'fotoBase64' } },
     habilidades: { toRemote: {}, toLocal: {} },
     perfil_habilidades: { toRemote: {}, toLocal: {} },
-    usuarios: { toRemote: { perfilId: 'perfil_id' }, toLocal: { perfil_id: 'perfilId' } }
+    usuarios: { toRemote: { perfilId: 'perfil_id' }, toLocal: { perfil_id: 'perfilId' } },
+    proyectos: { toRemote: { fechaLimite: 'fecha_limite', creadoPor: 'creado_por' }, toLocal: { fecha_limite: 'fechaLimite', creado_por: 'creadoPor' } },
+    tareas: { toRemote: { proyectoId: 'proyecto_id', comentarioDev: 'comentario_dev' }, toLocal: { proyecto_id: 'proyectoId', comentario_dev: 'comentarioDev' } },
+    proyecto_usuarios: { toRemote: { proyectoId: 'proyecto_id', perfilId: 'perfil_id' }, toLocal: { proyecto_id: 'proyectoId', perfil_id: 'perfilId' } },
+    equipos: { toRemote: {}, toLocal: {} }
   },
 
   _mapFields(records, table, direction) {
@@ -217,7 +221,7 @@ var dbOnline = {
   // ─── Refresh / Cache ───
 
   async refreshCache() {
-    const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios'];
+    const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios', 'proyectos', 'tareas', 'proyecto_usuarios', 'equipos'];
     for (const table of tables) {
       try {
         const { data, error } = await this._supa.from(table).select('*');

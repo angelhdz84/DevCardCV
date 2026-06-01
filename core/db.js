@@ -1,6 +1,19 @@
 ﻿// core/db.js — Configuración de IndexedDB con Dexie + SQLite cache
 const db = new Dexie(APP_CONFIG.db.nombre);
 
+// v6: proyectos, tareas, proyecto_usuarios, equipos
+db.version(6).stores({
+  perfiles: '++id, nombre, email, cargo, created_at',
+  habilidades: '++id, nombre, categoria, created_at',
+  perfil_habilidades: '++id, perfil_id, habilidad_id',
+  _sqlite_cache: 'key',
+  usuarios: '++id, email, email_hash, rol, created_at',
+  proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
+  tareas: '++id, proyecto_id, nombre, estado, created_at',
+  proyecto_usuarios: '++id, proyecto_id, perfil_id',
+  equipos: '++id, nombre'
+});
+
 // v5: email_hash para búsqueda determinista de usuarios
 db.version(5).stores({
   perfiles: '++id, nombre, email, cargo, created_at',

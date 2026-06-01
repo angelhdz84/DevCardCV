@@ -104,7 +104,8 @@ const appRouter = {
       dashboard: 'bi-speedometer2',
       perfiles: 'bi-people-fill',
       habilidades: 'bi-tools',
-      cv: 'bi-file-earmark-richtext-fill'
+      cv: 'bi-file-earmark-richtext-fill',
+      proyectos: 'bi-kanban'
     };
 
     menu.innerHTML = APP_CONFIG.modulosActivos
