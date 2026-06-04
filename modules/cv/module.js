@@ -10,9 +10,9 @@ const CV = {
   async render(params = {}) {
     // 💡 Obtener ID del perfil de la ruta: #/cv/3
     const perfilId = params.params ? parseInt(params.params[0]) : null;
-    const perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const habilidades = await dbOnline.getAll('habilidades');
-    const relaciones = await dbOnline.getAll('perfil_habilidades');
+    const perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = await dbLocal.getAll('habilidades');
+    const relaciones = await dbLocal.getAll('perfil_habilidades');
 
     // 💡 Seleccionar perfil por ID o el primero
     const perfil = perfilId ? perfiles.find(p => p.id === perfilId) : perfiles[0];
@@ -567,8 +567,8 @@ function cvData(perfiles, perfil, currentId) {
       UI.toast('Generando PDF...', 'info');
       try {
         const p = this.perfil;
-        const relaciones = await dbOnline.getWhere('perfil_habilidades', 'perfil_id', p.id);
-        const habilidades = await dbOnline.getAll('habilidades');
+        const relaciones = await dbLocal.getWhere('perfil_habilidades', 'perfil_id', p.id);
+        const habilidades = await dbLocal.getAll('habilidades');
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
@@ -593,8 +593,8 @@ function cvData(perfiles, perfil, currentId) {
       if (!this.perfil) return;
       try {
         const p = this.perfil;
-        const relaciones = await dbOnline.getWhere('perfil_habilidades', 'perfil_id', p.id);
-        const habilidades = await dbOnline.getAll('habilidades');
+        const relaciones = await dbLocal.getWhere('perfil_habilidades', 'perfil_id', p.id);
+        const habilidades = await dbLocal.getAll('habilidades');
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
@@ -629,9 +629,9 @@ function cvData(perfiles, perfil, currentId) {
 
     async exportarExcelTodos() {
       try {
-        const perfiles = await dbOnline.getAll('perfiles');
-        const relaciones = await dbOnline.getAll('perfil_habilidades');
-        const habilidades = await dbOnline.getAll('habilidades');
+        const perfiles = await dbLocal.getAll('perfiles');
+        const relaciones = await dbLocal.getAll('perfil_habilidades');
+        const habilidades = await dbLocal.getAll('habilidades');
         const rows = perfiles.map(p => {
           const perfilSkills = relaciones
             .filter(r => r.perfil_id == p.id)
@@ -677,8 +677,8 @@ function cvData(perfiles, perfil, currentId) {
     async exportarPerfilJSON() {
       if (!this.perfil) return;
       try {
-        const relaciones = await dbOnline.getWhere('perfil_habilidades', 'perfil_id', this.perfil.id);
-        const habilidades = await dbOnline.getAll('habilidades');
+        const relaciones = await dbLocal.getWhere('perfil_habilidades', 'perfil_id', this.perfil.id);
+        const habilidades = await dbLocal.getAll('habilidades');
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);

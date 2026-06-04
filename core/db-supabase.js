@@ -1,3 +1,12 @@
+// 💡 Lectura instantánea desde caché IndexedDB (sin red)
+const dbLocal = {
+  async getAll(table) { return db[table]?.toArray() || []; },
+  async get(table, id) { return db[table]?.get(id) || null; },
+  async getWhere(table, field, value) { return db[table]?.where(field).equals(value).toArray() || []; },
+  async count(table) { return db[table]?.count() || 0; }
+};
+window.dbLocal = dbLocal;
+
 var dbOnline = {
   _supa: null,
   _realtimeChannel: null,
@@ -9,9 +18,10 @@ var dbOnline = {
     perfil_habilidades: { toRemote: {}, toLocal: {} },
     usuarios: { toRemote: { perfilId: 'perfil_id' }, toLocal: { perfil_id: 'perfilId' } },
     proyectos: { toRemote: { fechaLimite: 'fecha_limite', creadoPor: 'creado_por' }, toLocal: { fecha_limite: 'fechaLimite', creado_por: 'creadoPor' } },
-    tareas: { toRemote: { proyectoId: 'proyecto_id', comentarioDev: 'comentario_dev' }, toLocal: { proyecto_id: 'proyectoId', comentario_dev: 'comentarioDev' } },
+    tareas: { toRemote: { proyectoId: 'proyecto_id', comentarioDev: 'comentario_dev', fechaLimite: 'fecha_limite', asignadoA: 'asignado_a', horasEstimadas: 'horas_estimadas' }, toLocal: { proyecto_id: 'proyectoId', comentario_dev: 'comentarioDev', fecha_limite: 'fechaLimite', asignado_a: 'asignadoA', horas_estimadas: 'horasEstimadas' } },
     proyecto_usuarios: { toRemote: { proyectoId: 'proyecto_id', perfilId: 'perfil_id' }, toLocal: { proyecto_id: 'proyectoId', perfil_id: 'perfilId' } },
-    equipos: { toRemote: {}, toLocal: {} }
+    equipos: { toRemote: {}, toLocal: {} },
+    categorias: { toRemote: {}, toLocal: {} }
   },
 
   _mapFields(records, table, direction) {
@@ -100,7 +110,7 @@ var dbOnline = {
       if (error) throw error;
       const mapped = this._mapFields(data || [], table, 'toLocal');
       await db[table].clear();
-      for (const r of mapped) await db[table].add(r);
+      if (mapped.length) await db[table].bulkAdd(mapped);
       console.log('📡 Cache actualizado:', table, mapped.length, 'registros');
       window.dispatchEvent(new CustomEvent('db-change'));
     } catch (err) {
@@ -222,17 +232,17 @@ var dbOnline = {
 
   async refreshCache() {
     const tables = ['perfiles', 'habilidades', 'perfil_habilidades', 'usuarios', 'proyectos', 'tareas', 'proyecto_usuarios', 'equipos'];
-    for (const table of tables) {
+    await Promise.all(tables.map(async table => {
       try {
         const { data, error } = await this._supa.from(table).select('*');
         if (error) throw error;
         const mapped = this._mapFields(data || [], table, 'toLocal');
         await db[table].clear();
-        for (const r of mapped) await db[table].add(r);
+        if (mapped.length) await db[table].bulkAdd(mapped);
       } catch (err) {
         console.warn('⚠️ refreshCache(' + table + '):', err.message);
       }
-    }
+    }));
     window.dispatchEvent(new CustomEvent('db-change'));
     console.log('✅ Cache refrescado desde Supabase');
   },
@@ -253,7 +263,7 @@ var dbOnline = {
 
   async _setCache(table, records) {
     await db[table].clear();
-    for (const r of records) await db[table].add(r);
+    if (records.length) await db[table].bulkAdd(records);
   },
 
   // ─── Force refresh (desde Dashboard) ───

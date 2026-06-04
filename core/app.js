@@ -157,7 +157,7 @@ const appRouter = {
     if (!email || !password || !nombre) return;
     try {
       const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
       if (existentes.length > 0) return true;
       const hash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
       await dbOnline.add('usuarios', {
@@ -224,10 +224,10 @@ const appRouter = {
       const session = JSON.parse(raw);
       if (!session.userId) { localStorage.removeItem(APP_CONFIG.auth.sessionKey); this.authChecked = true; return; }
       // 💡 Verificar que el usuario aún existe en la DB
-      const exists = await dbOnline.get('usuarios', session.userId);
+      const exists = await dbLocal.get('usuarios', session.userId);
       if (exists) {
         Alpine.store('auth').setSession(session);
-        const perfil = exists.perfilId ? await dbOnline.get('perfiles', exists.perfilId) : null;
+        const perfil = exists.perfilId ? await dbLocal.get('perfiles', exists.perfilId) : null;
         Alpine.store('auth').setPerfil(perfil);
       } else {
         localStorage.removeItem(APP_CONFIG.auth.sessionKey);
@@ -241,7 +241,7 @@ const appRouter = {
     try {
       const email = 'carlos@dev.com';
       const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
       if (existentes.length > 0) return;
 
       const perfil = await dbOnline.add('perfiles', {
@@ -266,7 +266,7 @@ const appRouter = {
         updated_at: new Date()
       });
 
-      const allSkills = await dbOnline.getAll('habilidades');
+      const allSkills = await dbLocal.getAll('habilidades');
       const devSkills = ['JavaScript', 'TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'Git', 'Python'];
       for (const name of devSkills) {
         const skill = allSkills.find(s => s.nombre.toLowerCase() === name.toLowerCase());

@@ -39,12 +39,13 @@ const APP_CONFIG = {
     tablas: {
       perfiles: '++id, nombre, email, cargo, created_at',
       habilidades: '++id, nombre, categoria',
-      perfil_habilidades: '++id, perfil_id, habilidad_id'
+      perfil_habilidades: '++id, perfil_id, habilidad_id',
+      categorias: '++id, nombre, created_at'
     }
   },
 
   crypto: {
-    camposSensibles: ['email', 'telefono', 'direccion'],
+    camposSensibles: ['email', 'telefono', 'direccion', 'dni'],
     storageKey: 'devcardcv_key'
   },
 
@@ -66,6 +67,7 @@ const APP_CONFIG = {
     sessionKey: '_auth_session',
     admin: {
       email: 'admin@devcardcv.com',
+      // ⚠️ CAMBIA ESTA CONTRASEÑA tras el primer inicio de sesión
       password: 'admin123',
       nombre: 'Admin Root'
     }

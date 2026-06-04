@@ -8,9 +8,9 @@ const Perfiles = {
   },
 
   async render({ params: routeParams } = { params: [] }) {
-    let perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const habilidades = (await dbOnline.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
-    const relaciones = await dbOnline.getAll('perfil_habilidades');
+    let perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = (await dbLocal.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
+    const relaciones = await dbLocal.getAll('perfil_habilidades');
 
     // 💡 Preparar perfiles con sus skills
     const perfilesData = [];
@@ -427,7 +427,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
       const existente = this.categorias[cat].find(s => s.nombre.toLowerCase() === name.toLowerCase());
       if (existente) { UI.toast('Esa habilidad ya existe en la categoría', 'warning'); return; }
       await dbOnline.add('habilidades', { nombre: name, categoria: cat, created_at: new Date() });
-      const hb = await dbOnline.getAll('habilidades');
+      const hb = await dbLocal.getAll('habilidades');
       this.habilidades = hb;
       this.categorias = {};
       hb.forEach(h => {
@@ -578,7 +578,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         window.dispatchEvent(new CustomEvent('db-change'));
         const authStore = Alpine.store('auth');
         if (authStore.isLoggedIn && authStore.user?.perfilId === perfilId) {
-          const perfilActualizado = await dbOnline.get('perfiles', perfilId);
+          const perfilActualizado = await dbLocal.get('perfiles', perfilId);
           authStore.setPerfil(perfilActualizado);
         }
         window.location.hash = '#/perfiles';
@@ -610,8 +610,8 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
     async exportarPerfilJSON(dev) {
       try {
-        const relaciones = await dbOnline.getWhere('perfil_habilidades', 'perfil_id', dev.id);
-        const habilidades = await dbOnline.getAll('habilidades');
+        const relaciones = await dbLocal.getWhere('perfil_habilidades', 'perfil_id', dev.id);
+        const habilidades = await dbLocal.getAll('habilidades');
         const perfilSkills = relaciones
           .map(r => habilidades.find(h => h.id == r.habilidad_id))
           .filter(Boolean);
@@ -663,12 +663,12 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         if (!ok) return;
 
         // 💡 Buscar si ya existe por email
-        const todos = await dbOnline.getAll('perfiles');
+        const todos = await dbLocal.getAll('perfiles');
         const existente = todos.find(p => cryptoHelpers.decrypt(p.email || '') === perfil.email);
 
         // 💡 Asegurar que las habilidades existen
         for (const skill of (data.habilidades || [])) {
-          const existentes = await dbOnline.getWhere('habilidades', 'nombre', skill.nombre);
+          const existentes = await dbLocal.getWhere('habilidades', 'nombre', skill.nombre);
           if (existentes.length === 0) {
             await dbOnline.add('habilidades', { nombre: skill.nombre, categoria: skill.categoria, created_at: new Date(), updated_at: new Date() });
           }
@@ -701,7 +701,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         }
 
         // 💡 Asignar habilidades
-        const todasHabilidades = await dbOnline.getAll('habilidades');
+        const todasHabilidades = await dbLocal.getAll('habilidades');
         for (const skill of (data.habilidades || [])) {
           const hab = todasHabilidades.find(h => h.nombre === skill.nombre);
           if (hab) {
@@ -719,9 +719,9 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
     async exportarExcel() {
       try {
-        const todos = await dbOnline.getAll('perfiles');
-        const relaciones = await dbOnline.getAll('perfil_habilidades');
-        const habilidades = await dbOnline.getAll('habilidades');
+        const todos = await dbLocal.getAll('perfiles');
+        const relaciones = await dbLocal.getAll('perfil_habilidades');
+        const habilidades = await dbLocal.getAll('habilidades');
 
         const rows = todos.map(p => {
           const perfilSkills = relaciones

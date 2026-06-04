@@ -8,10 +8,10 @@ const Dashboard = {
   },
 
   async render(params = {}) {
-    const perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const habilidades = await dbOnline.getAll('habilidades');
-    const relaciones = await dbOnline.getAll('perfil_habilidades');
-    const usuarios = await dbOnline.getAll('usuarios');
+    const perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = await dbLocal.getAll('habilidades');
+    const relaciones = await dbLocal.getAll('perfil_habilidades');
+    const usuarios = await dbLocal.getAll('usuarios');
 
     // 💡 Contar skills por categoría
     const categorias = {};
@@ -487,10 +487,10 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
 
     async exportarJSON() {
       try {
-        const perfiles = await dbOnline.getAll('perfiles');
-        const habilidades = await dbOnline.getAll('habilidades');
-        const relaciones = await dbOnline.getAll('perfil_habilidades');
-        const usuarios = await dbOnline.getAll('usuarios');
+        const perfiles = await dbLocal.getAll('perfiles');
+        const habilidades = await dbLocal.getAll('habilidades');
+        const relaciones = await dbLocal.getAll('perfil_habilidades');
+        const usuarios = await dbLocal.getAll('usuarios');
 
         const backup = {
           version: APP_CONFIG.app.version,
@@ -524,9 +524,9 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
 
     async exportarExcel() {
       try {
-        const perfiles = await dbOnline.getAll('perfiles');
-        const relaciones = await dbOnline.getAll('perfil_habilidades');
-        const habilidades = await dbOnline.getAll('habilidades');
+        const perfiles = await dbLocal.getAll('perfiles');
+        const relaciones = await dbLocal.getAll('perfil_habilidades');
+        const habilidades = await dbLocal.getAll('habilidades');
 
         const rows = perfiles.map(p => {
           const perfilSkills = relaciones
@@ -642,8 +642,8 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
         }
 
         // 💡 Reconstruir relaciones
-        const perfilesNuevos = await dbOnline.getAll('perfiles');
-        const habilidadesNuevas = await dbOnline.getAll('habilidades');
+        const perfilesNuevos = await dbLocal.getAll('perfiles');
+        const habilidadesNuevas = await dbLocal.getAll('habilidades');
 
         for (const rel of (data.relaciones || [])) {
           const perfil = perfilesNuevos.find(p => p.email === cryptoHelpers.encrypt(data.perfiles.find(dp => dp.id === rel.perfil_id)?.email || ''));

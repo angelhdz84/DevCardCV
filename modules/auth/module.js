@@ -9,7 +9,7 @@ const Auth = {
 
   async render(params = {}) {
     const view = params.params[0] || 'login';
-    const userCount = await dbOnline.count('usuarios');
+    const userCount = await dbLocal.count('usuarios');
 
     if (userCount === 0 && view !== 'setup') {
       window.location.hash = '#/auth/setup';
@@ -28,7 +28,7 @@ const Auth = {
       <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: var(--accent-light);">
         <i class="bi bi-shield-lock-fill text-2xl text-accent"></i>
       </div>
-      <h2 class="text-lg font-semibold tracking-heading">DevCardCV</h2>
+      <h1 class="text-lg font-semibold tracking-heading">DevCardCV</h1>
       <p class="text-xs mt-1 text-muted">Inicia sesión para continuar</p>
     </div>
 
@@ -67,7 +67,7 @@ const Auth = {
       <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: var(--accent-light);">
         <i class="bi bi-gear-fill text-2xl text-accent"></i>
       </div>
-      <h2 class="text-lg font-semibold tracking-heading">Configuración Inicial</h2>
+      <h1 class="text-lg font-semibold tracking-heading">Configuración Inicial</h1>
       <p class="text-xs mt-1 text-muted">Crea el primer usuario administrador</p>
     </div>
 
@@ -111,7 +111,7 @@ const Auth = {
       <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: var(--accent-light);">
         <i class="bi bi-person-plus-fill text-2xl text-accent"></i>
       </div>
-      <h2 class="text-lg font-semibold tracking-heading">Crear cuenta</h2>
+      <h1 class="text-lg font-semibold tracking-heading">Crear cuenta</h1>
       <p class="text-xs mt-1 text-muted">Regístrate como desarrollador</p>
     </div>
 
@@ -160,7 +160,7 @@ function authLogin() {
     async login() {
       this.error = '';
       const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const users = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      const users = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
       const user = users[0] || null;
       if (!user) { this.error = 'Credenciales incorrectas'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
@@ -169,7 +169,7 @@ function authLogin() {
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
       if (user.perfilId) {
-        const perfil = await dbOnline.get('perfiles', user.perfilId);
+        const perfil = await dbLocal.get('perfiles', user.perfilId);
         Alpine.store('auth').setPerfil(perfil);
       }
       UI.toast('Bienvenido, ' + user.nombre, 'success');
@@ -190,7 +190,7 @@ function authSetup() {
       this.error = '';
       if (this.masterKey !== APP_CONFIG.auth.masterKey) { this.error = 'Clave maestra incorrecta'; return; }
       const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
       if (existentes.length > 0) { this.error = 'Ya existe un usuario con ese email'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
       const creado = await dbOnline.add('usuarios', {
@@ -223,7 +223,7 @@ function authRegister() {
     async register() {
       this.error = '';
       const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbOnline.getWhere('usuarios', 'email_hash', emailHash);
+      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
       if (existentes.length > 0) { this.error = 'Ya existe un usuario con ese email'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
       const perfilCreado = await dbOnline.add('perfiles', {
@@ -245,7 +245,7 @@ function authRegister() {
       const session = { userId: userCreado.id, email: this.email, nombre: this.nombre, rol: 'dev', perfilId: perfilId, token: CryptoJS.SHA256(userCreado.id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
       localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
       Alpine.store('auth').setSession(session);
-      const perfilNuevo = await dbOnline.get('perfiles', perfilId);
+      const perfilNuevo = await dbLocal.get('perfiles', perfilId);
       Alpine.store('auth').setPerfil(perfilNuevo);
       UI.toast('Cuenta creada. Bienvenido, ' + this.nombre, 'success');
       window.location.hash = '#/perfiles';

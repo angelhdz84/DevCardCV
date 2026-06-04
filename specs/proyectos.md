@@ -10,8 +10,14 @@ Módulo de gestión de proyectos dentro de DevCardCV. El admin crea proyectos, l
 - **Dev marca tarea:** Dado un proyecto asignado, puedo cambiar estado de una tarea (pendiente → en-progreso → completada) y agregar un comentario. El cambio se persiste localmente y en Supabase.
 - **Admin confirma tarea:** Dado que soy admin, veo las tareas marcadas como completadas por el Dev y puedo confirmarlas o rechazarlas.
 - **Proyecto se cierra:** Cuando todas las tareas están confirmadas, el proyecto pasa automáticamente a estado "Completado". Admin puede forzar cierre manualmente.
-- **Filtros:** Admin puede filtrar proyectos por prioridad, estado y responsable.
-- **Fecha límite alerta:** Si un proyecto tiene fecha límite vencida, muestra badge rojo. Si vence en ≤3 días, badge amarillo.
+- **Filtros:** Admin puede filtrar proyectos por prioridad, estado y responsable (desarrollador específico).
+- **Admin edita proyecto:** Dado que soy admin en el detalle de un proyecto, puedo editar nombre, descripción, prioridad, fecha límite y notas desde el mismo detalle sin recargar.
+- **Admin edita/elimina tarea:** Dado que soy admin, puedo editar inline una tarea (nombre, fecha, asignado, prioridad, horas, descripción) o eliminarla.
+- **Excel exportable:** Dado que soy admin, en la lista de proyectos hay un botón "Excel" que exporta un libro con dos hojas (Proyectos y Tareas).
+- **Fecha límite alerta:** Si un proyecto tiene fecha límite vencida, muestra badge rojo. Si vence en ≤3 días, badge amarillo. Mismo patrón en tareas.
+- **Notificación fechas próximas:** Al iniciar el módulo, muestra toast si hay proyectos/tareas vencidos o por vencer en ≤3 días.
+- **Dashboard widget:** El Dashboard muestra tarjeta con proyectos activos, vencidos, próximos y tareas pendientes del dev logueado.
+- **Prioridad por tarea:** Cada tarea tiene prioridad individual (baja/media/alta) y horas estimadas opcionales.
 
 ## 🧱 Arquitectura y Módulos
 - **Módulo**: `modules/proyectos/` con `module.js`, template inline en JS
@@ -20,10 +26,12 @@ Módulo de gestión de proyectos dentro de DevCardCV. El admin crea proyectos, l
 - **Persistencia**: IndexedDB (Dexie) + Supabase sincronizado vía `dbOnline` (mismo patrón que perfiles/habilidades)
 - **Modelo de datos (4 tablas)**:
   - `proyectos`: id, nombre, descripcion, prioridad (baja/media/alta), estado (abierto/en-progreso/completado), fecha_limite (opcional), notas_admin, creado_por, created_at, updated_at
-  - `tareas`: id, proyecto_id, nombre, descripcion, estado (pendiente/en-progreso/completada/confirmada), comentario_dev, created_at, updated_at
+  - `tareas`: id, proyecto_id, nombre, descripcion, estado (pendiente/en-progreso/completada/confirmada), fecha_limite (obligatoria, ≤ fecha_limite del proyecto), asignado_a (perfil_id del desarrollador asignado), prioridad (baja/media/alta), horas_estimadas (opcional, número), comentario_dev, created_at, updated_at
   - `proyecto_usuarios`: id, proyecto_id, perfil_id
   - `equipos`: id, nombre, miembros (JSON array de perfil_ids)
 - **Tablas Supabase**: mismas 4 tablas, sync automático con `dbOnline`
+- **Asignación de tareas**: cada tarea tiene un desarrollador responsable, seleccionable de los miembros del proyecto. En la creación del proyecto se asigna desde los mismos `formAsignados`. En el detalle, desde `currentMiembros`.
+- **Validación de fechas**: Al crear proyecto, cada tarea valida que `fecha_limite` ≤ `form.fecha_limite`. Al agregar tarea en detalle, validación contra `currentProyecto.fechaLimite`. Si el proyecto no tiene fecha, las tareas tampoco tienen cota superior.
 
 ## 🔐 Seguridad y Datos
 - `notas_admin` se cifra con AES (mismo patrón que email/teléfono) si contiene datos sensibles
@@ -36,8 +44,8 @@ Módulo de gestión de proyectos dentro de DevCardCV. El admin crea proyectos, l
 
 ## 🎨 UI/UX y Animaciones
 - **Lista proyectos (`#/proyectos`)**: Tabla con nombre, prioridad (badge verde/amarillo/rojo), estado (badge), fecha límite, avance % (barra progreso), responsables (avatares). Admin tiene columna acciones (editar/eliminar). Filtros: prioridad, estado.
-- **Detalle proyecto (`#/proyectos/{id}`)**: Encabezado con info + barra de progreso general. Tabla de tareas con: checkbox estado, nombre, responsable, comentario, acción confirmar (admin). Dev puede cambiar estado y escribir comentario inline.
-- **Crear/Editar proyecto**: Modal o formulario en página dedicada con select múltiple de devs y equipos.
+- **Detalle proyecto (`#/proyectos/{id}`)**: Encabezado con info + barra de progreso general. Lista de tareas con: checkbox estado, nombre + badge, responsable (nombre del dev), fecha límite (DD/MM, color rojo si vencida, amarillo si ≤3 días), descripción, comentario inline, botón confirmar (admin). Formulario inline para agregar tarea con nombre, fecha (max = fecha proyecto) y select de miembros.
+- **Crear/Editar proyecto**: Formulario en página dedicada con select múltiple de devs y equipos. Cada tarea tiene inputs para nombre, fecha límite (con max = fecha proyecto), asignado (select filtrado por los devs seleccionados) y descripción.
 - **Animaciones**: `stagger-enter` en filas de tareas, `fadeInUp` en cards, transiciones spring en cambios de estado.
 - **Mobile-first**: Tablas con `overflow-x-auto`, botones `btn-sm`, gestión responsive.
 
@@ -87,4 +95,11 @@ crypto: {
 - [ ] Implementar filtros (prioridad, estado)
 - [ ] Probar offline-first
 - [ ] Exportar proyectos en backup JSON/Excel
+- [ ] Editar proyecto inline (nombre, descripción, prioridad, fecha, notas)
+- [ ] Editar tarea inline (nombre, fecha, asignado, prioridad, horas, descripción)
+- [ ] Eliminar tarea individual
+- [ ] Filtro por responsable en lista
+- [ ] Widget Dashboard (proyectos activos, vencidos, tareas pendientes)
+- [ ] Notificación de fechas próximas al inicio
+- [ ] Prioridad y horas estimadas por tarea
 ```

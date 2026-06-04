@@ -212,7 +212,7 @@ const PROYECTOS = {
       <i class="bi bi-arrow-left"></i> Volver
     </button>
 
-    <div x-show="currentProyecto" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <template x-if="currentProyecto"><div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Info proyecto -->
       <div class="lg:col-span-2">
         <div class="card bg-white">
@@ -412,7 +412,7 @@ function proyectosData(initial) {
       // Refresh desde Supabase si hay conexión
       if (navigator.onLine) {
         try {
-          const supTareas = await dbOnline.getWhere('tareas', 'proyecto_id', id);
+          const supTareas = await dbLocal.getWhere('tareas', 'proyecto_id', id);
           if (supTareas && supTareas.length) {
             this.currentTareas = supTareas;
             for (const t of supTareas) await db.tareas.put(t).catch(() => {});

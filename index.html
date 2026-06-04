@@ -20,7 +20,7 @@
     [x-cloak] { display: none !important; }
     html { overflow: auto !important; }
 
-    /* Design tokens — Slate + Code Green, Linear-inspired */
+    /* Design tokens — ClickUp-inspired: Slate + Emerald accent + Violet secondary */
     :root {
       --canvas: #f8fafc;
       --canvas-subtle: #f1f5f9;
@@ -33,16 +33,17 @@
       --ink-muted: #64748b;
       --ink-faint: #94a3b8;
       --ink-code: #475569;
-      --border: rgba(15,23,42,0.06);
-      --border-hover: rgba(15,23,42,0.10);
-      --border-light: rgba(15,23,42,0.04);
+      --border: #e2e5e9;
+      --border-hover: #c9cdd3;
+      --border-light: #eef0f2;
 
       --accent: #15803d;
       --accent-hover: #166534;
       --accent-light: rgba(22,163,74,0.07);
       --accent-border: rgba(22,163,74,0.15);
-      --accent-secondary: #2563eb;
-      --accent-secondary-light: rgba(37,99,235,0.07);
+      --accent-secondary: #7b68ee;
+      --accent-secondary-light: rgba(123,104,238,0.08);
+      --accent-secondary-border: rgba(123,104,238,0.15);
 
       --status-success: #22c55e;
       --status-warning: #f59e0b;
@@ -50,13 +51,13 @@
       --status-info: #3b82f6;
 
       --shadow-border: 0 0 0 1px var(--border);
-      --shadow-card: 0 0 0 1px var(--border);
-      --shadow-card-hover: 0 0 0 1px var(--border-hover), 0 2px 8px rgba(15,23,42,0.06);
-      --shadow-elevated: 0 0 0 1px var(--border-hover), 0 4px 20px rgba(15,23,42,0.06);
+      --shadow-card: 0 1px 3px 0 rgba(0,0,0,0.08), 0 0 0 1px var(--border);
+      --shadow-card-hover: 0 1px 3px 0 rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06), 0 0 0 1px var(--border-hover);
+      --shadow-elevated: 0 1px 3px 0 rgba(0,0,0,0.08), 0 6px 24px rgba(0,0,0,0.06), 0 0 0 1px var(--border-hover);
       --shadow-fab: 0 4px 14px rgba(21,128,61,0.3);
 
-      --radius-sm: 6px;
-      --radius-md: 8px;
+      --radius-sm: 8px;
+      --radius-md: 10px;
       --radius-lg: 12px;
       --radius-pill: 9999px;
 
@@ -98,13 +99,13 @@
     .bg-accent\/10 { background-color: rgba(34,197,94,0.1) !important; }
     .border-accent, .border-b-accent { border-color: var(--accent) !important; }
 
-    /* Secondary = Blue */
+    /* Secondary = Violet (ClickUp-inspired) */
     .text-secondary { color: var(--accent-secondary) !important; }
-    .text-secondary\/40 { color: rgba(59,130,246,0.4) !important; }
-    .text-secondary\/60 { color: rgba(59,130,246,0.6) !important; }
+    .text-secondary\/40 { color: rgba(123,104,238,0.4) !important; }
+    .text-secondary\/60 { color: rgba(123,104,238,0.6) !important; }
     .bg-secondary { background-color: var(--accent-secondary) !important; }
-    .bg-secondary\/5 { background-color: rgba(59,130,246,0.05) !important; }
-    .bg-secondary\/10 { background-color: rgba(59,130,246,0.1) !important; }
+    .bg-secondary\/5 { background-color: var(--accent-secondary-light) !important; }
+    .bg-secondary\/10 { background-color: rgba(123,104,238,0.1) !important; }
 
     .btn-primary {
       background: var(--accent) !important;
@@ -268,9 +269,9 @@
     .table tr:hover { background: var(--surface-muted); }
     .table th { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); padding-top: 0.75rem; padding-bottom: 0.75rem; }
 
-    /* Sidebar nav activo — accent tint visible, con barra */
+    /* Sidebar nav activo — soft accent background + barra */
     .menu li > a.active {
-      background: rgba(21,128,61,0.12);
+      background: rgba(21,128,61,0.10);
       font-weight: 600;
       color: var(--accent);
       position: relative;
@@ -278,9 +279,12 @@
     .menu li > a.active::before {
       content: '';
       position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-      width: 3px; height: 20px;
+      width: 3px; height: 18px;
       background: var(--accent);
-      border-radius: 0 3px 3px 0;
+      border-radius: 0 2px 2px 0;
+    }
+    .menu li > a:not(.active):hover {
+      background: var(--surface-muted);
     }
 
     /* Modal — elevated surface */
@@ -485,7 +489,7 @@
     .status-dot-info { background: var(--status-info); }
 
     /* Hover card lift */
-    .card-hover { transition: all var(--transition-normal); cursor: pointer; }
+    .card-hover { transition: box-shadow var(--transition-normal), transform var(--transition-normal); cursor: pointer; }
     .card-hover:hover { box-shadow: var(--shadow-card-hover); transform: translateY(-1px); }
 
     /* Magnetic button */
@@ -493,8 +497,17 @@
     .btn-magnetic:hover { transform: scale(1.02); }
     .btn-magnetic:active { transform: scale(0.98); }
 
-    /* Section label — Linear style */
-    .section-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); }
+    /* ── Squeletor: Skeleton screens ── */
+    .sk-el { background: linear-gradient(90deg, var(--surface-muted) 25%, rgba(255,255,255,0.4) 50%, var(--surface-muted) 75%); background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: var(--radius-sm); }
+    .sk-text { height: 0.75rem; margin-bottom: 0.5rem; width: 60%; }
+    .sk-text-sm { height: 0.625rem; width: 40%; margin-bottom: 0.375rem; }
+    .sk-heading { height: 1.25rem; width: 45%; margin-bottom: 0.75rem; }
+    .sk-avatar { width: 2.5rem; height: 2.5rem; border-radius: 9999px; }
+    .sk-badge { height: 1.25rem; width: 3.5rem; border-radius: 9999px; display: inline-block; }
+    .sk-card { height: 6rem; border-radius: var(--radius-md); margin-bottom: 0.75rem; }
+    .sk-row { height: 2.75rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem; }
+    .sk-progress { height: 0.75rem; border-radius: 9999px; width: 70%; }
+    .sk-chart { height: 12rem; border-radius: var(--radius-md); }
 
     /* Monospace for code-like data */
     .font-mono-data { font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace; font-size: 0.75rem; letter-spacing: -0.02em; }
@@ -535,19 +548,50 @@
       </div>
 
       <!-- Page content -->
-      <main id="app-content" class="flex-1 p-4 lg:p-8 pb-20 lg:pb-8" role="main">
-        <div id="app-loading" class="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <div class="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center animate-pulse">
-            <i class="bi bi-code-square text-accent text-2xl"></i>
+      <main id="app-content" class="flex-1 p-4 lg:p-8 pb-20 lg:pb-8" role="main"
+            x-data="{ skType: 'dashboard' }"
+            x-init="$watch('$store.loading.phase', v => {
+              if (v.includes('Conectando')) skType = 'auth';
+              else if (v.includes('Base de datos')) skType = 'auth';
+              else skType = 'dashboard';
+            })">
+        <!-- Squeletor: loading skeleton -->
+        <div id="app-loading" x-show="$store.loading.visible" x-cloak
+             x-transition:leave="opacity-0 duration-300"
+             class="w-full max-w-4xl mx-auto">
+
+          <!-- Fase texto -->
+          <div class="flex items-center gap-3 mb-6 text-sm text-muted">
+            <span class="loading loading-spinner loading-xs text-accent"></span>
+            <span x-text="$store.loading.phase"></span>
           </div>
-          <div class="text-center">
-            <p class="text-sm font-medium">DevCardCV</p>
-            <p class="text-xs text-muted">Cargando...</p>
+
+          <!-- Skeleton tipo Dashboard -->
+          <div x-show="skType === 'dashboard'">
+            <div class="flex justify-between items-start mb-6">
+              <div><div class="sk-el sk-heading"></div><div class="sk-el sk-text-sm"></div></div>
+              <div class="sk-el sk-badge"></div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div class="sk-el sk-card"></div>
+              <div class="sk-el sk-card"></div>
+              <div class="sk-el sk-card"></div>
+              <div class="sk-el sk-card"></div>
+            </div>
+            <div class="sk-el sk-chart mb-6"></div>
+            <div class="sk-el sk-row"></div>
+            <div class="sk-el sk-row"></div>
+            <div class="sk-el sk-row" style="width:80%"></div>
           </div>
-          <div class="flex gap-1.5 mt-2">
-            <span class="w-2 h-2 rounded-full bg-accent/40 animate-bounce" style="animation-delay:0s"></span>
-            <span class="w-2 h-2 rounded-full bg-accent/60 animate-bounce" style="animation-delay:0.15s"></span>
-            <span class="w-2 h-2 rounded-full bg-accent/80 animate-bounce" style="animation-delay:0.3s"></span>
+
+          <!-- Skeleton tipo Auth -->
+          <div x-show="skType === 'auth'" class="flex flex-col items-center justify-center min-h-[50vh] gap-4">
+            <div class="sk-el" style="width:5rem;height:5rem;border-radius:9999px"></div>
+            <div class="sk-el sk-heading" style="width:8rem"></div>
+            <div class="sk-el sk-text" style="width:14rem"></div>
+            <div class="sk-el sk-row" style="width:18rem;height:2.75rem"></div>
+            <div class="sk-el sk-row" style="width:18rem;height:2.75rem"></div>
+            <div class="sk-el sk-badge" style="width:6rem;height:2.25rem"></div>
           </div>
         </div>
       </main>
@@ -611,9 +655,9 @@
           </div>
 
           <!-- Navigation menu -->
-          <ul id="nav-menu" role="navigation" aria-label="Navegación principal" class="menu menu-md gap-0.5 px-2 mt-2 flex-1">
+          <nav id="nav-menu" aria-label="Navegación principal" class="menu menu-md gap-0.5 px-2 mt-2 flex-1">
             <!-- Generado dinámicamente por app.js -- aria-current="page" debe aplicarse al <a> activo -->
-          </ul>
+          </nav>
 
           <!-- Bottom: Logout -->
           <div class="mt-auto px-2 py-3 border-t border-base-200 shrink-0">
@@ -649,6 +693,7 @@
 
   <!-- JS Librerías base -->
   <script src="assets/js/libs/alpine.js"></script>
+  <script>if(typeof Alpine!=='undefined'&&!Alpine.store('loading'))Alpine.store('loading',{phase:'Cargando...',visible:true});</script>
   <script>
     // 🚨 alpine.js no auto-arranca (eliminamos queueMicrotask del bundle).
     // Creamos stores AHORA (NO dentro de alpine:init, porque ese evento aún no ha ocurrido).

@@ -8,8 +8,8 @@ const Habilidades = {
   },
 
   async render(params = {}) {
-    const habilidades = (await dbOnline.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
-    const relaciones = await dbOnline.getAll('perfil_habilidades');
+    const habilidades = (await dbLocal.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
+    const relaciones = await dbLocal.getAll('perfil_habilidades');
 
     // 💡 Contar cuántos devs tienen cada skill
     const skillUses = {};
