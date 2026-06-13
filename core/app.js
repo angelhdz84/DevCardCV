@@ -148,6 +148,11 @@ const appRouter = {
         if (exportBtn) exportBtn.click();
       }
     });
+
+    window.addEventListener('auth-logout', () => {
+      Alpine.store('auth').clearSession();
+      window.location.hash = '#/auth/login';
+    });
   },
 
   // 💡 Auto-crear admin desde project.config.js si no existe en DB

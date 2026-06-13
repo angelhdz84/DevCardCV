@@ -62,7 +62,7 @@ const Dashboard = {
         }).length
       );
     });
-    const heatDevs = perfilesData.map(p => p.nombre);
+    const heatDevs = perfilesData.map(p => ({ id: p.id, nombre: p.nombre }));
 
     return `
 <div x-data="dashboardData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(topSkills).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${adminCount}, ${JSON.stringify(heatDevs).replace(/"/g, '&quot;')}, ${JSON.stringify(heatCats).replace(/"/g, '&quot;')}, ${JSON.stringify(heatRows).replace(/"/g, '&quot;')})"
@@ -131,6 +131,42 @@ const Dashboard = {
             <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length ? (perfiles.reduce((a,p) => a + p.skillCount, 0) / perfiles.length).toFixed(1) : '0'"></p>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Proyectos widget -->
+  <div class="card bg-white mb-6" x-data="{ proyectos: [], tareas: [], proyectoUsuarios: [] }" x-init="async() => { proyectos = await dbLocal.getAll('proyectos'); tareas = await dbLocal.getAll('tareas'); proyectoUsuarios = await dbLocal.getAll('proyecto_usuarios'); }">
+    <div class="card-body p-5">
+      <a href="#/proyectos" class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider mb-4 text-muted hover:text-accent transition-colors">
+        <i class="bi bi-kanban text-accent"></i> Proyectos
+        <i class="bi bi-arrow-right text-[10px] ml-auto"></i>
+      </a>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-3 rounded-lg bg-muted/50">
+          <p class="text-2xl font-bold tracking-tight text-accent" x-text="proyectos.filter(p => p.estado !== 'completado').length"></p>
+          <p class="text-xs text-muted mt-0.5">Activos</p>
+        </div>
+        <div class="p-3 rounded-lg bg-muted/50">
+          <p class="text-2xl font-bold tracking-tight text-error" x-text="proyectos.filter(p => p.fechaLimite && dayjs(p.fechaLimite).isBefore(dayjs(), 'day') && p.estado !== 'completado').length"></p>
+          <p class="text-xs text-muted mt-0.5">Vencidos</p>
+        </div>
+        <div class="p-3 rounded-lg bg-muted/50">
+          <p class="text-2xl font-bold tracking-tight text-warning" x-text="proyectos.filter(p => p.fechaLimite && dayjs(p.fechaLimite).diff(dayjs(), 'day') <= 3 && dayjs(p.fechaLimite).diff(dayjs(), 'day') >= 0 && p.estado !== 'completado').length"></p>
+          <p class="text-xs text-muted mt-0.5">Próximos</p>
+        </div>
+        <template x-if="$store.auth.isAdmin">
+          <div class="p-3 rounded-lg bg-muted/50">
+            <p class="text-2xl font-bold tracking-tight" style="color: var(--ink)" x-text="tareas.filter(t => t.estado === 'pendiente' || t.estado === 'en-progreso').length"></p>
+            <p class="text-xs text-muted mt-0.5">Tareas abiertas</p>
+          </div>
+        </template>
+        <template x-if="!$store.auth.isAdmin">
+          <div class="p-3 rounded-lg bg-muted/50">
+            <p class="text-2xl font-bold tracking-tight" style="color: var(--ink)" x-text="tareas.filter(t => (t.estado === 'pendiente' || t.estado === 'en-progreso') && t.asignado_a == $store.auth.user?.perfilId).length"></p>
+            <p class="text-xs text-muted mt-0.5">Mis tareas</p>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -237,30 +273,8 @@ const Dashboard = {
   </div>
 
   <!-- Gráficos -->
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <div class="flex flex-col gap-6">
-      <!-- Gráfico de skills -->
-      <div class="card bg-white">
-        <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
-            <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
-          </h3>
-          <div id="skills-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de skills más frecuentes"></div>
-        </div>
-      </div>
-
-      <!-- Treemap: Skills por desarrollador -->
-      <div class="card bg-white">
-        <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
-            <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por desarrollador
-          </h3>
-          <div id="skills-per-dev-chart" style="min-height: 280px;" role="img" aria-label="Treemap de skills por desarrollador"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Heatmap: skills por categoría por dev -->
+  <div class="mb-6 space-y-6">
+    <!-- Heatmap: skills por categoría por dev (ancho completo) -->
     <div class="card bg-white">
       <div class="card-body p-5">
         <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
@@ -278,9 +292,9 @@ const Dashboard = {
               </tr>
             </thead>
             <tbody>
-              <template x-for="(dev, di) in heatDevs" :key="dev">
+              <template x-for="(dev, di) in heatDevs" :key="dev.id">
                 <tr>
-                  <td class="text-left px-1.5 py-1 sticky left-0 bg-white z-10 truncate max-w-[100px] font-medium" x-text="dev" :title="dev"></td>
+                  <td class="text-left px-1.5 py-1 sticky left-0 bg-white z-10 truncate max-w-[100px] font-medium" x-text="dev.nombre" :title="dev.nombre"></td>
                   <template x-for="(val, ci) in heatRows[di]" :key="ci">
                     <td class="text-center rounded-sm text-[11px] font-semibold leading-none"
                         :style="'background: ' + heatColor(val)"
@@ -302,6 +316,27 @@ const Dashboard = {
           <span class="w-4 h-3 rounded-xs" style="background: #22c55e"></span>
           <span class="w-4 h-3 rounded-xs" style="background: #15803d"></span>
           <span>5+</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts: dos columnas debajo del heatmap -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="card bg-white">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+            <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
+          </h3>
+          <div id="skills-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de skills más frecuentes"></div>
+        </div>
+      </div>
+
+      <div class="card bg-white">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+            <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por desarrollador
+          </h3>
+          <div id="skills-per-dev-chart" style="min-height: 280px;" role="img" aria-label="Treemap de skills por desarrollador"></div>
         </div>
       </div>
     </div>
