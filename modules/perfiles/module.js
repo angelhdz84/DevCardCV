@@ -556,26 +556,52 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
       try {
         let perfilId;
+        let modoOffline = false;
         if (this.editando) {
           datos.created_at = this.perfiles.find(p => p.id === this.editando)?.created_at || new Date();
-          await dbOnline.update('perfiles', this.editando, datos);
+          try {
+            await dbOnline.update('perfiles', this.editando, datos);
+          } catch (_) {
+            await db.perfiles.put({ ...datos, id: this.editando });
+            modoOffline = true;
+          }
           perfilId = this.editando;
-          UI.toast('Perfil actualizado correctamente', 'success');
         } else {
           datos.created_at = new Date();
-          const creado = await dbOnline.add('perfiles', datos);
-          perfilId = creado.id;
-          UI.toast('Desarrollador creado correctamente', 'success');
+          try {
+            const creado = await dbOnline.add('perfiles', datos);
+            perfilId = creado.id;
+          } catch (_) {
+            perfilId = await db.perfiles.add(datos);
+            modoOffline = true;
+          }
         }
 
-        // 💡 Actualizar habilidades
-        await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', perfilId);
-        for (const skillId of this.form.skills) {
-          await dbOnline.add('perfil_habilidades', { perfil_id: perfilId, habilidad_id: skillId });
+        // 💡 Actualizar habilidades — con fallback a local
+        try {
+          await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', perfilId);
+        } catch (_) {
+          await db.perfil_habilidades.where('perfil_id').equals(perfilId).delete();
+        }
+
+        if (this.form.skills.length) {
+          const relaciones = this.form.skills.map(skillId => ({
+            perfil_id: perfilId,
+            habilidad_id: skillId
+          }));
+          try {
+            await Promise.all(relaciones.map(rel => dbOnline.add('perfil_habilidades', rel)));
+          } catch (_) {
+            await db.perfil_habilidades.bulkAdd(relaciones);
+          }
         }
 
         this.cerrarFormulario();
         window.dispatchEvent(new CustomEvent('db-change'));
+        UI.toast(modoOffline
+          ? (this.editando ? 'Perfil guardado localmente (sin conexión)' : 'Desarrollador guardado localmente (sin conexión)')
+          : (this.editando ? 'Perfil actualizado correctamente' : 'Desarrollador creado correctamente'),
+          modoOffline ? 'warning' : 'success');
         const authStore = Alpine.store('auth');
         if (authStore.isLoggedIn && authStore.user?.perfilId === perfilId) {
           const perfilActualizado = await dbLocal.get('perfiles', perfilId);
