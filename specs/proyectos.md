@@ -82,24 +82,24 @@ crypto: {
 ```
 
 ## 📦 Pre-requisitos y Checklist
-- [ ] Registrar módulo `proyectos` en `project.config.js` (`modulosActivos` + `db.tablas` + versión DB)
-- [ ] Crear estructura `modules/proyectos/module.js`
-- [ ] Crear tablas en Supabase: `proyectos`, `tareas`, `proyecto_usuarios`, `equipos`
-- [ ] Agregar columnas en Supabase
-- [ ] Implementar vista lista `#/proyectos`
-- [ ] Implementar vista detalle `#/proyectos/{id}`
-- [ ] Implementar crear/editar proyecto
-- [ ] Implementar asignación de devs/equipos
-- [ ] Implementar flujo tareas (cambio estado + comentario Dev)
-- [ ] Implementar confirmación admin
-- [ ] Implementar filtros (prioridad, estado)
-- [ ] Probar offline-first
-- [ ] Exportar proyectos en backup JSON/Excel
-- [ ] Editar proyecto inline (nombre, descripción, prioridad, fecha, notas)
-- [ ] Editar tarea inline (nombre, fecha, asignado, prioridad, horas, descripción)
-- [ ] Eliminar tarea individual
-- [ ] Filtro por responsable en lista
-- [ ] Widget Dashboard (proyectos activos, vencidos, tareas pendientes)
-- [ ] Notificación de fechas próximas al inicio
-- [ ] Prioridad y horas estimadas por tarea
+- [x] Registrar módulo `proyectos` en `project.config.js` (`modulosActivos` + `db.tablas` + versión DB)
+- [x] Crear estructura `modules/proyectos/module.js`
+- [ ] Crear tablas en Supabase: `proyectos`, `tareas`, `proyecto_usuarios`, `equipos` (pendiente)
+- [ ] Agregar columnas en Supabase (pendiente)
+- [x] Implementar vista lista `#/proyectos`
+- [x] Implementar vista detalle `#/proyectos/{id}`
+- [x] Implementar crear/editar proyecto
+- [x] Implementar asignación de devs/equipos
+- [x] Implementar flujo tareas (cambio estado + comentario Dev)
+- [x] Implementar confirmación admin
+- [x] Implementar filtros (prioridad, estado)
+- [ ] Probar offline-first (pendiente)
+- [x] Exportar proyectos en backup JSON/Excel
+- [x] Editar proyecto inline (nombre, descripción, prioridad, fecha, notas)
+- [x] Editar tarea inline (nombre, fecha, asignado, prioridad, horas, descripción)
+- [x] Eliminar tarea individual
+- [x] Filtro por responsable en lista
+- [x] Widget Dashboard (proyectos activos, vencidos, tareas pendientes)
+- [x] Notificación de fechas próximas al inicio
+- [x] Prioridad y horas estimadas por tarea
 ```
