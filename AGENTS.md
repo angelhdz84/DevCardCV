@@ -59,9 +59,11 @@ Supabase tables must have `REPLICA IDENTITY FULL` and `RLS FOR ALL TO anon USING
 
 - Custom auth (not Supabase Auth): SHA-256 password hash, session token stored in `localStorage` keyed by `APP_CONFIG.auth.sessionKey`
 - Roles: `admin` / `dev`
-- Default admin: `admin@devcardcv.com` / `admin123` (via `APP_CONFIG.auth.admin`, auto-bootstrapped in `_bootstrapAdmin()`)
-- Master key for setup: `APP_CONFIG.auth.masterKey` = `DevCardCV2024`
+- Default admin: `admin@devcardcv.com` / `ArKangel*GDAIS*` (via `APP_CONFIG.auth.admin`, auto-bootstrapped in `_bootstrapAdmin()`)
+- `_bootstrapAdmin()` also updates password/nombre if config changes (checks `password_hash` diff)
+- No setup screen — admin se crea automáticamente desde `project.config.js`
 - Logout: sidebar button dispatches `new CustomEvent('auth-logout')` → handled in `app.js:init()` → calls `Alpine.store('auth').clearSession()` + redirects to `#/auth/login`
+- Auth page (login/register) is full-screen centered, no sidebar/footer/FAB. Elements hidden via `x-show="$store.auth.isLoggedIn"` in `index.html` (not CSS). `#app-content` padding removed via `:class` binding.
 
 ## Alpine.js Gotchas
 
