@@ -241,47 +241,4 @@ const appRouter = {
     this.authChecked = true;
   },
 
-  // 💡 Crear dev demo si no existe
-  async _bootstrapDemoDev() {
-    try {
-      const email = 'carlos@dev.com';
-      const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
-      if (existentes.length > 0) return;
-
-      const perfil = await dbOnline.add('perfiles', {
-        nombre: 'Carlos Dev',
-        email: cryptoHelpers.encrypt(email),
-        cargo: 'Full Stack Developer',
-        bio: 'Desarrollador full stack con 5+ años de experiencia. Especialista en React, Node.js y PostgreSQL. Apasionado por construir aplicaciones escalables con buenas prácticas de UX y código limpio.',
-        fotoBase64: '',
-        created_at: new Date(),
-        updated_at: new Date()
-      });
-
-      const hash = CryptoJS.SHA256('dev123').toString(CryptoJS.enc.Hex);
-      await dbOnline.add('usuarios', {
-        email: cryptoHelpers.encrypt(email),
-        email_hash: emailHash,
-        nombre: 'Carlos Dev',
-        password_hash: hash,
-        rol: 'dev',
-        perfilId: perfil.id,
-        created_at: new Date(),
-        updated_at: new Date()
-      });
-
-      const allSkills = await dbLocal.getAll('habilidades');
-      const devSkills = ['JavaScript', 'TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Docker', 'Git', 'Python'];
-      for (const name of devSkills) {
-        const skill = allSkills.find(s => s.nombre.toLowerCase() === name.toLowerCase());
-        if (skill) {
-          await dbOnline.add('perfil_habilidades', { perfil_id: perfil.id, habilidad_id: skill.id });
-        }
-      }
-
-      window.dispatchEvent(new CustomEvent('db-change'));
-      console.log('✅ Dev demo creado: carlos@dev.com / dev123');
-    } catch (e) { /* ignorar */ }
-  }
 };

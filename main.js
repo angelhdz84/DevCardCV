@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Bootstrap + refresh en background (no bloquean la UI)
     Promise.all([
       appRouter._bootstrapAdmin(),
-      appRouter._bootstrapDemoDev(),
       seedInitialData(),
       dbOnline.refreshCache()
     ]).then(() => {

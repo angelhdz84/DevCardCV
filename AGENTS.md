@@ -20,7 +20,7 @@ core/db.js → core/db-sqlite.js → core/db-supabase.js → core/crypto.js → 
 
 Module scripts load after core (any order): `auth/`, `dashboard/`, `perfiles/`, `habilidades/`, `cv/`, `proyectos/`
 
-`main.js` entry flow: open IndexedDB → init dbOnline (Supabase) → init auth store → checkSession from local → `appRouter.init()` → background bootstrap (admin + demo dev + seed data + `refreshCache()` via `Promise.all`)
+`main.js` entry flow: open IndexedDB → init dbOnline (Supabase) → init auth store → checkSession from local → `appRouter.init()` → background bootstrap (admin + seed data + `refreshCache()` via `Promise.all`)
 
 ## Module Pattern
 
@@ -59,8 +59,7 @@ Supabase tables must have `REPLICA IDENTITY FULL` and `RLS FOR ALL TO anon USING
 
 - Custom auth (not Supabase Auth): SHA-256 password hash, session token stored in `localStorage` keyed by `APP_CONFIG.auth.sessionKey`
 - Roles: `admin` / `dev`
-- Default admin: `admin@devcardcv.com` / `admin123` (via `APP_CONFIG.auth.admin`)
-- Demo dev: `carlos@dev.com` / `dev123` (bootstrapped via `_bootstrapDemoDev()`)
+- Default admin: `admin@devcardcv.com` / `admin123` (via `APP_CONFIG.auth.admin`, auto-bootstrapped in `_bootstrapAdmin()`)
 - Master key for setup: `APP_CONFIG.auth.masterKey` = `DevCardCV2024`
 - Logout: sidebar button dispatches `new CustomEvent('auth-logout')` → handled in `app.js:init()` → calls `Alpine.store('auth').clearSession()` + redirects to `#/auth/login`
 
