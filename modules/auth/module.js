@@ -4,7 +4,7 @@ const Auth = {
   titulo: 'Iniciar Sesión',
 
   async init() {
-    document.body.classList.add('auth-page');
+    console.log('💡 [auth] Inicializado');
   },
 
   async render(params = {}) {
@@ -96,7 +96,7 @@ const Auth = {
   },
 
   destroy() {
-    document.body.classList.remove('auth-page');
+    console.log('💡 [auth] Destruído');
   }
 };
 

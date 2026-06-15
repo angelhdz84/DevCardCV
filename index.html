@@ -401,13 +401,6 @@
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
-    /* Full-screen auth page (login/register) — sin sidebar, footer, scroll */
-    body.auth-page { overflow: hidden; }
-    body.auth-page #app-content { padding: 0 !important; }
-    body.auth-page .drawer-content > footer { display: none; }
-    body.auth-page .drawer-side { display: none; }
-    body.auth-page .fab { display: none; }
-
     /* 💀 Skeleton loading shimmer */
     @keyframes shimmer {
       0% { background-position: -200% 0; }
@@ -555,7 +548,9 @@
       </div>
 
       <!-- Page content -->
-      <main id="app-content" class="flex-1 p-4 lg:p-8 pb-20 lg:pb-8" role="main"
+      <main id="app-content" class="flex-1"
+            :class="$store.auth.isLoggedIn ? 'p-4 lg:p-8 pb-20 lg:pb-8' : ''"
+            role="main"
             x-data="{ skType: 'dashboard' }"
             x-init="$watch('$store.loading.phase', v => {
               if (v.includes('Conectando')) skType = 'auth';
@@ -604,13 +599,13 @@
       </main>
 
       <!-- Footer -->
-      <footer class="text-center py-4 text-xs shrink-0 bg-white border-t-default text-muted">
+      <footer x-show="$store.auth.isLoggedIn" class="text-center py-4 text-xs shrink-0 bg-white border-t-default text-muted">
         Copyright 2026 GDAIS &mdash; DevCardCV
       </footer>
     </div>
 
       <!-- Sidebar -->
-      <div class="drawer-side z-50">
+      <div x-show="$store.auth.isLoggedIn" class="drawer-side z-50">
         <label for="sidebar-drawer" class="drawer-overlay"></label>
         <aside class="menu sidebar-aside bg-white text-base-content transition-all duration-200 overflow-y-auto flex flex-col border-r-default"
                :class="[
@@ -683,7 +678,7 @@
   </div>
 
   <!-- FAB — Agregar desarrollador rápido -->
-  <button class="fab btn-magnetic" id="fab-add-dev" aria-label="Agregar desarrollador" title="Agregar desarrollador" onclick="window.location.hash='#/perfiles/nuevo/'+Date.now()">
+  <button x-show="$store.auth.isLoggedIn" class="fab btn-magnetic" id="fab-add-dev" aria-label="Agregar desarrollador" title="Agregar desarrollador" onclick="window.location.hash='#/perfiles/nuevo/'+Date.now()">
     <i class="bi bi-person-plus-fill"></i>
   </button>
 
