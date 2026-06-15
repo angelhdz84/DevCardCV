@@ -20,7 +20,7 @@ core/db.js → core/db-sqlite.js → core/db-supabase.js → core/crypto.js → 
 
 Module scripts load after core (any order): `auth/`, `dashboard/`, `perfiles/`, `habilidades/`, `cv/`, `proyectos/`
 
-`main.js` entry flow: open IndexedDB → init dbOnline (Supabase) → init auth store → checkSession from local → `appRouter.init()` → background bootstrap (admin + seed data + `refreshCache()` via `Promise.all`)
+`main.js` entry flow: open IndexedDB → init dbOnline (Supabase) → init auth store → checkSession from local → `_bootstrapAdmin()` (await, NOT background — prevents setup race) → `appRouter.init()` → background seed data + `refreshCache()` via `Promise.all`
 
 ## Module Pattern
 

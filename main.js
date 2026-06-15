@@ -39,13 +39,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 💡 Restaurar sesión desde caché local (sin esperar red)
     await appRouter.checkSession();
 
+    // 💡 Asegurar admin existe ANTES de que el router procese rutas
+    // Evita race condition donde auth module ve 0 usuarios y redirige a setup
+    await appRouter._bootstrapAdmin();
+
     // 💡 Router — mostrar UI inmediatamente con datos cacheados
     setPhase('Iniciando aplicación...');
     appRouter.init();
 
-    // 💡 Bootstrap + refresh en background (no bloquean la UI)
+    // 💡 Seed + refresh en background (no bloquean la UI)
     Promise.all([
-      appRouter._bootstrapAdmin(),
       seedInitialData(),
       dbOnline.refreshCache()
     ]).then(() => {
