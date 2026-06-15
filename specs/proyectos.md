@@ -84,8 +84,8 @@ crypto: {
 ## 📦 Pre-requisitos y Checklist
 - [x] Registrar módulo `proyectos` en `project.config.js` (`modulosActivos` + `db.tablas` + versión DB)
 - [x] Crear estructura `modules/proyectos/module.js`
-- [ ] Crear tablas en Supabase: `proyectos`, `tareas`, `proyecto_usuarios`, `equipos` (pendiente)
-- [ ] Agregar columnas en Supabase (pendiente)
+- [x] Crear tablas en Supabase: `proyectos`, `tareas`, `proyecto_usuarios`, `equipos`
+- [x] Agregar columnas en Supabase + REPLICA IDENTITY FULL + RLS policies
 - [x] Implementar vista lista `#/proyectos`
 - [x] Implementar vista detalle `#/proyectos/{id}`
 - [x] Implementar crear/editar proyecto

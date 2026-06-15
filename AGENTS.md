@@ -74,6 +74,7 @@ Supabase tables must have `REPLICA IDENTITY FULL` and `RLS FOR ALL TO anon USING
 - **No ES6 modules, no imports/exports, no CDN at runtime** — all JS in global scope, all libs in `assets/`
 - **Squeletor CSS classes**: `.sk-el`, `.sk-heading`, `.sk-card`, `.sk-chart`, `.sk-row`, `.sk-text`, `.sk-badge`, `.sk-avatar`, `.sk-progress` — use instead of generic spinners
 - **Squeletor CSS classes**: `.sk-el`, `.sk-heading`, `.sk-card`, `.sk-chart`, `.sk-row`, `.sk-text`, `.sk-badge`, `.sk-avatar`, `.sk-progress` — use instead of generic spinners
+- **CV PDF export**: Alpine `perfil` data already has decrypted `email`, `telefono`, `direccion`, `dni`. Do NOT call `cryptoHelpers.decrypt()` again in `_generarPDF()` — values come pre-decrypted from `render()`. Excel export (`exportarExcelUnico`) uses the same pre-decrypted values.\
 - **`refreshCache()`**: runs 8 tables in parallel via `Promise.all(tables.map(...))`, uses `bulkAdd()`
 - **db-change event**: dispatch `new CustomEvent('db-change')` after data mutations to trigger re-renders
 - **Chart cleanup**: dashboard destroys ApexCharts instances in `destroy()` via `window._dashboardCharts`
