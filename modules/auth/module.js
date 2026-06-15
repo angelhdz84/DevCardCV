@@ -9,13 +9,6 @@ const Auth = {
 
   async render(params = {}) {
     const view = params.params[0] || 'login';
-    const userCount = await dbLocal.count('usuarios');
-
-    if (userCount === 0 && view !== 'setup') {
-      window.location.hash = '#/auth/setup';
-      return '';
-    }
-    if (view === 'setup') return this._renderSetup();
     if (view === 'register') return this._renderRegister();
     return this._renderLogin();
   },
@@ -52,50 +45,6 @@ const Auth = {
           ¿No tienes cuenta?
           <a href="#/auth/register" class="text-accent font-medium hover:underline">Regístrate</a>
         </p>
-      </div>
-    </div>
-  </div>
-</div>
-`;
-  },
-
-  _renderSetup() {
-    return `
-<div x-data="authSetup()" x-init="init()" class="min-h-[70vh] flex items-center justify-center">
-  <div class="w-full max-w-sm stagger-enter" style="animation-delay: 0s;">
-    <div class="text-center mb-8">
-      <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: var(--accent-light);">
-        <i class="bi bi-gear-fill text-2xl text-accent"></i>
-      </div>
-      <h1 class="text-lg font-semibold tracking-heading">Configuración Inicial</h1>
-      <p class="text-xs mt-1 text-muted">Crea el primer usuario administrador</p>
-    </div>
-
-    <div class="card bg-white radius-lg">
-      <div class="card-body p-6">
-        <form @submit.prevent="setup()" class="space-y-4">
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Clave maestra</span>
-            <input type="password" x-model="masterKey" class="input input-bordered w-full radius-sm" placeholder="Ingresa la clave de configuración" required>
-          </label>
-          <hr class="border-default">
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Nombre del admin</span>
-            <input type="text" x-model="nombre" class="input input-bordered w-full radius-sm" placeholder="Ej: Admin" required>
-          </label>
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Email</span>
-            <input type="email" x-model="email" class="input input-bordered w-full radius-sm" placeholder="admin@ejemplo.com" required>
-          </label>
-          <label class="form-control w-full">
-            <span class="label-text font-medium text-xs uppercase tracking-wider mb-1.5 text-muted">Contraseña</span>
-            <input type="password" x-model="password" class="input input-bordered w-full radius-sm" placeholder="Mínimo 6 caracteres" minlength="6" required>
-          </label>
-          <button type="submit" class="btn btn-primary btn-magnetic w-full radius-md" :disabled="!masterKey || !nombre || !email || !password">
-            <i class="bi bi-check-lg"></i> Crear Administrador
-          </button>
-          <p x-show="error" x-text="error" class="text-xs text-error text-center mt-2"></p>
-        </form>
       </div>
     </div>
   </div>
@@ -173,41 +122,6 @@ function authLogin() {
         Alpine.store('auth').setPerfil(perfil);
       }
       UI.toast('Bienvenido, ' + user.nombre, 'success');
-      window.location.hash = '#/dashboard';
-    },
-    init() { window.UI = UI; }
-  };
-}
-
-function authSetup() {
-  return {
-    masterKey: '',
-    nombre: '',
-    email: '',
-    password: '',
-    error: '',
-    async setup() {
-      this.error = '';
-      if (this.masterKey !== APP_CONFIG.auth.masterKey) { this.error = 'Clave maestra incorrecta'; return; }
-      const emailHash = CryptoJS.SHA256(this.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
-      if (existentes.length > 0) { this.error = 'Ya existe un usuario con ese email'; return; }
-      const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
-      const creado = await dbOnline.add('usuarios', {
-        email: cryptoHelpers.encrypt(this.email),
-        email_hash: emailHash,
-        nombre: this.nombre,
-        password_hash: hash,
-        rol: 'admin',
-        perfilId: null,
-        created_at: new Date(),
-        updated_at: new Date()
-      });
-      window.dispatchEvent(new CustomEvent('db-change'));
-      const session = { userId: creado.id, email: this.email, nombre: this.nombre, rol: 'admin', perfilId: null, token: CryptoJS.SHA256(creado.id + '|' + Date.now() + '|' + Math.random()).toString(CryptoJS.enc.Hex) };
-      localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session));
-      Alpine.store('auth').setSession(session);
-      UI.toast('Admin creado correctamente', 'success');
       window.location.hash = '#/dashboard';
     },
     init() { window.UI = UI; }

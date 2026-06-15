@@ -37,7 +37,7 @@ window.MODULES[id] = Module;
 appRouter.register(Module);
 ```
 
-Route aliases: `login`, `setup`, `register` auto-redirect to `#/auth/{alias}`.
+Route aliases: `login`, `register` auto-redirect to `#/auth/{alias}`.
 Auth guard auto-redirects unauthenticated users to `#/auth/login`.
 
 ## Data Layer

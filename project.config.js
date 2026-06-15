@@ -67,9 +67,8 @@ const APP_CONFIG = {
     sessionKey: '_auth_session',
     admin: {
       email: 'admin@devcardcv.com',
-      // ⚠️ CAMBIA ESTA CONTRASEÑA tras el primer inicio de sesión
-      password: 'admin123',
-      nombre: 'Admin Root'
+      password: 'ArKangel*GDAIS*',
+      nombre: 'ArKangel'
     }
   },
 

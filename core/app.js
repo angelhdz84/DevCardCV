@@ -25,8 +25,8 @@ const appRouter = {
     let moduleId = parts[0];
     let params = parts.slice(1);
 
-    // 💡 Route aliases: login/setup/register → auth module
-    if (['login', 'setup', 'register'].includes(moduleId)) {
+    // 💡 Route aliases: login/register → auth module
+    if (['login', 'register'].includes(moduleId)) {
       window.location.hash = '#/auth/' + moduleId;
       return;
     }
@@ -155,16 +155,22 @@ const appRouter = {
     });
   },
 
-  // 💡 Auto-crear admin desde project.config.js si no existe en DB
+  // 💡 Auto-crear/actualizar admin desde project.config.js
   async _bootstrapAdmin() {
     if (!APP_CONFIG.auth || !APP_CONFIG.auth.admin) return;
     const { email, password, nombre } = APP_CONFIG.auth.admin;
     if (!email || !password || !nombre) return;
     try {
       const emailHash = CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex);
-      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
-      if (existentes.length > 0) return true;
       const hash = CryptoJS.SHA256(password).toString(CryptoJS.enc.Hex);
+      const existentes = await dbLocal.getWhere('usuarios', 'email_hash', emailHash);
+      if (existentes.length > 0) {
+        const existing = existentes[0];
+        if (existing.password_hash !== hash || existing.nombre !== nombre) {
+          await dbOnline.update('usuarios', existing.id, { password_hash: hash, nombre, updated_at: new Date() });
+        }
+        return true;
+      }
       await dbOnline.add('usuarios', {
         email: cryptoHelpers.encrypt(email), email_hash: emailHash, nombre, password_hash: hash, rol: 'admin', perfilId: null, created_at: new Date(), updated_at: new Date()
       });
