@@ -4,7 +4,7 @@ const Auth = {
   titulo: 'Iniciar Sesión',
 
   async init() {
-    console.log('💡 [auth] Inicializado');
+    document.body.classList.add('auth-page');
   },
 
   async render(params = {}) {
@@ -15,7 +15,7 @@ const Auth = {
 
   _renderLogin() {
     return `
-<div x-data="authLogin()" x-init="init()" class="min-h-[70vh] flex items-center justify-center">
+<div x-data="authLogin()" x-init="init()" class="h-screen overflow-hidden flex items-center justify-center">
   <div class="w-full max-w-sm stagger-enter" style="animation-delay: 0s;">
     <div class="text-center mb-8">
       <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: var(--accent-light);">
@@ -54,7 +54,7 @@ const Auth = {
 
   _renderRegister() {
     return `
-<div x-data="authRegister()" x-init="init()" class="min-h-[70vh] flex items-center justify-center">
+<div x-data="authRegister()" x-init="init()" class="h-screen overflow-hidden flex items-center justify-center">
   <div class="w-full max-w-sm stagger-enter" style="animation-delay: 0s;">
     <div class="text-center mb-8">
       <div class="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4" style="background: var(--accent-light);">
@@ -96,7 +96,7 @@ const Auth = {
   },
 
   destroy() {
-    console.log('💡 [auth] Destruído');
+    document.body.classList.remove('auth-page');
   }
 };
 

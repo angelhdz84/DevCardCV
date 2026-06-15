@@ -401,6 +401,13 @@
       transition: opacity 0.2s ease, transform 0.2s ease;
     }
 
+    /* Full-screen auth page (login/register) — sin sidebar, footer, scroll */
+    body.auth-page { overflow: hidden; }
+    body.auth-page #app-content { padding: 0 !important; }
+    body.auth-page .drawer-content > footer { display: none; }
+    body.auth-page .drawer-side { display: none; }
+    body.auth-page .fab { display: none; }
+
     /* 💀 Skeleton loading shimmer */
     @keyframes shimmer {
       0% { background-position: -200% 0; }
