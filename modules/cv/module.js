@@ -263,10 +263,10 @@ function cvData(perfiles, perfil, currentId) {
       const m = 22;
       let y = 0;
 
-      const emailDecrypted = p.email ? (cryptoHelpers.decrypt(p.email) || '') : '';
-      const telDecrypted = p.telefono ? (cryptoHelpers.decrypt(p.telefono) || '') : '';
-      const dirDecrypted = p.direccion ? (cryptoHelpers.decrypt(p.direccion) || '') : '';
-      const dniDecrypted = p.dni ? (cryptoHelpers.decrypt(p.dni) || '') : '';
+      const emailDecrypted = p.email || '';
+      const telDecrypted = p.telefono || '';
+      const dirDecrypted = p.direccion || '';
+      const dniDecrypted = p.dni || '';
 
       const checkPage = (delta) => { if (y + (delta || 0) > ph - 18) { pdf.addPage(); y = 15; } };
 
