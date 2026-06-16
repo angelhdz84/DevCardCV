@@ -558,7 +558,7 @@ function proyectosData(initial) {
           prioridad: this.form.prioridad || 'media',
           estado: 'abierto',
           fecha_limite: this.form.fecha_limite || null,
-          notas_admin: this.form.notas_admin ? cryptoHelpers.encrypt(this.form.notas_admin) : '',
+          notas_admin: this.form.notas_admin || '',
           creado_por: this.$store.auth.user?.perfilId || null,
           created_at: new Date(),
           updated_at: new Date()
@@ -777,7 +777,7 @@ function proyectosData(initial) {
         descripcion: this.currentProyecto.descripcion || '',
         prioridad: this.currentProyecto.prioridad || 'media',
         fecha_limite: this.currentProyecto.fechaLimite || '',
-        notas_admin: this.currentProyecto.notas_admin ? cryptoHelpers.decrypt(this.currentProyecto.notas_admin) : ''
+        notas_admin: this.currentProyecto.notas_admin || ''
       };
       this.editingProyecto = true;
     },
@@ -794,7 +794,7 @@ function proyectosData(initial) {
         descripcion: this.editForm.descripcion || '',
         prioridad: this.editForm.prioridad || 'media',
         fecha_limite: this.editForm.fecha_limite || null,
-        notas_admin: this.editForm.notas_admin ? cryptoHelpers.encrypt(this.editForm.notas_admin) : '',
+        notas_admin: this.editForm.notas_admin || '',
         updated_at: new Date()
       };
       try {
