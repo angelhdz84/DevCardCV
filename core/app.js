@@ -172,7 +172,7 @@ const appRouter = {
         return true;
       }
       await dbOnline.add('usuarios', {
-        email: cryptoHelpers.encrypt(email), email_hash: emailHash, nombre, password_hash: hash, rol: 'admin', perfilId: null, created_at: new Date(), updated_at: new Date()
+        email: email, email_hash: emailHash, nombre, password_hash: hash, rol: 'admin', perfilId: null, created_at: new Date(), updated_at: new Date()
       });
     } catch (e) { /* ignorar */ }
   },

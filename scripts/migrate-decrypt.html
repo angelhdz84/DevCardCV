@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migración — Descifrar datos de contacto</title>
+  <script src="../assets/js/libs/crypto-js.js"></script>
+  <script src="../assets/js/libs/supabase.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .card { background: #1e293b; border-radius: 12px; padding: 2rem; max-width: 600px; width: 100%; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+    h1 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    p { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    label { display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.25rem; }
+    input { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #334155; border-radius: 8px; background: #0f172a; color: #e2e8f0; font-size: 0.875rem; margin-bottom: 1rem; }
+    input:focus { outline: none; border-color: #22c55e; }
+    button { width: 100%; padding: 0.625rem; border: none; border-radius: 8px; background: #22c55e; color: #fff; font-weight: 600; font-size: 0.875rem; cursor: pointer; }
+    button:hover { background: #16a34a; }
+    button:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    #log { margin-top: 1.5rem; max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.75rem; line-height: 1.6; }
+    .ok { color: #22c55e; }
+    .err { color: #ef4444; }
+    .info { color: #94a3b8; }
+    .summary { margin-top: 1rem; padding: 1rem; background: #0f172a; border-radius: 8px; }
+    .summary span { display: block; font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔓 Descifrar datos de contacto</h1>
+    <p>Herramienta de migración: descifra email, teléfono, dirección y DNI en Supabase para que se muestren en texto plano.</p>
+
+    <label for="key">Clave de cifrado (localStorage.devcardcv_key)</label>
+    <input type="text" id="key" placeholder="Pega la clave aquí...">
+
+    <button id="btn" onclick="migrar()">Descifrar y actualizar</button>
+
+    <div id="log"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://uwvjqjeijvjxuhrhvqfr.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_iJHaIMk8_2lny37WFLAYqw_HKoNKq7T';
+
+    let supa;
+    document.addEventListener('DOMContentLoaded', () => {
+      supa = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    });
+
+    function log(msg, cls = 'info') {
+      const el = document.getElementById('log');
+      el.innerHTML += `<span class="${cls}">${msg}</span>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function decrypt(cipherText, key) {
+      if (!cipherText) return '';
+      try {
+        const bytes = CryptoJS.AES.decrypt(cipherText, key);
+        const text = bytes.toString(CryptoJS.enc.Utf8);
+        return text || '';
+      } catch { return ''; }
+    }
+
+    async function migrar() {
+      const key = document.getElementById('key').value.trim();
+      if (!key) { log('⚠️ Ingresa la clave de cifrado', 'err'); return; }
+
+      const btn = document.getElementById('btn');
+      btn.disabled = true;
+      btn.textContent = 'Procesando...';
+
+      try {
+        // 1. Perfiles
+        log('📋 Leyendo perfiles...', 'info');
+        const { data: perfiles, error: e1 } = await supa.from('perfiles').select('*');
+        if (e1) throw e1;
+        log(`  ${perfiles.length} perfiles encontrados`, 'info');
+
+        let perfilesOk = 0;
+        for (const p of perfiles) {
+          const email = decrypt(p.email, key);
+          const telefono = decrypt(p.telefono, key);
+          const direccion = decrypt(p.direccion, key);
+          const dni = decrypt(p.dni, key);
+
+          if (!email && !telefono && !direccion && !dni) {
+            log(`  ⏭️ #${p.id} ${p.nombre}: sin datos cifrados`, 'info');
+            continue;
+          }
+
+          const { error } = await supa.from('perfiles').update({
+            email: email || p.email || '',
+            telefono: telefono || p.telefono || '',
+            direccion: direccion || p.direccion || '',
+            dni: dni || p.dni || ''
+          }).eq('id', p.id);
+
+          if (error) {
+            log(`  ❌ #${p.id} ${p.nombre}: ${error.message}`, 'err');
+          } else {
+            perfilesOk++;
+            log(`  ✅ #${p.id} ${p.nombre}: email=${email}`, 'ok');
+          }
+        }
+        log(`\n📊 Perfiles: ${perfilesOk}/${perfiles.length} actualizados`, 'ok');
+
+        // 2. Usuarios
+        log('\n📋 Leyendo usuarios...', 'info');
+        const { data: usuarios, error: e2 } = await supa.from('usuarios').select('*');
+        if (e2) throw e2;
+        log(`  ${usuarios.length} usuarios encontrados`, 'info');
+
+        let usuariosOk = 0;
+        for (const u of usuarios) {
+          const email = decrypt(u.email, key);
+          if (!email) {
+            log(`  ⏭️ #${u.id} ${u.nombre}: sin email cifrado`, 'info');
+            continue;
+          }
+
+          const { error } = await supa.from('usuarios').update({
+            email: email
+          }).eq('id', u.id);
+
+          if (error) {
+            log(`  ❌ #${u.id} ${u.nombre}: ${error.message}`, 'err');
+          } else {
+            usuariosOk++;
+            log(`  ✅ #${u.id} ${u.nombre}: email=${email}`, 'ok');
+          }
+        }
+        log(`\n📊 Usuarios: ${usuariosOk}/${usuarios.length} actualizados`, 'ok');
+
+        log('\n🎉 ¡Migración completada! Ya puedes usar la app normalmente.', 'ok');
+
+      } catch (err) {
+        log(`\n❌ Error: ${err.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Descifrar y actualizar';
+      }
+    }
+  </script>
+</body>
+</html>

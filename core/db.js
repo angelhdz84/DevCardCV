@@ -15,7 +15,7 @@ db.version(9).stores({
   categorias: '++id, nombre, created_at'
 }).upgrade(tx => {
   return tx.perfiles.toCollection().modify(p => {
-    const email = cryptoHelpers.decrypt(p.email) || '';
+    const email = p.email || '';
     p.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
   });
 });
@@ -55,7 +55,7 @@ db.version(5).stores({
   usuarios: '++id, email, email_hash, rol, created_at'
 }).upgrade(tx => {
   return tx.usuarios.toCollection().modify(u => {
-    const email = cryptoHelpers.decrypt(u.email) || '';
+    const email = u.email || '';
     u.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
   });
 });
@@ -106,9 +106,9 @@ async function seedInitialData() {
 
   // Perfiles de ejemplo
   const ejemplos = [
-    { nombre: 'Ana García', email: cryptoHelpers.encrypt('ana.garcia@dev.com'), email_hash: CryptoJS.SHA256('ana.garcia@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Frontend Senior', bio: 'Especialista en React y Vue.js con 6 años de experiencia.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
-    { nombre: 'Carlos López', email: cryptoHelpers.encrypt('carlos.lopez@dev.com'), email_hash: CryptoJS.SHA256('carlos.lopez@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Backend Developer', bio: 'Experto en Node.js, Python y arquitecturas de microservicios.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
-    { nombre: 'María Torres', email: cryptoHelpers.encrypt('maria.torres@dev.com'), email_hash: CryptoJS.SHA256('maria.torres@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Full Stack', bio: 'Desarrolladora versátil con experiencia en React, Node.js y AWS.', fotoBase64: '', created_at: new Date(), updated_at: new Date() }
+    { nombre: 'Ana García', email: 'ana.garcia@dev.com', email_hash: CryptoJS.SHA256('ana.garcia@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Frontend Senior', bio: 'Especialista en React y Vue.js con 6 años de experiencia.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
+    { nombre: 'Carlos López', email: 'carlos.lopez@dev.com', email_hash: CryptoJS.SHA256('carlos.lopez@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Backend Developer', bio: 'Experto en Node.js, Python y arquitecturas de microservicios.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
+    { nombre: 'María Torres', email: 'maria.torres@dev.com', email_hash: CryptoJS.SHA256('maria.torres@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Full Stack', bio: 'Desarrolladora versátil con experiencia en React, Node.js y AWS.', fotoBase64: '', created_at: new Date(), updated_at: new Date() }
   ];
 
   for (const perfil of ejemplos) {

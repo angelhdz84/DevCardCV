@@ -45,7 +45,7 @@ const Dashboard = {
         skillCount: perfilSkills.length,
         rol: usuario ? usuario.rol : 'dev',
         userId: usuario ? usuario.id : null,
-        edad: calcularEdad(cryptoHelpers.decrypt(p.dni || ''))
+        edad: calcularEdad(p.dni || '')
       });
     }
 
@@ -533,14 +533,14 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
           app: APP_CONFIG.app.nombre,
           perfiles: perfiles.map(p => ({
             ...p,
-            email: cryptoHelpers.decrypt(p.email || ''),
-            telefono: p.telefono ? cryptoHelpers.decrypt(p.telefono) : ''
+            email: p.email || '',
+            telefono: p.telefono || ''
           })),
           habilidades,
           relaciones,
           usuarios: usuarios.map(u => ({
             ...u,
-            email: cryptoHelpers.decrypt(u.email || '')
+            email: u.email || ''
           }))
         };
 
@@ -571,10 +571,10 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
           return {
             'Nombre': p.nombre,
             'Cargo': p.cargo,
-            'DNI': cryptoHelpers.decrypt(p.dni || ''),
-            'Email': cryptoHelpers.decrypt(p.email || ''),
-            'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
-            'Dirección': cryptoHelpers.decrypt(p.direccion || ''),
+            'DNI': p.dni || '',
+            'Email': p.email || '',
+            'Teléfono': p.telefono || '',
+            'Dirección': p.direccion || '',
             'Biografía': p.bio || '',
             'Skills': perfilSkills.map(s => s.nombre).join(', '),
             'Categorías': [...new Set(perfilSkills.map(s => s.categoria))].join(', '),
@@ -668,8 +668,8 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
           delete p.id;
           const registro = {
             ...p,
-            email: cryptoHelpers.encrypt(p.email || ''),
-            telefono: p.telefono ? cryptoHelpers.encrypt(p.telefono) : '',
+            email: p.email || '',
+            telefono: p.telefono || '',
             created_at: p.created_at ? new Date(p.created_at) : new Date(),
             updated_at: p.updated_at ? new Date(p.updated_at) : new Date()
           };
@@ -681,7 +681,7 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
         const habilidadesNuevas = await dbLocal.getAll('habilidades');
 
         for (const rel of (data.relaciones || [])) {
-          const perfil = perfilesNuevos.find(p => p.email === cryptoHelpers.encrypt(data.perfiles.find(dp => dp.id === rel.perfil_id)?.email || ''));
+          const perfil = perfilesNuevos.find(p => p.email === (data.perfiles.find(dp => dp.id === rel.perfil_id)?.email || ''));
           const habilidad = habilidadesNuevas.find(h => h.nombre === (data.habilidades.find(dh => dh.id === rel.habilidad_id)?.nombre));
           if (perfil && habilidad) {
             await dbOnline.add('perfil_habilidades', { perfil_id: perfil.id, habilidad_id: habilidad.id });
@@ -693,7 +693,7 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
           delete u.id;
           await dbOnline.add('usuarios', {
             ...u,
-            email: cryptoHelpers.encrypt(u.email || ''),
+            email: u.email || '',
             created_at: u.created_at ? new Date(u.created_at) : new Date(),
             updated_at: u.updated_at ? new Date(u.updated_at) : new Date()
           });

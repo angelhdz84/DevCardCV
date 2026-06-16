@@ -45,7 +45,7 @@ const APP_CONFIG = {
   },
 
   crypto: {
-    camposSensibles: ['email', 'telefono', 'direccion', 'dni'],
+    camposSensibles: ['notas_admin'],
     storageKey: 'devcardcv_key'
   },
 

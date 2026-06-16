@@ -141,12 +141,12 @@ function authRegister() {
       if (existentes.length > 0) { this.error = 'Ya existe un usuario con ese email'; return; }
       const hash = CryptoJS.SHA256(this.password).toString(CryptoJS.enc.Hex);
       const perfilCreado = await dbOnline.add('perfiles', {
-        nombre: this.nombre, email: cryptoHelpers.encrypt(this.email), cargo: '', bio: '',
+        nombre: this.nombre, email: this.email, cargo: '', bio: '',
         fotoBase64: '', created_at: new Date(), updated_at: new Date()
       });
       const perfilId = perfilCreado.id;
       const userCreado = await dbOnline.add('usuarios', {
-        email: cryptoHelpers.encrypt(this.email),
+        email: this.email,
         email_hash: emailHash,
         nombre: this.nombre,
         password_hash: hash,

@@ -32,12 +32,12 @@ const CV = {
         if (!skillsByCat[s.categoria].includes(s.nombre)) skillsByCat[s.categoria].push(s.nombre);
       });
 
-      const dniDecrypted = cryptoHelpers.decrypt(perfil.dni || '');
+      const dniDecrypted = perfil.dni || '';
       perfilData = {
         ...perfil,
-        email: cryptoHelpers.decrypt(perfil.email || '') || '',
-        telefono: cryptoHelpers.decrypt(perfil.telefono || '') || '',
-        direccion: cryptoHelpers.decrypt(perfil.direccion || '') || '',
+        email: perfil.email || '',
+        telefono: perfil.telefono || '',
+        direccion: perfil.direccion || '',
         dni: dniDecrypted,
         edad: calcularEdad(dniDecrypted),
         skillsByCat
@@ -640,10 +640,10 @@ function cvData(perfiles, perfil, currentId) {
           return {
             'Nombre': p.nombre,
             'Cargo': p.cargo,
-            'DNI': cryptoHelpers.decrypt(p.dni || ''),
-            'Email': cryptoHelpers.decrypt(p.email || ''),
-            'Teléfono': cryptoHelpers.decrypt(p.telefono || ''),
-            'Dirección': cryptoHelpers.decrypt(p.direccion || ''),
+            'DNI': p.dni || '',
+            'Email': p.email || '',
+            'Teléfono': p.telefono || '',
+            'Dirección': p.direccion || '',
             'Biografía': p.bio || '',
             'Skills': perfilSkills.map(s => s.nombre).join(', '),
             'Categorías': [...new Set(perfilSkills.map(s => s.categoria))].join(', '),

@@ -51,8 +51,8 @@ Auth guard auto-redirects unauthenticated users to `#/auth/login`.
 
 Dexie schema (v9, 10 tables): `perfiles`, `habilidades`, `perfil_habilidades`, `_sqlite_cache`, `usuarios`, `proyectos`, `tareas`, `proyecto_usuarios`, `equipos`, `categorias`
 
-Sensitive fields (`email`, `telefono`, `direccion`, `dni`) encrypted via `cryptoHelpers.encrypt()` (CryptoJS AES). Key auto-generated, stored in localStorage.
-`perfiles` also has `email_hash` (SHA-256 of decrypted email) for deterministic duplicate detection — unique index in both Dexie and Supabase.
+Sensitive fields (`notas_admin`) encrypted via `cryptoHelpers.encrypt()` (CryptoJS AES). Contact data (`email`, `telefono`, `direccion`, `dni`) stored as plain text.
+`perfiles` also has `email_hash` (SHA-256 of email) for deterministic duplicate detection — unique index in both Dexie and Supabase.
 
 Supabase tables must have `REPLICA IDENTITY FULL` and `RLS FOR ALL TO anon USING (true)` (app uses Supabase anon key, not Supabase Auth).
 
