@@ -1,18 +1,23 @@
 ﻿// core/db.js — Configuración de IndexedDB con Dexie + SQLite cache
 const db = new Dexie(APP_CONFIG.db.nombre);
 
-// v8: categorias persistentes (pueden existir sin skills)
-db.version(8).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
+// v9: email_hash en perfiles para prevención de duplicados
+db.version(9).stores({
+  perfiles: '++id, nombre, email, email_hash, cargo, created_at',
   habilidades: '++id, nombre, categoria, created_at',
   perfil_habilidades: '++id, perfil_id, habilidad_id',
   _sqlite_cache: 'key',
   usuarios: '++id, email, email_hash, rol, created_at',
   proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
-  tareas: '++id, proyecto_id, nombre, estado, fecha_limite, asignado_a, created_at',
+  tareas: '++id, proyecto_id, nombre, estado, created_at',
   proyecto_usuarios: '++id, proyecto_id, perfil_id',
   equipos: '++id, nombre',
   categorias: '++id, nombre, created_at'
+}).upgrade(tx => {
+  return tx.perfiles.toCollection().modify(p => {
+    const email = cryptoHelpers.decrypt(p.email) || '';
+    p.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
+  });
 });
 
 // v7: fecha_limite y asignado_a en tareas
@@ -101,9 +106,9 @@ async function seedInitialData() {
 
   // Perfiles de ejemplo
   const ejemplos = [
-    { nombre: 'Ana García', email: cryptoHelpers.encrypt('ana.garcia@dev.com'), cargo: 'Frontend Senior', bio: 'Especialista en React y Vue.js con 6 años de experiencia.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
-    { nombre: 'Carlos López', email: cryptoHelpers.encrypt('carlos.lopez@dev.com'), cargo: 'Backend Developer', bio: 'Experto en Node.js, Python y arquitecturas de microservicios.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
-    { nombre: 'María Torres', email: cryptoHelpers.encrypt('maria.torres@dev.com'), cargo: 'Full Stack', bio: 'Desarrolladora versátil con experiencia en React, Node.js y AWS.', fotoBase64: '', created_at: new Date(), updated_at: new Date() }
+    { nombre: 'Ana García', email: cryptoHelpers.encrypt('ana.garcia@dev.com'), email_hash: CryptoJS.SHA256('ana.garcia@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Frontend Senior', bio: 'Especialista en React y Vue.js con 6 años de experiencia.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
+    { nombre: 'Carlos López', email: cryptoHelpers.encrypt('carlos.lopez@dev.com'), email_hash: CryptoJS.SHA256('carlos.lopez@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Backend Developer', bio: 'Experto en Node.js, Python y arquitecturas de microservicios.', fotoBase64: '', created_at: new Date(), updated_at: new Date() },
+    { nombre: 'María Torres', email: cryptoHelpers.encrypt('maria.torres@dev.com'), email_hash: CryptoJS.SHA256('maria.torres@dev.com').toString(CryptoJS.enc.Hex), cargo: 'Full Stack', bio: 'Desarrolladora versátil con experiencia en React, Node.js y AWS.', fotoBase64: '', created_at: new Date(), updated_at: new Date() }
   ];
 
   for (const perfil of ejemplos) {

@@ -49,9 +49,10 @@ Auth guard auto-redirects unauthenticated users to `#/auth/login`.
 | `dbOnline` | Supabase CRUD + cache | Falls back to Dexie when offline. Writes throw if offline. |
 | `dbSQLite` | sql.js in-memory + IndexedDB persistence | For SQL reports, backup/restore |
 
-Dexie schema (v8, 10 tables): `perfiles`, `habilidades`, `perfil_habilidades`, `_sqlite_cache`, `usuarios`, `proyectos`, `tareas`, `proyecto_usuarios`, `equipos`, `categorias`
+Dexie schema (v9, 10 tables): `perfiles`, `habilidades`, `perfil_habilidades`, `_sqlite_cache`, `usuarios`, `proyectos`, `tareas`, `proyecto_usuarios`, `equipos`, `categorias`
 
 Sensitive fields (`email`, `telefono`, `direccion`, `dni`) encrypted via `cryptoHelpers.encrypt()` (CryptoJS AES). Key auto-generated, stored in localStorage.
+`perfiles` also has `email_hash` (SHA-256 of decrypted email) for deterministic duplicate detection — unique index in both Dexie and Supabase.
 
 Supabase tables must have `REPLICA IDENTITY FULL` and `RLS FOR ALL TO anon USING (true)` (app uses Supabase anon key, not Supabase Auth).
 

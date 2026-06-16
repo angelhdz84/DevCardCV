@@ -299,9 +299,10 @@ const Perfiles = {
         </div>
         <div class="flex gap-2">
           <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
-          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo">
+          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo || saving">
             <i class="bi bi-check-lg"></i>
-            <span x-text="editando ? 'Actualizar' : 'Guardar'"></span>
+            <span x-show="!saving" x-text="editando ? 'Actualizar' : 'Guardar'"></span>
+            <span x-show="saving" class="loading loading-spinner loading-xs"></span>
           </button>
         </div>
       </div>
@@ -377,6 +378,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
     showModal: false,
     editando: null,
     saved: false,
+    saving: false,
     dragOver: false,
     _prevFocus: null,
     form: {
@@ -517,44 +519,46 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
     },
 
     async guardar() {
+      if (this.saving) return;
+      this.saving = true;
       this.formErrors = { nombre: '', email: '', cargo: '' };
-      if (!this.form.nombre) this.formErrors.nombre = 'El nombre es obligatorio';
-      if (!this.form.email) this.formErrors.email = 'El email es obligatorio';
-      if (!this.form.cargo) this.formErrors.cargo = 'El cargo es obligatorio';
-      if (this.formErrors.nombre || this.formErrors.email || this.formErrors.cargo) {
-        UI.toast('Corrige los campos marcados', 'warning');
-        this.$nextTick(() => {
-          const firstError = this.$el.querySelector('[data-error]');
-          if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-        return;
-      }
-
-      // Verificar email duplicado
-      const emailNormalizado = this.form.email.toLowerCase().trim();
-      const duplicado = this.perfiles.some(p =>
-        p.email?.toLowerCase().trim() === emailNormalizado &&
-        (this.editando ? p.id !== this.editando : true)
-      );
-      if (duplicado) {
-        this.formErrors.email = 'Ya existe un perfil con este email';
-        UI.toast('Ya existe un perfil con este email', 'warning');
-        return;
-      }
-
-      const datos = {
-        nombre: this.form.nombre,
-        email: cryptoHelpers.encrypt(this.form.email),
-        telefono: this.form.telefono ? cryptoHelpers.encrypt(this.form.telefono) : '',
-        direccion: this.form.direccion ? cryptoHelpers.encrypt(this.form.direccion) : '',
-        dni: this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : '',
-        cargo: this.form.cargo,
-        bio: this.form.bio,
-        fotoBase64: this.form.fotoBase64,
-        updated_at: new Date()
-      };
-
       try {
+        if (!this.form.nombre) this.formErrors.nombre = 'El nombre es obligatorio';
+        if (!this.form.email) this.formErrors.email = 'El email es obligatorio';
+        if (!this.form.cargo) this.formErrors.cargo = 'El cargo es obligatorio';
+        if (this.formErrors.nombre || this.formErrors.email || this.formErrors.cargo) {
+          UI.toast('Corrige los campos marcados', 'warning');
+          this.$nextTick(() => {
+            const firstError = this.$el.querySelector('[data-error]');
+            if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+          return;
+        }
+
+        // Verificar email duplicado — consulta directa a DB, no array local
+        const emailNormalizado = this.form.email.toLowerCase().trim();
+        const emailHash = CryptoJS.SHA256(emailNormalizado).toString(CryptoJS.enc.Hex);
+        const existentes = await dbLocal.getWhere('perfiles', 'email_hash', emailHash);
+        const duplicado = existentes.some(p => (this.editando ? p.id !== this.editando : true));
+        if (duplicado) {
+          this.formErrors.email = 'Ya existe un perfil con este email';
+          UI.toast('Ya existe un perfil con este email', 'warning');
+          return;
+        }
+
+        const datos = {
+          nombre: this.form.nombre,
+          email: cryptoHelpers.encrypt(this.form.email),
+          email_hash: emailHash,
+          telefono: this.form.telefono ? cryptoHelpers.encrypt(this.form.telefono) : '',
+          direccion: this.form.direccion ? cryptoHelpers.encrypt(this.form.direccion) : '',
+          dni: this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : '',
+          cargo: this.form.cargo,
+          bio: this.form.bio,
+          fotoBase64: this.form.fotoBase64,
+          updated_at: new Date()
+        };
+
         let perfilId;
         let modoOffline = false;
         if (this.editando) {
@@ -610,6 +614,8 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         window.location.hash = '#/perfiles';
       } catch (err) {
         UI.toast('Error al guardar: ' + err.message, 'error');
+      } finally {
+        this.saving = false;
       }
     },
 
@@ -702,9 +708,11 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
 
         // 💡 Insertar o actualizar perfil
         let perfilId;
+        const emailHash = perfil.email ? CryptoJS.SHA256(perfil.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
         const datos = {
           nombre: perfil.nombre,
           email: cryptoHelpers.encrypt(perfil.email || ''),
+          email_hash: emailHash,
           telefono: perfil.telefono ? cryptoHelpers.encrypt(perfil.telefono) : '',
           dni: perfil.dni ? cryptoHelpers.encrypt(perfil.dni) : '',
           cargo: perfil.cargo,
