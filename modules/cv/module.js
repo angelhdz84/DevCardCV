@@ -35,9 +35,9 @@ const CV = {
       const dniDecrypted = cryptoHelpers.decrypt(perfil.dni || '');
       perfilData = {
         ...perfil,
-        email: cryptoHelpers.decrypt(perfil.email || '') || (perfil.email ? '·· Reingresar ··' : ''),
-        telefono: perfil.telefono ? (cryptoHelpers.decrypt(perfil.telefono) || '·· Reingresar ··') : '',
-        direccion: perfil.direccion ? (cryptoHelpers.decrypt(perfil.direccion) || '·· Reingresar ··') : '',
+        email: cryptoHelpers.decrypt(perfil.email || '') || '',
+        telefono: cryptoHelpers.decrypt(perfil.telefono || '') || '',
+        direccion: cryptoHelpers.decrypt(perfil.direccion || '') || '',
         dni: dniDecrypted,
         edad: calcularEdad(dniDecrypted),
         skillsByCat

@@ -20,15 +20,19 @@ const Perfiles = {
         .map(r => habilidades.find(h => h.id == r.habilidad_id))
         .filter(Boolean);
       const dniDecrypted = cryptoHelpers.decrypt(p.dni || '');
+      const emailDecrypted = cryptoHelpers.decrypt(p.email || '');
+      const telDecrypted = cryptoHelpers.decrypt(p.telefono || '');
+      const dirDecrypted = cryptoHelpers.decrypt(p.direccion || '');
       perfilesData.push({
         ...p,
-        email: cryptoHelpers.decrypt(p.email || '') || (p.email ? '·· Reingresar ··' : ''),
-        telefono: cryptoHelpers.decrypt(p.telefono || '') || (p.telefono ? '·· Reingresar ··' : ''),
-        direccion: cryptoHelpers.decrypt(p.direccion || '') || (p.direccion ? '·· Reingresar ··' : ''),
+        email: emailDecrypted || '',
+        telefono: telDecrypted || '',
+        direccion: dirDecrypted || '',
         dni: dniDecrypted,
         edad: calcularEdad(dniDecrypted),
         skills: perfilSkills.map(s => s.id),
-        skillNames: perfilSkills.map(s => s.nombre)
+        skillNames: perfilSkills.map(s => s.nombre),
+        _enc: { email: p.email || '', telefono: p.telefono || '', direccion: p.direccion || '', dni: p.dni || '' }
       });
     }
 
@@ -443,6 +447,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
     abrirFormulario() {
       this.formErrors = { nombre: '', email: '', cargo: '' };
       this.form = { id: null, nombre: '', email: '', telefono: '', direccion: '', dni: '', cargo: '', bio: '', fotoBase64: '', skills: [] };
+      this._enc = {};
       this.editando = null;
       this.showModal = true;
     },
@@ -462,6 +467,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         fotoBase64: dev.fotoBase64 || '',
         skills: [...dev.skills]
       };
+      this._enc = dev._enc || {};
       this.editando = id;
       this.showModal = true;
     },
@@ -546,13 +552,14 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
           return;
         }
 
+        const enc = this._enc || {};
         const datos = {
           nombre: this.form.nombre,
-          email: cryptoHelpers.encrypt(this.form.email),
+          email: this.form.email ? cryptoHelpers.encrypt(this.form.email) : (enc.email || ''),
           email_hash: emailHash,
-          telefono: this.form.telefono ? cryptoHelpers.encrypt(this.form.telefono) : '',
-          direccion: this.form.direccion ? cryptoHelpers.encrypt(this.form.direccion) : '',
-          dni: this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : '',
+          telefono: this.form.telefono ? cryptoHelpers.encrypt(this.form.telefono) : (enc.telefono || ''),
+          direccion: this.form.direccion ? cryptoHelpers.encrypt(this.form.direccion) : (enc.direccion || ''),
+          dni: this.form.dni ? cryptoHelpers.encrypt(this.form.dni) : (enc.dni || ''),
           cargo: this.form.cargo,
           bio: this.form.bio,
           fotoBase64: this.form.fotoBase64,
