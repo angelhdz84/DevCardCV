@@ -20,7 +20,7 @@ core/db.js → core/db-sqlite.js → core/db-supabase.js → core/crypto.js → 
 
 Module scripts load after core (any order): `auth/`, `dashboard/`, `perfiles/`, `habilidades/`, `cv/`, `proyectos/`
 
-`main.js` entry flow: open IndexedDB → init dbOnline (Supabase) → init auth store → checkSession from local → `_bootstrapAdmin()` (await, NOT background — prevents setup race) → `appRouter.init()` → background seed data + `refreshCache()` via `Promise.all`
+`main.js` entry flow: open IndexedDB → dbOnline.init() (background, non-blocking) → init auth store → checkSession from local → `_bootstrapAdmin()` (background) → `appRouter.init()` → LOADING HIDDEN → background seed data + `refreshCache()` via `Promise.all`
 
 ## Module Pattern
 
@@ -48,6 +48,8 @@ Auth guard auto-redirects unauthenticated users to `#/auth/login`.
 | `dbLocal` | Read-only wrapper over Dexie | `getAll()`, `get()`, `getWhere()`, `count()` — **instant, no HTTP** |
 | `dbOnline` | Supabase CRUD + cache | Falls back to Dexie when offline. Writes throw if offline. |
 | `dbSQLite` | sql.js in-memory + IndexedDB persistence | For SQL reports, backup/restore |
+
+**Read pattern**: Module `render()` functions use `dbLocal` (IndexedDB) for **instant** data reads. `refreshCache()` runs in background to sync Supabase → IndexedDB. UI auto-refreshes via `db-change` event. Writes always go through `dbOnline` (Supabase).
 
 Dexie schema (v9, 10 tables): `perfiles`, `habilidades`, `perfil_habilidades`, `_sqlite_cache`, `usuarios`, `proyectos`, `tareas`, `proyecto_usuarios`, `equipos`, `categorias`
 
@@ -77,10 +79,18 @@ Supabase tables must have `REPLICA IDENTITY FULL` and `RLS FOR ALL TO anon USING
 - **No ES6 modules, no imports/exports, no CDN at runtime** — all JS in global scope, all libs in `assets/`
 - **Squeletor CSS classes**: `.sk-el`, `.sk-heading`, `.sk-card`, `.sk-chart`, `.sk-row`, `.sk-text`, `.sk-badge`, `.sk-avatar`, `.sk-progress` — use instead of generic spinners
 - **Squeletor CSS classes**: `.sk-el`, `.sk-heading`, `.sk-card`, `.sk-chart`, `.sk-row`, `.sk-text`, `.sk-badge`, `.sk-avatar`, `.sk-progress` — use instead of generic spinners
-- **CV PDF export**: Alpine `perfil` data already has decrypted `email`, `telefono`, `direccion`, `dni`. Do NOT call `cryptoHelpers.decrypt()` again in `_generarPDF()` — values come pre-decrypted from `render()`. Excel export (`exportarExcelUnico`) uses the same pre-decrypted values.\
+- **CV PDF export**: Alpine `perfil` data already has decrypted `email`, `telefono`, `direccion`, `dni`. Do NOT call `cryptoHelpers.decrypt()` again in `_generarPDF()` — values come pre-decrypted from `render()`. Excel export (`exportarExcelUnico`) uses the same pre-decrypted values.
 - **`refreshCache()`**: runs 8 tables in parallel via `Promise.all(tables.map(...))`, uses `bulkAdd()`
 - **db-change event**: dispatch `new CustomEvent('db-change')` after data mutations to trigger re-renders
 - **Chart cleanup**: dashboard destroys ApexCharts instances in `destroy()` via `window._dashboardCharts`
+
+## Performance (offline-first pattern)
+
+- **IndexedDB-first reads**: Module `render()` functions MUST use `dbLocal` (IndexedDB) for instant data reads — NEVER `dbOnline` in render paths
+- **Non-blocking init**: `dbOnline.init()` and `_bootstrapAdmin()` run in background (fire-and-forget), NOT awaited
+- **Loading hidden early**: `Alpine.store('loading').visible = false` immediately after `appRouter.init()`, NOT after `refreshCache()`
+- **Background sync**: `refreshCache()` runs in background after UI is visible; UI auto-refreshes via `db-change` event
+- **Writes always go through `dbOnline`** (Supabase) — throws if offline
 
 ## Proyectos Module — Enhanced Features
 

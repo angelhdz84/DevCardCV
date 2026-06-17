@@ -80,6 +80,7 @@ App offline-first para que desarrolladores de software creen fichas técnicas (C
 | Perfiles | `perfiles` | `#/perfiles` | CRUD completo de desarrolladores con foto y skills |
 | Habilidades | `habilidades` | `#/habilidades` | CRUD de categorías y habilidades del catálogo |
 | CV | `cv` | `#/cv` | Vista previa del CV + exportar PDF + enviar por email |
+| Proyectos | `proyectos` | `#/proyectos` | Gestión de proyectos y tareas con Kanban, filtros, Excel export |
 
 ### Estructura de archivos
 ```
@@ -92,19 +93,28 @@ docs/            validacion-devcardcv.md
 scripts/         descargar-libs.bat
 ```
 
-### Modelo de datos (Dexie)
+### Modelo de datos (Dexie v9)
 ```javascript
-perfiles:           '++id, nombre, email, cargo, bio, fotoBase64, created_at, updated_at'
+perfiles:           '++id, nombre, email, email_hash, cargo, created_at'
 habilidades:        '++id, nombre, categoria, created_at'
 perfil_habilidades: '++id, perfil_id, habilidad_id'
+_sqlite_cache:      'key'
+usuarios:           '++id, email, email_hash, rol, created_at'
+proyectos:          '++id, nombre, estado, prioridad, fecha_limite, created_at'
+tareas:             '++id, proyecto_id, nombre, estado, created_at'
+proyecto_usuarios:  '++id, proyecto_id, perfil_id'
+equipos:            '++id, nombre'
+categorias:         '++id, nombre, created_at'
 ```
 
 ## 🔐 Seguridad y Datos
-- **Campos cifrados** (CryptoJS AES): `email`, `telefono`
+- **Campos cifrados** (CryptoJS AES): solo `notas_admin` en proyectos
+- **Datos de contacto** (`email`, `telefono`, `direccion`, `dni`): almacenados en **texto plano** en Supabase
 - **Clave**: generada aleatoriamente, almacenada en localStorage con prefijo `devcardcv_`
 - **Fotos**: almacenadas como base64 en IndexedDB
-- **Datos mínimos**: solo nombre, email, cargo, bio, foto y skills
-- **Privacidad**: 100% local. EmailJS usa conexión externa solo al enviar.
+- **Auth**: custom (no Supabase Auth) — SHA-256 password hash, session token en localStorage
+- **RLS**: Supabase usa `FOR ALL TO anon USING (true)` (app usa anon key, no Supabase Auth)
+- **Privacidad**: datos sincronizados con Supabase. EmailJS usa conexión externa solo al enviar.
 
 ## 🎨 UI/UX y Animaciones
 **Tono visual:** Profesional (1) — Azul #2563eb / Gris pizarra / Fondo claro
@@ -112,6 +122,13 @@ perfil_habilidades: '++id, perfil_id, habilidad_id'
 **Responsive:** Sidebar colapsable en móvil, tabla→tarjetas en <768px
 **Oscuro/Claro:** Toggle persistente en navbar
 **UX:** Empty states, loading skeletons, toast feedback, offline banner, búsqueda en tiempo real
+
+## ⚡ Performance (offline-first)
+- **Carga inicial**: <1 segundo — datos leídos desde IndexedDB (instantáneo)
+- **Init no bloqueante**: `dbOnline.init()` y `_bootstrapAdmin()` corren en background
+- **Loading screen**: barra de progreso + se oculta inmediatamente después del router init
+- **Refresh background**: `refreshCache()` sincroniza Supabase → IndexedDB en background; UI se actualiza via `db-change` event
+- **Module reads**: `render()` funciones usan `dbLocal` (IndexedDB), nunca `dbOnline` (Supabase)
 
 ## 📚 Librerías Adicionales
 ```yaml
@@ -136,9 +153,12 @@ libreriasAdicionales:
 
 ## ⚙️ Configuración (project.config.js)
 ```javascript
-modulosActivos: ['dashboard', 'perfiles', 'habilidades', 'cv']
-tema: { modo: 'light', colores: { primario: '#2563eb', ... }, tono: 'profesional' }
-db: { nombre: 'DevCardCVDB', version: 1, tablas: { perfiles, habilidades, perfil_habilidades } }
+modulosActivos: ['auth', 'dashboard', 'perfiles', 'habilidades', 'cv', 'proyectos']
+tema: { colores: { primario: '#0f172a', secundario: '#334155', acento: '#15803d', ... }, tono: 'profesional' }
+db: { nombre: 'DevCardDB', version: 9, tablas: { perfiles, habilidades, perfil_habilidades, _sqlite_cache, usuarios, proyectos, tareas, proyecto_usuarios, equipos, categorias } }
+crypto: { camposSensibles: [], storageKey: 'devcardcv_key' }
+auth: { admin: { email: 'admin@devcardcv.com', password: '...', nombre: 'ArKangel' } }
+supabase: { url: '...', anonKey: '...' }
 ```
 
 ## 📦 Pre-requisitos y Checklist
