@@ -562,10 +562,16 @@
              x-transition:leave="opacity-0 duration-300"
              class="w-full max-w-4xl mx-auto">
 
-          <!-- Fase texto -->
-          <div class="flex items-center gap-3 mb-6 text-sm text-muted">
-            <span class="loading loading-spinner loading-xs text-accent"></span>
-            <span x-text="$store.loading.phase"></span>
+          <!-- Fase texto + barra de progreso -->
+          <div class="flex flex-col items-center gap-4 mb-8">
+            <div class="flex items-center gap-3 text-sm text-muted">
+              <span class="loading loading-spinner loading-xs text-accent"></span>
+              <span x-text="$store.loading.phase"></span>
+            </div>
+            <div class="w-48 h-1.5 bg-base-200 rounded-full overflow-hidden">
+              <div class="h-full bg-accent rounded-full transition-all duration-500 ease-out"
+                   :style="'width: ' + ($store.loading.progress || 0) + '%'"></div>
+            </div>
           </div>
 
           <!-- Skeleton tipo Dashboard -->

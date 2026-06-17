@@ -10,9 +10,9 @@ const CV = {
   async render(params = {}) {
     // 💡 Obtener ID del perfil de la ruta: #/cv/3
     const perfilId = params.params ? parseInt(params.params[0]) : null;
-    const perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const habilidades = await dbOnline.getAll('habilidades');
-    const relaciones = await dbOnline.getAll('perfil_habilidades');
+    const perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = await dbLocal.getAll('habilidades');
+    const relaciones = await dbLocal.getAll('perfil_habilidades');
 
     // 💡 Seleccionar perfil por ID o el primero
     const perfil = perfilId ? perfiles.find(p => p.id === perfilId) : perfiles[0];

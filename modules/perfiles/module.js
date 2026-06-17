@@ -8,9 +8,9 @@ const Perfiles = {
   },
 
   async render({ params: routeParams } = { params: [] }) {
-    let perfiles = (await dbOnline.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
-    const habilidades = (await dbOnline.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
-    const relaciones = await dbOnline.getAll('perfil_habilidades');
+    let perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+    const habilidades = (await dbLocal.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
+    const relaciones = await dbLocal.getAll('perfil_habilidades');
 
     // 💡 Preparar perfiles con sus skills
     const perfilesData = [];
