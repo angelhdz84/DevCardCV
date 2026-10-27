@@ -17,3 +17,6 @@ Thumbs.db
 *.tmp
 .vscode/
 .idea/
+
+# Capturas/depuracion OpenChamber
+.openchamber/
