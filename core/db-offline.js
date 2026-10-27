@@ -13,6 +13,7 @@
       if (typeof Alpine !== 'undefined' && Alpine.store('supabase')) {
         Alpine.store('supabase').status = 'local';
       }
+      if (window.actualizarBadgeEstado) window.actualizarBadgeEstado();
     },
 
     async init() {
@@ -97,6 +98,7 @@
       if (typeof Alpine !== 'undefined' && Alpine.store('supabase')) {
         Alpine.store('supabase').status = 'local';
       }
+      if (window.actualizarBadgeEstado) window.actualizarBadgeEstado();
       const resumen = [
         'usr: ' + dbSQLite.countAll('usuarios'),
         'perfiles: ' + dbSQLite.countAll('perfiles'),

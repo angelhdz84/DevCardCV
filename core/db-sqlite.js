@@ -3,9 +3,6 @@
 // Persistencia (por orden de prioridad):
 //   1. Archivo .sqlite real vía Electron (window.devcardcvFs, preload de desktop-electron/)
 //   2. IndexedDB propia 'devcardcv_kv' (navegador, Chrome/PWA, Android WebView/Capacitor)
-//   3. Snapshot legacy en Dexie _sqlite_cache (solo lectura, versión anterior de la app)
-const DB_SQLITE_LEGACY_SNAPSHOT_KEY = APP_CONFIG.db.sqliteCacheKey;
-
 const DB_TABLES = {
   perfiles: ['id', 'nombre', 'email', 'telefono', 'direccion', 'dni', 'cargo', 'bio', 'fotoBase64', 'email_hash', 'notas_admin', 'created_at', 'updated_at'],
   habilidades: ['id', 'nombre', 'categoria', 'created_at', 'updated_at'],
@@ -51,28 +48,7 @@ async function kvPut(key, value) {
   });
 }
 
-// ─── Lectura del snapshot legacy en la IndexedDB de Dexie (migración desde versiones previas) ───
-
-function legacyIdbTable(table) {
-  return new Promise((resolve) => {
-    let req;
-    try { req = indexedDB.open(APP_CONFIG.db.nombre); } catch (e) { resolve(null); return; }
-    req.onsuccess = () => {
-      const idb = req.result;
-      try {
-        if (!idb.objectStoreNames.contains(table)) { idb.close(); resolve([]); return; }
-        const tx = idb.transaction(table, 'readonly');
-        const store = tx.objectStore(table);
-        const got = store.getAll();
-        got.onsuccess = () => { idb.close(); resolve(got.result || []); };
-        got.onerror = () => { idb.close(); resolve([]); };
-      } catch (e) { try { idb.close(); } catch (_) {} resolve([]); }
-    };
-    req.onerror = () => resolve([]);
-  });
-}
-
-// Motor SQLite ───────────────────────────────────────────────────────────────
+// ─── Motor SQLite ───
 
 const dbSQLite = {
   SQL: null,
@@ -102,17 +78,53 @@ const dbSQLite = {
     }
     this._ensureSchema(this._db);
 
-    // Migración: si el motor está vacío, intenta importar datos de la versión anterior (IndexedDB de Dexie)
-    if (this.countAll('perfiles') === 0) {
-      const migrated = await this._migrateLegacyDexie();
-      if (migrated > 0) {
-        console.log(`✅ Migración SQLite: ${migrated} filas importadas desde IndexedDB (Dexie)`);
-        await this.persist(true);
-      } else {
-        await this.persist(true);
+    // 💡 Primera ejecución: snapshot nuevo (sin migraciones legacy — datos 100% nuevos)
+    if (bytes == null) await this.persist(true);
+
+    // 💡 Saneamiento de integridad (relaciones perfil↔skill): repara ids mal tipados y borra huérfanas
+    try { this._repararIntegridad(); } catch (e) { console.warn('⚠️ integridad:', e.message); }
+
+    this._attachAutoFlush();
+  },
+
+  // Normaliza un id de relación: número, string numérico o JSON serializado (bug antiguo del seed)
+  _idRelacion(v) {
+    if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+    if (typeof v === 'string') {
+      const s = v.trim();
+      if (/^\d+$/.test(s)) return Number(s);
+      if (s.startsWith('{') || s.startsWith('[')) {
+        try {
+          const o = JSON.parse(s);
+          const id = (o && typeof o === 'object' && !Array.isArray(o)) ? o.id : (Array.isArray(o) ? o[0]?.id : null);
+          return (typeof id === 'number' || /^\d+$/.test(String(id))) ? Number(id) : null;
+        } catch (e) { return null; }
       }
     }
-    this._attachAutoFlush();
+    return null;
+  },
+
+  _repararIntegridad() {
+    const ph = this.selectAll('perfil_habilidades');
+    if (!ph.length) return;
+    const perfilesIds = new Set(this.selectAll('perfiles').map(p => Number(p.id)));
+    const habIds = new Set(this.selectAll('habilidades').map(h => Number(h.id)));
+    let reparadas = 0, borradas = 0;
+    for (const r of ph) {
+      const pid = this._idRelacion(r.perfil_id);
+      const hid = this._idRelacion(r.habilidad_id);
+      if (pid == null || hid == null || !perfilesIds.has(pid) || !habIds.has(hid)) {
+        this._db.run('DELETE FROM perfil_habilidades WHERE id = ?', [r.id]);
+        borradas++;
+      } else if (pid !== r.perfil_id || hid !== r.habilidad_id) {
+        this._db.run('UPDATE perfil_habilidades SET perfil_id = ?, habilidad_id = ? WHERE id = ?', [pid, hid, r.id]);
+        reparadas++;
+      }
+    }
+    if (reparadas || borradas) {
+      console.log(`🔧 Integridad: ${reparadas} relaciones reparadas, ${borradas} huérfanas eliminadas`);
+      this.persistSoon();
+    }
   },
 
   async _loadSnapshotBytes() {
@@ -129,36 +141,11 @@ const dbSQLite = {
     }
     // 2. IndexedDB propia (navegador, PWA, Android/Capacitor)
     const kv = await kvGet('sqlite_bytes');
-    if (kv && kv.value && kv.value.length > 0) return new Uint8Array(kv.value);
-    // 3. Snapshot legacy dentro de la IndexedDB de Dexie (_sqlite_cache)
-    try {
-      const legacy = await legacyIdbTable('_sqlite_cache');
-      const row = (legacy || []).find(r => r && r.key === DB_SQLITE_LEGACY_SNAPSHOT_KEY);
-      if (row && row.data && row.data.length > 0) {
-        this._storageSource = 'legacy-dexie-snapshot';
-        console.log('🗄️ SQLite: snapshot legacy recuperado (Dexie _sqlite_cache)');
-        return new Uint8Array(row.data);
-      }
-    } catch (e) { console.warn('⚠️ legacy snapshot:', e.message); }
-    return null;
-  },
-
-  async _migrateLegacyDexie() {
-    // Datos de verdad de la versión anterior: tablas dentro de la IndexedDB de Dexie
-    const KEY_MAP = { perfiles: 'email_hash' };
-    let total = 0;
-    for (const table of Object.keys(DB_TABLES)) {
-      const rows = await legacyIdbTable(table);
-      if (rows && rows.length) {
-        const cols = DB_TABLES[table];
-        for (const r of rows) {
-          const clean = {};
-          for (const c of cols) clean[c] = r[c] !== undefined ? r[c] : null;
-          try { this.insert(table, clean, { noPersist: true }); total++; } catch (e) { console.warn(`⚠️ migración ${table}:`, e.message); }
-        }
-      }
+    if (kv && kv.value && kv.value.length > 0) {
+      this._storageSource = 'indexeddb';
+      return new Uint8Array(kv.value);
     }
-    return total;
+    return null; // primera ejecución: datos nuevos
   },
 
   _ensureSchema(idb) {
@@ -208,6 +195,22 @@ const dbSQLite = {
       }
       obj[key] = v;
     }
+    // 💡 Compat camelCase ↔ snake_case: los módulos filtran por proyectoId/perfilId/
+    //    asignadoA/comentarioDev pero la tabla guarda AMBAS columnas (snake_case al
+    //    escribir). Se completan las dos variantes en cada lectura para que los
+    //    filtros `===` de los módulos funcionen con cualquier dato.
+    const dual = (a, b) => {
+      if (obj[a] === undefined && obj[b] === undefined) return;
+      const v = obj[a] ?? obj[b] ?? null;
+      obj[a] = v;
+      obj[b] = v;
+    };
+    dual('proyecto_id', 'proyectoId');
+    dual('perfil_id', 'perfilId');
+    dual('asignado_a', 'asignadoA');
+    dual('comentario_dev', 'comentarioDev');
+    dual('fecha_limite', 'fechaLimite');
+    dual('horas_estimadas', 'horasEstimadas');
     return obj;
   },
 
@@ -218,8 +221,27 @@ const dbSQLite = {
     return Object.keys(obj).filter(k => known.includes(k));
   },
 
+  // 💡 Completa pares de columnas dual (snake ↔ camel) antes de escribir/leer
+  _dualize(input) {
+    const obj = { ...input };
+    const dual = (a, b) => {
+      if (obj[a] === undefined && obj[b] === undefined) return;
+      const v = obj[a] ?? obj[b] ?? null;
+      obj[a] = v;
+      obj[b] = v;
+    };
+    dual('proyecto_id', 'proyectoId');
+    dual('perfil_id', 'perfilId');
+    dual('asignado_a', 'asignadoA');
+    dual('comentario_dev', 'comentarioDev');
+    dual('fecha_limite', 'fechaLimite');
+    dual('horas_estimadas', 'horasEstimadas');
+    return obj;
+  },
+
   insert(table, obj, opts = {}) {
     if (!this._db) throw new Error('Motor SQLite no inicializado');
+    obj = this._dualize(obj);
     const cols = this._cols(obj, table);
     if (!cols.length) throw new Error(`insert(${table}): sin columnas válidas`);
     const sql = `INSERT INTO ${table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`;
@@ -235,6 +257,7 @@ const dbSQLite = {
 
   upsert(table, obj) {
     if (!obj.id) throw new Error(`upsert(${table}): falta id`);
+    obj = this._dualize(obj);
     const cols = this._cols(obj, table);
     const sql = `INSERT OR REPLACE INTO ${table} (${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`;
     this._db.run(sql, cols.map(c => this._ser(obj[c])));

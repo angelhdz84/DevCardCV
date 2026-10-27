@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setPhase('Preparando sesión...', 60);
     appRouter._initAuthStore();
     await appRouter.checkSession();
+    if (window.actualizarBadgeEstado) window.actualizarBadgeEstado();
 
     // 💡 Fase 4: Router — mostrar UI INMEDIATAMENTE
     setPhase('Iniciando aplicación...', 80);

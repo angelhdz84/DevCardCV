@@ -210,3 +210,42 @@ window.calcularEdad = function(dni) {
   if (!nac.isValid()) return null;
   return actual.diff(nac, 'year');
 };
+
+// 💡 Badge de estado inferior-izquierdo — JS vanilla (a prueba de fallos de Alpine en el DOM estático)
+window.actualizarBadgeEstado = function () {
+  const pill = document.getElementById('sync-badge-pill');
+  if (!pill) return;
+  let status = 'disconnected';
+  let online = navigator.onLine;
+  try {
+    if (typeof Alpine !== 'undefined') {
+      const s = Alpine.store('supabase');
+      if (s && s.status) status = s.status;
+      const n = Alpine.store('network');
+      if (n && typeof n.online === 'boolean') online = n.online;
+    }
+  } catch (e) { /* sin Alpine */ }
+  if (window.DB_OFFLINE_SQLITE) status = 'local';
+  let cls, icon, text, title;
+  if (status === 'local') {
+    cls = 'badge-success'; icon = 'bi-database-fill text-accent'; text = 'SQLite'; title = 'SQLite local — 100% offline';
+  } else if (status === 'connected') {
+    cls = 'badge-ghost'; icon = 'bi-cloud-check-fill text-accent'; text = 'Sync'; title = 'Sincronizado con Supabase';
+  } else {
+    cls = online ? 'badge-warning' : 'badge-error';
+    icon = online ? 'bi-cloud-slash-fill' : 'bi-wifi-off';
+    text = online ? 'Local' : 'Offline';
+    title = online ? 'Supabase desconectado' : 'Sin conexión';
+  }
+  pill.className = 'badge gap-1.5 text-xs font-medium shadow-card border-default transition-normal ' + cls;
+  pill.title = title;
+  const ic = pill.querySelector('i');
+  if (ic) ic.className = 'bi ' + icon + ' text-[10px]';
+  const tx = pill.querySelector('span:last-child');
+  if (tx) tx.textContent = text;
+};
+document.addEventListener('DOMContentLoaded', function () {
+  window.actualizarBadgeEstado();
+  window.addEventListener('online', window.actualizarBadgeEstado);
+  window.addEventListener('offline', window.actualizarBadgeEstado);
+});

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -369,9 +369,9 @@
     }
     .skip-link:focus { top: 0.5rem; }
 
-    /* FAB — Floating Action Button, Linear-inspired */
+    /* FAB — Floating Action Button, Linear-inspired (z por debajo de drawer/modal: 45) */
     .fab {
-      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9000;
+      position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 45;
       width: 48px; height: 48px; border-radius: 50%;
       background: var(--accent); color: white;
       display: flex; align-items: center; justify-content: center;
@@ -518,17 +518,52 @@
       .btn-sm { min-height: 44px; }
       .btn-ghost.btn-xs { min-height: 44px; min-width: 44px; }
       .btn-square.btn-xs { min-height: 44px; min-width: 44px; }
+      /* Filas de acciones en tarjetas/tablas: separación cómoda al tocar */
+      .flex.gap-0\.5 > .btn, .flex.gap-1 > .btn { gap: 0.25rem; }
     }
+
+    /* ── Móvil / APK ── */
+    /* WebView: inputs <16px disparan zoom automático al enfocar */
+    @media (max-width: 640px) {
+      .input, .select, .textarea, input[type="text"], input[type="email"],
+      input[type="password"], input[type="number"], input[type="date"],
+      input[type="search"], input[type="tel"] {
+        font-size: 16px !important;
+      }
+    }
+    /* Safe area: botones fijos y footer sobre la gesture bar */
+    .fab { bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); right: calc(1.5rem + env(safe-area-inset-right, 0px)); }
+    .toast-container { top: calc(1rem + env(safe-area-inset-top, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); }
+    footer { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+    /* Barra superior móvil sticky */
+    .mobile-bar { padding-top: env(safe-area-inset-top, 0px); }
+    /* Stats del dashboard: etiquetas largas sin cortar a la mitad en 2 columnas */
+    .stat-label-wrap {
+      font-size: 0.625rem;
+      letter-spacing: 0.02em;
+      overflow-wrap: break-word;
+      word-break: normal;
+      line-height: 1.35;
+    }
+    @media (min-width: 640px) {
+      .stat-label-wrap { font-size: 0.75rem; letter-spacing: 0.05em; }
+    }
+    /* Spinner de refresco girando */
+    @keyframes spin360 { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin360 1s linear infinite; }
+    /* Mientras hay un modal (formulario, confirm…) no mostrar FAB ni badge flotantes */
+    body:has(.modal.modal-open) #fab-add-dev,
+    body:has(.modal.modal-open) #sync-badge-wrap { display: none !important; }
   </style>
 </head>
 <body>
   <!-- Skip link -->
   <a href="#app-content" class="skip-link">Saltar al contenido</a>
 
-  <!-- Offline banner -->
+  <!-- Offline banner (solo modo online: en sqlite-local la app funciona sin red) -->
   <div x-data="{ online: navigator.onLine }"
        x-init="window.addEventListener('online', () => online = true); window.addEventListener('offline', () => online = false)"
-       x-show="!online"
+       x-show="!online && !window.DB_OFFLINE_SQLITE"
        x-transition
        class="fixed top-0 inset-x-0 bg-amber-50 text-amber-800 text-center text-sm py-1.5 z-50 border-b-default">
     <i class="bi bi-wifi-off"></i> Sin conexión — los datos se guardan localmente
@@ -540,11 +575,20 @@
 
     <!-- Main content -->
     <div class="drawer-content flex flex-col min-h-screen">
-      <!-- Mobile hamburger toggle -->
-      <div class="lg:hidden fixed top-3 left-3 z-30" x-show="$store.auth.isLoggedIn">
-<label for="sidebar-drawer" class="btn btn-square btn-ghost btn-sm bg-white shadow-card radius-md border-default" aria-label="Abrir menú" title="Abrir menú">
-  <i class="bi bi-list text-xl"></i>
-</label>
+      <!-- Barra superior móvil (sticky): nunca tapa el contenido al hacer scroll -->
+      <div class="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b-default mobile-bar" x-show="$store.auth.isLoggedIn" x-cloak>
+        <div class="flex items-center gap-3 px-3" style="height: 52px;">
+          <label for="sidebar-drawer" class="btn btn-square btn-ghost btn-sm radius-md" aria-label="Abrir menú" title="Abrir menú">
+            <i class="bi bi-list text-xl"></i>
+          </label>
+          <span class="flex items-center gap-2 text-sm font-semibold tracking-heading">
+            <i class="bi bi-code-square text-accent"></i> DevCardCV
+          </span>
+          <span class="ml-auto badge badge-ghost badge-xs radius-sm" x-show="window.DB_OFFLINE_SQLITE"
+                title="Modo local: los datos se guardan en este dispositivo">
+            <i class="bi bi-database-fill text-[9px] text-accent"></i> local
+          </span>
+        </div>
       </div>
 
       <!-- Page content -->
@@ -675,21 +719,31 @@
       </div>
   </div>
 
-  <!-- FAB — Agregar desarrollador rápido -->
-  <button x-show="$store.auth.isLoggedIn" class="fab btn-magnetic" id="fab-add-dev" aria-label="Agregar desarrollador" title="Agregar desarrollador" onclick="window.location.hash='#/perfiles/nuevo/'+Date.now()">
+  <!-- FAB — Agregar desarrollador rápido (se oculta al bajar para no tapar acciones) -->
+  <button x-show="$store.auth.isLoggedIn && fabVisible"
+          x-data="{ fabVisible: true, lastY: 0 }"
+          @scroll.window="
+            const y = window.scrollY;
+            if (y > this.lastY + 12 && y > 140) this.fabVisible = false;
+            else if (y < this.lastY - 12) this.fabVisible = true;
+            this.lastY = y;
+          "
+          x-transition.opacity
+          class="fab btn-magnetic" id="fab-add-dev" aria-label="Agregar desarrollador" title="Agregar desarrollador" onclick="window.location.hash='#/perfiles/nuevo/'+Date.now()">
     <i class="bi bi-person-plus-fill"></i>
   </button>
 
-  <!-- Sync status flotante -->
-  <div class="fixed bottom-4 left-4 z-40" x-show="$store.auth.isLoggedIn">
-    <span class="badge gap-1.5 text-xs font-medium shadow-card border-default transition-normal"
-          :class="$store.supabase.status === 'local' ? 'badge-success' : $store.supabase.status === 'connected' ? 'badge-ghost' : $store.network.online ? 'badge-warning' : 'badge-error'"
-          :title="$store.supabase.status === 'local' ? 'SQLite local — 100% offline' : $store.supabase.status === 'connected' ? 'Sincronizado con Supabase' : $store.supabase.status === 'disabled' ? 'Supabase no configurado' : $store.network.online ? 'Supabase desconectado' : 'Sin conexión'"
-          style="border-radius: 20px;">
-      <i :class="$store.supabase.status === 'local' ? 'bi-database-fill text-accent' : $store.supabase.status === 'connected' ? 'bi-cloud-check-fill text-accent' : $store.network.online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
-      <span x-text="$store.supabase.status === 'local' ? 'SQLite' : $store.supabase.status === 'connected' ? 'Sync' : $store.network.online ? 'Local' : 'Offline'"></span>
+  <!-- Sync status flotante (texto/estilo actualizados por JS vanilla: actualizarBadgeEstado) -->
+  <div id="sync-badge-wrap" class="fixed bottom-4 left-4 z-40" x-show="$store.auth.isLoggedIn">
+    <span id="sync-badge-pill" class="badge gap-1.5 text-xs font-medium shadow-card border-default transition-normal badge-ghost"
+          title="Estado de los datos">
+      <i class="bi bi-database-fill text-accent text-[10px]"></i>
+      <span>SQLite</span>
     </span>
   </div>
+
+  <!-- Configuración (antes de Alpine: los stores y el badge dependen de APP_CONFIG) -->
+  <script src="project.config.js"></script>
 
   <!-- JS Librerías base -->
   <script src="assets/js/libs/alpine.js"></script>
@@ -698,6 +752,16 @@
     // 🚨 alpine.js no auto-arranca (eliminamos queueMicrotask del bundle).
     // Creamos stores AHORA (NO dentro de alpine:init, porque ese evento aún no ha ocurrido).
     if (typeof Alpine !== 'undefined') {
+      // 💡 Stores creados ANTES de Alpine.start() — si se crean después (main.js),
+      // las expresiones de index.html que dependen de ellos fallan y quedan muertas
+      // (p.ej. el badge de estado "SQLite").
+      if (!Alpine.store('network')) Alpine.store('network', { online: navigator.onLine });
+      if (!Alpine.store('supabase')) Alpine.store('supabase', { status: (window.APP_CONFIG && APP_CONFIG.storage && APP_CONFIG.storage.modo === 'sqlite-local') ? 'local' : 'disconnected' });
+      if (!Alpine.store('loading')) Alpine.store('loading', { phase: 'Cargando...', visible: true, progress: 0 });
+      // 💡 Flag global del modo (¡const global NO está en window! — usar typeof):
+      // debe existir ANTES de Alpine.start() para que x-show/x-text estáticos la vean.
+      window.DB_OFFLINE_SQLITE = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.storage && APP_CONFIG.storage.modo === 'sqlite-local');
+      if (window.DB_OFFLINE_SQLITE && Alpine.store('supabase')) Alpine.store('supabase').status = 'local';
       if (!Alpine.store('auth')) {
         Alpine.store('auth', {
           user: null, sessionToken: null, perfil: null, fotoBase64: null,
@@ -741,9 +805,6 @@
 <script src="assets/js/libs/emailjs.min.js"></script>
 <script src="assets/js/libs/sql-wasm.data.js"></script>
 <script src="assets/js/libs/sql-wasm.js"></script>
-
-  <!-- Configuración -->
-  <script src="project.config.js"></script>
 
   <!-- Core -->
 <script src="core/db-sqlite.js"></script>

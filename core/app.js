@@ -78,6 +78,15 @@ const appRouter = {
         container.style.opacity = '1';
         container.style.transform = 'translateY(0)';
       });
+      // 💡 Limpiar transform/opacity tras la transición: un transform persistente crea un
+      //    stacking context y "atrapa" los z-index de los modales (z-999) dentro del
+      //    contenedor, dejando badges/FAB flotantes pintarse ENCIMA del modal.
+      setTimeout(() => {
+        if (container.style.transform || container.style.opacity) {
+          container.style.transform = '';
+          container.style.opacity = '';
+        }
+      }, 320);
       window._currentModule = moduleId;
       window._currentParams = params;
 

@@ -8,6 +8,8 @@ const Perfiles = {
   },
 
   async render({ params: routeParams } = { params: [] }) {
+    const esNuevo = routeParams.includes('nuevo');
+    const editId = routeParams[0] === 'edit' && routeParams[1] ? parseInt(routeParams[1]) : null;
     let perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
     const habilidades = (await dbLocal.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
     const relaciones = await dbLocal.getAll('perfil_habilidades');
@@ -39,7 +41,7 @@ const Perfiles = {
     });
 
     return `
-<div x-data="perfilesData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${JSON.stringify(habilidades).replace(/"/g, '&quot;')}, ${JSON.stringify(routeParams.includes('nuevo'))})">
+<div x-data="perfilesData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${JSON.stringify(habilidades).replace(/"/g, '&quot;')}, ${esNuevo}, ${editId === null ? 'null' : editId})">
 
   <!-- Header con contador -->
   <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -369,7 +371,7 @@ const Perfiles = {
 };
 
 // 💡 Alpine data factory
-function perfilesData(perfiles, categorias, habilidades, abrirForm) {
+function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
   return {
     perfiles,
     categorias,
@@ -468,6 +470,8 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
     cerrarFormulario() {
       this.showModal = false;
       this.saved = false;
+      // 💡 Si se abrió vía #/perfiles/edit/:id, volver a la lista para no reabrir en un re-render
+      if ((window.location.hash || '').startsWith('#/perfiles/edit/')) window.location.hash = '#/perfiles';
       if (this._prevFocus) {
         this._prevFocus.focus();
         this._prevFocus = null;
@@ -832,6 +836,8 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm) {
         });
       });
       if (abrirForm) this.abrirFormulario();
+      // 💡 Ruta #/perfiles/edit/:id — abrir el modal de edición con el perfil
+      if (editId && this.perfiles.some(p => p.id === editId)) this.editar(editId);
     }
   };
 }

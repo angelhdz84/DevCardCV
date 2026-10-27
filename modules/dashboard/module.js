@@ -76,60 +76,52 @@ const Dashboard = {
     <p class="text-xs text-muted" x-text="perfiles.length + ' dev' + (perfiles.length !== 1 ? 's' : '') + ' registrados'"></p>
   </div>
 
-  <!-- Stats cards — Linear-inspired stat blocks -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <!-- Stats cards — label a todo el ancho arriba (no se recorta en móvil), icono + valor abajo -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
     <div class="card bg-white">
-      <div class="card-body p-5">
+      <div class="card-body p-4 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted stat-label-wrap mb-2">Desarrolladores</p>
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+          <div class="p-2 sm:p-2.5 rounded-lg shrink-0 bg-muted">
             <i class="bi bi-people-fill text-lg" style="color: var(--ink);"></i>
           </div>
-          <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Desarrolladores</p>
-            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length"></p>
-          </div>
+          <p class="text-2xl font-bold tracking-tight" style="color: var(--ink);" x-text="perfiles.length"></p>
         </div>
       </div>
     </div>
 
     <div class="card bg-white">
-      <div class="card-body p-5">
+      <div class="card-body p-4 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted stat-label-wrap mb-2">Habilidades</p>
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+          <div class="p-2 sm:p-2.5 rounded-lg shrink-0 bg-muted">
             <i class="bi bi-tools text-lg" style="color: var(--ink);"></i>
           </div>
-          <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Habilidades</p>
-            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="Object.keys(categorias).reduce((a,b) => a + categorias[b], 0)"></p>
-          </div>
+          <p class="text-2xl font-bold tracking-tight" style="color: var(--ink);" x-text="Object.keys(categorias).reduce((a,b) => a + categorias[b], 0)"></p>
         </div>
       </div>
     </div>
 
     <div class="card bg-white">
-      <div class="card-body p-5">
+      <div class="card-body p-4 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted stat-label-wrap mb-2">Categorías</p>
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+          <div class="p-2 sm:p-2.5 rounded-lg shrink-0 bg-muted">
             <i class="bi bi-tag-fill text-lg" style="color: var(--ink);"></i>
           </div>
-          <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Categorías</p>
-            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="Object.keys(categorias).length"></p>
-          </div>
+          <p class="text-2xl font-bold tracking-tight" style="color: var(--ink);" x-text="Object.keys(categorias).length"></p>
         </div>
       </div>
     </div>
 
     <div class="card bg-white">
-      <div class="card-body p-5">
+      <div class="card-body p-4 sm:p-5">
+        <p class="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted stat-label-wrap mb-2">Promedio Skills</p>
         <div class="flex items-center gap-3">
-          <div class="p-2.5 rounded-lg shrink-0 bg-muted">
+          <div class="p-2 sm:p-2.5 rounded-lg shrink-0 bg-muted">
             <i class="bi bi-graph-up text-lg" style="color: var(--ink);"></i>
           </div>
-          <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wider text-muted">Promedio Skills</p>
-            <p class="text-2xl font-bold tracking-tight mt-0.5" style="color: var(--ink);" x-text="perfiles.length ? (perfiles.reduce((a,p) => a + p.skillCount, 0) / perfiles.length).toFixed(1) : '0'"></p>
-          </div>
+          <p class="text-2xl font-bold tracking-tight" style="color: var(--ink);" x-text="perfiles.length ? (perfiles.reduce((a,p) => a + p.skillCount, 0) / perfiles.length).toFixed(1) : '0'"></p>
         </div>
       </div>
     </div>
@@ -196,13 +188,13 @@ const Dashboard = {
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
     <div class="card-body p-5">
       <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none text-muted" @click="open = !open">
-        <i class="bi bi-database-fill-gear text-accent"></i> Backup Manual (JSON)
+        <i class="bi bi-database-fill-gear text-accent"></i> Backup y Restauración
         <span class="ml-auto flex items-center gap-1">
           <span x-text="open ? 'ocultar' : 'mostrar'"></span>
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mt-1 mb-4 text-faint">Exportación/importación local sin conexión cloud</p>
+      <p class="text-xs mt-1 mb-4 text-faint">JSON, Excel o copia completa .sqlite — todo local, sin nube</p>
       <div x-show="open" x-collapse>
         <div class="flex flex-wrap items-center gap-3">
           <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="exportarJSON()">
@@ -216,6 +208,17 @@ const Dashboard = {
             <input type="file" accept=".json" class="hidden" @change="importarJSON($event)">
           </label>
           <span class="text-xs text-faint">Todos los datos en JSON</span>
+        </div>
+        <div class="divider my-4 text-xs text-faint">Backup completo (SQLite)</div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button class="btn btn-ghost btn-sm gap-1.5 radius-sm" @click="exportarSQLite()">
+            <i class="bi bi-database-down text-accent"></i> Descargar .sqlite
+          </button>
+          <label class="btn btn-ghost btn-sm cursor-pointer gap-1.5 radius-sm">
+            <i class="bi bi-database-up"></i> Restaurar .sqlite
+            <input type="file" accept=".sqlite,.db,application/octet-stream" class="hidden" @change="importarSQLite($event)">
+          </label>
+          <span class="text-xs text-faint">Copia exacta de la base de datos completa</span>
         </div>
       </div>
     </div>
@@ -354,7 +357,7 @@ const Dashboard = {
         <div x-html="emptyState"></div>
       </template>
 
-      <div class="overflow-x-auto" x-show="filtered.length > 0">
+      <div class="overflow-x-auto hidden md:block" x-show="filtered.length > 0">
         <table class="table w-full">
           <thead>
             <tr>
@@ -435,6 +438,49 @@ const Dashboard = {
             </template>
           </tbody>
         </table>
+      </div>
+
+      <!-- Equipo: tarjetas en móvil (la tabla se oculta en pantallas < md) -->
+      <div class="space-y-3 md:hidden" x-show="filtered.length > 0">
+        <template x-for="(dev, index) in filtered" :key="'m-' + dev.id">
+          <div class="border border-default rounded-lg p-4 stagger-enter" :style="'animation-delay: ' + (index * 40) + 'ms'">
+            <div class="flex items-center gap-3">
+              <div class="avatar shrink-0">
+                <div class="rounded-full w-11 h-11 overflow-hidden bg-muted">
+                  <template x-if="dev.fotoBase64">
+                    <img :src="dev.fotoBase64" :alt="dev.nombre" class="w-full h-full object-cover">
+                  </template>
+                  <template x-if="!dev.fotoBase64">
+                    <div class="w-full h-full flex items-center justify-center text-muted">
+                      <span x-text="dev.nombre.charAt(0).toUpperCase()" class="text-sm font-semibold"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-medium text-sm truncate" x-text="dev.nombre"></p>
+                <p class="text-xs text-faint truncate" x-text="dev.cargo"></p>
+              </div>
+              <span class="badge badge-sm shrink-0"
+                    :class="dev.rol === 'admin' ? 'badge-accent' : 'badge-ghost'"
+                    x-text="dev.rol === 'admin' ? 'Admin' : 'Dev'"></span>
+            </div>
+            <div class="flex flex-wrap gap-1 mt-3" x-show="dev.skills.length">
+              <template x-for="skill in dev.skills.slice(0, 5)" :key="skill">
+                <span class="badge badge-sm radius-sm" x-text="skill"></span>
+              </template>
+              <span x-show="dev.skills.length > 5" class="badge badge-sm badge-ghost radius-sm" x-text="'+' + (dev.skills.length - 5)"></span>
+            </div>
+            <div class="flex justify-end gap-2 mt-3 pt-3 border-t border-default">
+              <button class="btn btn-ghost btn-sm gap-1.5 radius-sm" @click="verCV(dev.id)">
+                <i class="bi bi-file-earmark-richtext"></i> Ver CV
+              </button>
+              <button x-show="$store.auth.isAdmin || $store.auth.user?.perfilId === dev.id" class="btn btn-ghost btn-sm gap-1.5 radius-sm" @click="editarPerfil(dev.id)">
+                <i class="bi bi-pencil"></i> Editar
+              </button>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -717,10 +763,17 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
         if (this.topSkills.length > 0 && typeof ApexCharts !== 'undefined') {
           const skillsEl = document.querySelector('#skills-chart');
           if (skillsEl) {
+            const maxCount = Math.max(...this.topSkills.map(s => s[1]), 1);
             const chart1 = new ApexCharts(skillsEl, {
               chart: { type: 'bar', height: 250, toolbar: { show: false }, animations: { enabled: false } },
               series: [{ name: 'Devs', data: this.topSkills.map(s => s[1]) }],
               xaxis: { categories: this.topSkills.map(s => s[0]), labels: { rotate: -45, style: { fontSize: '11px' } } },
+              yaxis: {
+                min: 0,
+                max: maxCount,
+                tickAmount: maxCount,
+                labels: { formatter: (v) => Number.isInteger(v) ? v : '', style: { fontSize: '11px' } }
+              },
               colors: ['#0f172a'],
               plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
               grid: { borderColor: 'rgba(0,0,0,0.04)' },
@@ -732,13 +785,23 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
           }
         }
 
-        // 💡 Treemap — Skills por desarrollador
+        // 💡 Treemap — Skills por desarrollador (solo si hay skills asignadas)
         if (this.perfiles.length > 0 && typeof ApexCharts !== 'undefined') {
           const el = document.querySelector('#skills-per-dev-chart');
           if (el) {
             const data = [...this.perfiles]
               .sort((a, b) => b.skillCount - a.skillCount)
+              .filter(p => (p.skillCount || 0) > 0)
               .map(p => ({ x: p.nombre, y: p.skillCount || 0 }));
+            if (!data.length) {
+              // 💡 Sin datos: mensaje en vez de un chart en blanco
+              el.innerHTML = '<div class="flex flex-col items-center justify-center text-center py-8 gap-2" style="min-height: 220px;">' +
+                '<i class="bi bi-diagram-3 text-3xl text-faint"></i>' +
+                '<p class="text-sm text-muted">Sin skills asignadas</p>' +
+                '<p class="text-xs text-faint">Asigna habilidades a los perfiles desde <a href="#/perfiles" class="text-accent underline">Perfiles</a></p>' +
+                '</div>';
+              return;
+            }
             const palette = ['#15803d','#3b82f6','#F59E0B','#8B5CF6','#22C55E','#06b6d4','#ec4899','#0f172a','#f97316','#6366f1'];
             const chart2 = new ApexCharts(el, {
               chart: { type: 'treemap', height: 280, toolbar: { show: false }, animations: { enabled: false } },
@@ -780,8 +843,10 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
     get storageLabel() {
       const src = (window.dbSQLite && dbSQLite._storageSource) || 'nuevo';
       if (src === 'electron') return 'Archivo .sqlite en tu equipo';
-      if (src === 'legacy-dexie-snapshot') return 'IndexedDB (datos migrados)';
-      if (src === 'indexeddb') return 'Persistencia del navegador';
+      if (src === 'indexeddb') {
+        const nativo = window.Capacitor && typeof Capacitor.isNativePlatform === 'function' && Capacitor.isNativePlatform();
+        return nativo ? 'Almacenamiento del dispositivo' : 'Persistencia del navegador';
+      }
       return 'SQLite local';
     },
 
