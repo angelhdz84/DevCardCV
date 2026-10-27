@@ -1,0 +1,37 @@
+name: "Exe Windows (DevCardCV)"
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["capacitor/**", "docs/**"]
+  workflow_dispatch:
+
+jobs:
+  desktop:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop-electron
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias Electron
+        run: npm install --no-audit --no-fund
+
+      - name: Preparar app/ + empaquetar (instalador NSIS + portable)
+        run: npm run dist
+
+      - name: Subir instalador y portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: DevCardCV-Windows
+          path: |
+            desktop-electron/dist/*.exe
+            desktop-electron/dist/*.msi
+          if-no-files-found: error

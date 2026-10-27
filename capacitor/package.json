@@ -1,0 +1,21 @@
+{
+  "name": "devcardcv-android",
+  "productName": "DevCardCV",
+  "version": "1.1.0",
+  "description": "DevCardCV para Android (Capacitor) — 100% offline con SQLite local",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  },
+  "scripts": {
+    "copiar-web": "node copiar-web.cjs",
+    "add:android": "cap add android",
+    "sync": "cap sync android",
+    "apk": "cd android && gradlew.bat assembleDebug",
+    "abrir": "cap open android"
+  }
+}

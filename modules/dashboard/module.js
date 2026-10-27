@@ -171,19 +171,20 @@ const Dashboard = {
     </div>
   </div>
 
-  <!-- Sincronización Cloud (solo admin) -->
+  <!-- Estado de la base de datos (modo offline: SQLite local; modo online: sincronización) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6">
     <div class="card-body p-5">
       <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted">
-        <i class="bi bi-cloud-arrow-up text-accent"></i> Sincronización Cloud
+        <i class="bi text-accent" :class="window.DB_OFFLINE_SQLITE ? 'bi-database-fill-check' : 'bi-cloud-arrow-up'"></i>
+        <span x-text="window.DB_OFFLINE_SQLITE ? 'Base de datos local' : 'Sincronización Cloud'"></span>
       </h3>
       <div class="flex items-center gap-3 p-3 rounded-lg bg-muted">
-        <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="syncStatus === 'connected' ? 'status-dot-success' : 'status-dot-error'"></div>
+        <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="(window.DB_OFFLINE_SQLITE || syncStatus === 'connected') ? 'status-dot-success' : 'status-dot-error'"></div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium" x-text="'Supabase: ' + onlineLabel"></p>
-          <p class="text-xs mt-0.5 text-muted">WebSocket en tiempo real</p>
+          <p class="text-sm font-medium" x-text="window.DB_OFFLINE_SQLITE ? 'SQLite: ' + storageLabel : ('Supabase: ' + onlineLabel)"></p>
+          <p class="text-xs mt-0.5 text-muted" x-text="window.DB_OFFLINE_SQLITE ? 'Todos los datos se guardan en este equipo — sin conexión' : 'WebSocket en tiempo real'"></p>
         </div>
-        <button class="btn btn-ghost btn-xs gap-1.5 shrink-0 radius-sm" @click="forceRefresh()" :disabled="syncing">
+        <button x-show="!window.DB_OFFLINE_SQLITE" class="btn btn-ghost btn-xs gap-1.5 shrink-0 radius-sm" @click="forceRefresh()" :disabled="syncing">
           <i class="bi" :class="syncing ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-repeat'" role="status"></i>
           <span x-text="syncing ? 'Refrescando...' : 'Refrescar'"></span>
         </button>
@@ -774,7 +775,18 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
       return store ? store.status : 'disconnected';
     },
 
+    get isOfflineMode() { return !!window.DB_OFFLINE_SQLITE; },
+
+    get storageLabel() {
+      const src = (window.dbSQLite && dbSQLite._storageSource) || 'nuevo';
+      if (src === 'electron') return 'Archivo .sqlite en tu equipo';
+      if (src === 'legacy-dexie-snapshot') return 'IndexedDB (datos migrados)';
+      if (src === 'indexeddb') return 'Persistencia del navegador';
+      return 'SQLite local';
+    },
+
     get onlineLabel() {
+      if (this.isOfflineMode) return this.storageLabel;
       return this.syncStatus === 'connected' ? 'Conectado' : 'Sin conexión';
     },
 

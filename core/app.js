@@ -149,13 +149,8 @@ const appRouter = {
       }
     });
 
-    window.addEventListener('auth-logout', () => {
-      Alpine.store('auth').clearSession();
-      window.location.hash = '#/auth/login';
-    });
+    // 💡 Uso personal (monousuario): no hay logout ni pantalla de login
   },
-
-  // 💡 Auto-crear/actualizar admin desde project.config.js
   async _bootstrapAdmin() {
     if (!APP_CONFIG.auth || !APP_CONFIG.auth.admin) return;
     const { email, password, nombre } = APP_CONFIG.auth.admin;
@@ -229,21 +224,34 @@ const appRouter = {
 
   // 💡 Restaurar sesión desde localStorage
   async checkSession() {
+    const admin = (APP_CONFIG.auth && APP_CONFIG.auth.admin) || {};
+    let session = null;
     const raw = localStorage.getItem(APP_CONFIG.auth.sessionKey);
-    if (!raw) { this.authChecked = true; return; }
-    try {
-      const session = JSON.parse(raw);
-      if (!session.userId) { localStorage.removeItem(APP_CONFIG.auth.sessionKey); this.authChecked = true; return; }
-      // 💡 Verificar que el usuario aún existe en la DB
-      const exists = await dbLocal.get('usuarios', session.userId);
-      if (exists) {
-        Alpine.store('auth').setSession(session);
-        const perfil = exists.perfilId ? await dbLocal.get('perfiles', exists.perfilId) : null;
-        Alpine.store('auth').setPerfil(perfil);
-      } else {
-        localStorage.removeItem(APP_CONFIG.auth.sessionKey);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.userId) session = parsed;
+      } catch (e) { session = null; }
+    }
+    if (!session) {
+      // 💡 Uso personal (monousuario): sesión local automática como administrador.
+      // No hay pantalla de login; la app arranca directamente.
+      try {
+        await this._bootstrapAdmin(); // crea/actualiza el admin local en SQLite (idempotente)
+        const emailHash = admin.email ? CryptoJS.SHA256(admin.email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
+        const users = emailHash ? await dbLocal.getWhere('usuarios', 'email_hash', emailHash) : [];
+        if (users && users[0]) {
+          session = { userId: users[0].id, email: users[0].email, nombre: users[0].nombre, rol: 'admin', perfilId: users[0].perfilId || null, token: 'local-admin' };
+          try { localStorage.setItem(APP_CONFIG.auth.sessionKey, JSON.stringify(session)); } catch (e) {}
+        }
+      } catch (e) { /* migración en curso u otro caso → sesión sintética */ }
+      if (!session) {
+        session = { userId: 1, email: admin.email || '', nombre: admin.nombre || 'Usuario', rol: 'admin', perfilId: null, token: 'local-admin' };
       }
-    } catch (e) { /* ignorar */ }
+    }
+    Alpine.store('auth').setSession(session);
+    const perfil = session.perfilId ? await dbLocal.get('perfiles', session.perfilId) : null;
+    Alpine.store('auth').setPerfil(perfil);
     this.authChecked = true;
   },
 

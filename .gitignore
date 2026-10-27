@@ -1,0 +1,19 @@
+# Dependencias
+node_modules/
+
+# Electron — frontend empaquetado y build
+desktop-electron/app/
+desktop-electron/dist/
+desktop-electron/out/
+
+# Capacitor — web copiado y proyecto Android generado
+capacitor/www/
+capacitor/android/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.vscode/
+.idea/

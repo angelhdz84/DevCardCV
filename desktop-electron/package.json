@@ -1,0 +1,40 @@
+{
+  "name": "devcardcv-desktop",
+  "productName": "DevCardCV",
+  "version": "1.1.0",
+  "description": "DevCardCV para escritorio — 100% offline con SQLite local",
+  "main": "main.cjs",
+  "author": "DevCardCV",
+  "license": "MIT",
+  "scripts": {
+    "preparar": "node preparar.cjs",
+    "start": "electron .",
+    "dev": "node preparar.cjs && electron .",
+    "dist": "node preparar.cjs && electron-builder --win nsis portable",
+    "dist:portable": "node preparar.cjs && electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.devcardcv.app",
+    "productName": "DevCardCV",
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "app/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

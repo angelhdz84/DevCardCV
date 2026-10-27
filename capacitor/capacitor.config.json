@@ -1,0 +1,11 @@
+{
+  "appId": "com.devcardcv.app",
+  "appName": "DevCardCV",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

@@ -1,94 +1,145 @@
-﻿// core/db.js — Configuración de IndexedDB con Dexie + SQLite cache
-const db = new Dexie(APP_CONFIG.db.nombre);
+﻿// core/db.js — Selección de motor de datos
+//  - Modo 'sqlite-local' (100% offline): `db` es una fachada compatible con Dexie
+//    respaldada por el motor SQLite real (core/db-sqlite.js).
+//  - Modo online (Supabase): `db` es Dexie (IndexedDB) como siempre.
+const DB_SQLITE_LOCAL = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.storage && APP_CONFIG.storage.modo === 'sqlite-local');
+window.DB_OFFLINE_SQLITE = DB_SQLITE_LOCAL;
 
-// v9: email_hash en perfiles para prevención de duplicados
-db.version(9).stores({
-  perfiles: '++id, nombre, email, email_hash, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id',
-  _sqlite_cache: 'key',
-  usuarios: '++id, email, email_hash, rol, created_at',
-  proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
-  tareas: '++id, proyecto_id, nombre, estado, created_at',
-  proyecto_usuarios: '++id, proyecto_id, perfil_id',
-  equipos: '++id, nombre',
-  categorias: '++id, nombre, created_at'
-}).upgrade(tx => {
-  return tx.perfiles.toCollection().modify(p => {
-    const email = p.email || '';
-    p.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
+// ─── Fachada Dexie-like sobre SQLite (modo offline) ───
+
+function _buildSQLiteFacade() {
+  const tables = {};
+  for (const name of Object.keys(dbSQLite.TABLES)) {
+    tables[name] = {
+      async toArray() { await dbSQLite.init(); return dbSQLite.selectAll(name); },
+      async get(id) { await dbSQLite.init(); return dbSQLite.getById(name, id) || null; },
+      async getWhere(field, value) { await dbSQLite.init(); return dbSQLite.selectWhere(name, field, value); },
+      async count() { await dbSQLite.init(); return dbSQLite.countAll(name); },
+      async add(obj) { await dbSQLite.init(); return dbSQLite.insert(name, obj); },
+      async put(obj) { await dbSQLite.init(); return obj && obj.id ? dbSQLite.upsert(name, obj) : dbSQLite.insert(name, obj); },
+      async bulkAdd(arr) { await dbSQLite.init(); return dbSQLite.bulkInsert(name, arr); },
+      async update(id, changes) { await dbSQLite.init(); return dbSQLite.update(name, id, changes); },
+      async delete(id) { await dbSQLite.init(); dbSQLite.deleteById(name, id); },
+      async clear() { await dbSQLite.init(); dbSQLite.clearTable(name); },
+      where(field) {
+        return {
+          equals(value) {
+            return {
+              async toArray() { await dbSQLite.init(); return dbSQLite.selectWhere(name, field, value); },
+              async delete() { await dbSQLite.init(); return dbSQLite.deleteWhere(name, field, value); }
+            };
+          }
+        };
+      }
+    };
+  }
+
+  return {
+    _isSqliteFacade: true,
+    ...tables,
+    open() { return dbSQLite.init(); },
+    async close() { await dbSQLite.persist(true); dbSQLite.close(); }
+  };
+}
+
+// ─── Dexie clásico (modo online con Supabase) ───
+
+function _buildDexieDB() {
+  const db = new Dexie(APP_CONFIG.db.nombre);
+
+  // v9: email_hash en perfiles para prevención de duplicados
+  db.version(9).stores({
+    perfiles: '++id, nombre, email, email_hash, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id',
+    _sqlite_cache: 'key',
+    usuarios: '++id, email, email_hash, rol, created_at',
+    proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
+    tareas: '++id, proyecto_id, nombre, estado, created_at',
+    proyecto_usuarios: '++id, proyecto_id, perfil_id',
+    equipos: '++id, nombre',
+    categorias: '++id, nombre, created_at'
+  }).upgrade(tx => {
+    return tx.perfiles.toCollection().modify(p => {
+      const email = p.email || '';
+      p.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
+    });
   });
-});
 
-// v7: fecha_limite y asignado_a en tareas
-db.version(7).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id',
-  _sqlite_cache: 'key',
-  usuarios: '++id, email, email_hash, rol, created_at',
-  proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
-  tareas: '++id, proyecto_id, nombre, estado, fecha_limite, asignado_a, created_at',
-  proyecto_usuarios: '++id, proyecto_id, perfil_id',
-  equipos: '++id, nombre'
-});
-
-// v6: proyectos, tareas, proyecto_usuarios, equipos
-db.version(6).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id',
-  _sqlite_cache: 'key',
-  usuarios: '++id, email, email_hash, rol, created_at',
-  proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
-  tareas: '++id, proyecto_id, nombre, estado, created_at',
-  proyecto_usuarios: '++id, proyecto_id, perfil_id',
-  equipos: '++id, nombre'
-});
-
-// v5: email_hash para búsqueda determinista de usuarios
-db.version(5).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id',
-  _sqlite_cache: 'key',
-  usuarios: '++id, email, email_hash, rol, created_at'
-}).upgrade(tx => {
-  return tx.usuarios.toCollection().modify(u => {
-    const email = u.email || '';
-    u.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
+  // v7: fecha_limite y asignado_a en tareas
+  db.version(7).stores({
+    perfiles: '++id, nombre, email, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id',
+    _sqlite_cache: 'key',
+    usuarios: '++id, email, email_hash, rol, created_at',
+    proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
+    tareas: '++id, proyecto_id, nombre, estado, fecha_limite, asignado_a, created_at',
+    proyecto_usuarios: '++id, proyecto_id, perfil_id',
+    equipos: '++id, nombre'
   });
-});
 
-db.version(4).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id',
-  _sqlite_cache: 'key',
-  usuarios: '++id, email, rol, created_at'
-});
+  // v6: proyectos, tareas, proyecto_usuarios, equipos
+  db.version(6).stores({
+    perfiles: '++id, nombre, email, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id',
+    _sqlite_cache: 'key',
+    usuarios: '++id, email, email_hash, rol, created_at',
+    proyectos: '++id, nombre, estado, prioridad, fecha_limite, created_at',
+    tareas: '++id, proyecto_id, nombre, estado, created_at',
+    proyecto_usuarios: '++id, proyecto_id, perfil_id',
+    equipos: '++id, nombre'
+  });
 
-db.version(3).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id',
-  _sqlite_cache: 'key'
-});
+  // v5: email_hash para búsqueda determinista de usuarios
+  db.version(5).stores({
+    perfiles: '++id, nombre, email, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id',
+    _sqlite_cache: 'key',
+    usuarios: '++id, email, email_hash, rol, created_at'
+  }).upgrade(tx => {
+    return tx.usuarios.toCollection().modify(u => {
+      const email = u.email || '';
+      u.email_hash = email ? CryptoJS.SHA256(email.toLowerCase().trim()).toString(CryptoJS.enc.Hex) : '';
+    });
+  });
 
-db.version(2).stores({
-  perfiles: '++id, nombre, email, cargo, created_at',
-  habilidades: '++id, nombre, categoria, created_at',
-  perfil_habilidades: '++id, perfil_id, habilidad_id'
-}).upgrade(tx => {
-  return Promise.all([tx.perfiles.clear(), tx.habilidades.clear(), tx.perfil_habilidades.clear()]);
-});
+  db.version(4).stores({
+    perfiles: '++id, nombre, email, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id',
+    _sqlite_cache: 'key',
+    usuarios: '++id, email, rol, created_at'
+  });
 
-// 💡 Datos de ejemplo al iniciar por primera vez
+  db.version(3).stores({
+    perfiles: '++id, nombre, email, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id',
+    _sqlite_cache: 'key'
+  });
+
+  db.version(2).stores({
+    perfiles: '++id, nombre, email, cargo, created_at',
+    habilidades: '++id, nombre, categoria, created_at',
+    perfil_habilidades: '++id, perfil_id, habilidad_id'
+  }).upgrade(tx => {
+    return Promise.all([tx.perfiles.clear(), tx.habilidades.clear(), tx.perfil_habilidades.clear()]);
+  });
+
+  return db;
+}
+
+const db = DB_SQLITE_LOCAL ? _buildSQLiteFacade() : _buildDexieDB();
+
+// 💡 Datos de ejemplo al iniciar por primera vez (compatible con ambos motores)
 async function seedInitialData() {
   const count = await db.perfiles.count();
   if (count > 0) return; // Ya hay perfiles
 
-  // Skills seed solo si no hay (fallback offline)
+  // Skills seed solo si no hay
   const habCount = await db.habilidades.count();
   if (habCount === 0) {
     const categorias = [
@@ -112,7 +163,8 @@ async function seedInitialData() {
   ];
 
   for (const perfil of ejemplos) {
-    const id = await db.perfiles.add(perfil);
+    const creado = await db.perfiles.add(perfil);
+    const id = (creado && typeof creado === 'object') ? creado.id : creado; // MySQL… fachada SQLite devuelve objeto; Dexie devuelve número
     const allSkills = await db.habilidades.toArray();
     const shuffled = allSkills.sort(() => 0.5 - Math.random());
     const selected = shuffled.slice(0, Math.floor(Math.random() * 4) + 3);

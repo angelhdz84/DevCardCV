@@ -667,17 +667,9 @@
             <!-- Generado dinámicamente por app.js -- aria-current="page" debe aplicarse al <a> activo -->
           </nav>
 
-          <!-- Bottom: Logout -->
+          <!-- Bottom: versión (mono-usuario: sin logout) -->
           <div class="mt-auto px-2 py-3 border-t border-base-200 shrink-0">
-            <button x-show="$store.auth.isLoggedIn"
-                     class="btn btn-ghost btn-sm w-full justify-start gap-2 radius-md"
-                     :class="$store.ui.sidebarCollapsed && !hoverExpand ? 'btn-square mx-auto' : ''"
-                     @click="window.dispatchEvent(new CustomEvent('auth-logout'))"
-                     title="Cerrar sesión">
-              <i class="bi bi-box-arrow-right text-sm"></i>
-              <span x-show="!$store.ui.sidebarCollapsed || hoverExpand" x-cloak class="text-xs">Cerrar sesión</span>
-            </button>
-            <p x-show="!$store.ui.sidebarCollapsed || hoverExpand" class="text-xs text-center mt-2 text-muted" x-cloak>v1.0.0</p>
+            <p x-show="!$store.ui.sidebarCollapsed || hoverExpand" class="text-xs text-center text-muted" x-cloak>v1.0.0</p>
           </div>
         </aside>
       </div>
@@ -691,11 +683,11 @@
   <!-- Sync status flotante -->
   <div class="fixed bottom-4 left-4 z-40" x-show="$store.auth.isLoggedIn">
     <span class="badge gap-1.5 text-xs font-medium shadow-card border-default transition-normal"
-          :class="$store.supabase.status === 'connected' ? 'badge-ghost' : $store.network.online ? 'badge-warning' : 'badge-error'"
-          :title="$store.supabase.status === 'connected' ? 'Sincronizado con Supabase' : $store.supabase.status === 'disabled' ? 'Supabase no configurado' : $store.network.online ? 'Supabase desconectado' : 'Sin conexión'"
+          :class="$store.supabase.status === 'local' ? 'badge-success' : $store.supabase.status === 'connected' ? 'badge-ghost' : $store.network.online ? 'badge-warning' : 'badge-error'"
+          :title="$store.supabase.status === 'local' ? 'SQLite local — 100% offline' : $store.supabase.status === 'connected' ? 'Sincronizado con Supabase' : $store.supabase.status === 'disabled' ? 'Supabase no configurado' : $store.network.online ? 'Supabase desconectado' : 'Sin conexión'"
           style="border-radius: 20px;">
-      <i :class="$store.supabase.status === 'connected' ? 'bi-cloud-check-fill text-accent' : $store.network.online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
-      <span x-text="$store.supabase.status === 'connected' ? 'Sync' : $store.network.online ? 'Local' : 'Offline'"></span>
+      <i :class="$store.supabase.status === 'local' ? 'bi-database-fill text-accent' : $store.supabase.status === 'connected' ? 'bi-cloud-check-fill text-accent' : $store.network.online ? 'bi-cloud-slash-fill' : 'bi-wifi-off'" class="text-[10px]"></i>
+      <span x-text="$store.supabase.status === 'local' ? 'SQLite' : $store.supabase.status === 'connected' ? 'Sync' : $store.network.online ? 'Local' : 'Offline'"></span>
     </span>
   </div>
 
@@ -754,15 +746,15 @@
   <script src="project.config.js"></script>
 
   <!-- Core -->
-<script src="core/db.js"></script>
 <script src="core/db-sqlite.js"></script>
+<script src="core/db.js"></script>
 <script src="core/db-supabase.js"></script>
+<script src="core/db-offline.js"></script>
 <script src="core/crypto.js"></script>
   <script src="core/ui.js"></script>
   <script src="core/app.js"></script>
 
-  <!-- Módulos -->
-  <script src="modules/auth/module.js"></script>
+  <!-- Módulos (mono-usuario: sin módulo auth) -->
   <script src="modules/dashboard/module.js"></script>
   <script src="modules/perfiles/module.js"></script>
   <script src="modules/habilidades/module.js"></script>

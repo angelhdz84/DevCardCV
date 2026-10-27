@@ -9,7 +9,6 @@ const APP_CONFIG = {
   },
 
   modulosActivos: [
-    'auth',
     'dashboard',
     'perfiles',
     'habilidades',
@@ -30,6 +29,18 @@ const APP_CONFIG = {
     },
     tono: 'profesional',
     animaciones: true
+  },
+
+  /*
+   * storage.modo define el motor de datos:
+   *  - 'sqlite-local' → SQLite (sql.js) 100% offline. Persistencia: archivo .sqlite
+   *    (Electron desktop) o IndexedDB (navegador/PWA/Android-Capacitor). Supabase queda
+   *    inactivo (no se conecta ni sincroniza).
+   *  - 'supabase-online' → comportamiento original: Dexie (IndexedDB) + Supabase
+   *    (lecturas instantáneas de caché, escrituras online y sync en background).
+   */
+  storage: {
+    modo: 'sqlite-local'
   },
 
   db: {

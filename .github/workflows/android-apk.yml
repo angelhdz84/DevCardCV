@@ -1,0 +1,67 @@
+name: "APK Android (DevCardCV)"
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: capacitor
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Java 17 (requerido por gradle)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar dependencias Capacitor
+        run: |
+          npm install --no-audit --no-fund
+
+      - name: Copiar frontend a www/
+        run: node copiar-web.cjs
+
+      - name: Generar proyecto Android (cap add + sync)
+        run: |
+          rm -rf android
+          npx cap add android
+          npx cap sync android
+
+      - name: Compilar APK debug
+        working-directory: capacitor/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk DevCardCV-debug.apk
+
+      - name: Subir APK debug
+        uses: actions/upload-artifact@v4
+        with:
+          name: DevCardCV-debug.apk
+          path: capacitor/android/DevCardCV-debug.apk
+          if-no-files-found: error
+
+      - name: Compilar APK release (sin firmar)
+        working-directory: capacitor/android
+        run: |
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release-unsigned.apk ../DevCardCV-release-unsigned.apk
+
+      - name: Subir APK release sin firmar
+        uses: actions/upload-artifact@v4
+        with:
+          name: DevCardCV-release-unsigned.apk
+          path: capacitor/DevCardCV-release-unsigned.apk
+          if-no-files-found: error

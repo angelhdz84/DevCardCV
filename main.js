@@ -23,29 +23,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.dispatchEvent(new CustomEvent('connection-change', { detail: { online: false } }));
     });
 
-    // 💡 Fase 1: Abrir IndexedDB (rápido, local)
+    // 💡 Fase 1: Abrir la base de datos (SQLite en offline / IndexedDB en online)
     setPhase('Abriendo base de datos...', 20);
     await db.open();
-    console.log('✅ IndexedDB abierta');
+    console.log('✅ Base de datos abierta (modo: ' + (window.DB_OFFLINE_SQLITE ? 'SQLite local' : 'Dexie + Supabase') + ')');
 
-    // 💡 Fase 2: dbOnline en background (NO bloquea — conecta a Supabase + Realtime)
-    setPhase('Conectando a la nube...', 40);
-    dbOnline.init().then(() => {
-      console.log('✅ dbOnline inicializado (background)');
-    }).catch(err => {
-      console.warn('⚠️ dbOnline init:', err.message);
-    });
+    // 💡 Fase 2: Motor de datos
+    setPhase(window.DB_OFFLINE_SQLITE ? 'Cargando SQLite local...' : 'Conectando a la nube...', 40);
+    if (window.DB_OFFLINE_SQLITE && window.sqliteOffline) {
+      // 💡 Modo offline: SQLite local es la fuente de verdad (debe estar listo antes del router)
+      await window.sqliteOffline.init();
+      dbOnline.init().catch(() => {});
+    } else {
+      // 💡 Modo online: Supabase en background (NO bloquea — conecta + Realtime)
+      dbOnline.init().then(() => {
+        console.log('✅ dbOnline inicializado (background)');
+      }).catch(err => {
+        console.warn('⚠️ dbOnline init:', err.message);
+      });
+    }
 
-    // 💡 Fase 3: Sesión + Admin en paralelo (ambos usan IndexedDB, rápidos)
+    // 💡 Fase 3: Sesión monousuario automática (sin pantalla de login)
     setPhase('Preparando sesión...', 60);
     appRouter._initAuthStore();
     await appRouter.checkSession();
 
-    // 💡 Bootstrap admin en background — no bloquea la UI
-    // El admin ya existe en Supabase; refreshCache() lo trae a IndexedDB
-    appRouter._bootstrapAdmin().catch(() => {});
-
-    // 💡 Fase 4: Router — mostrar UI INMEDIATAMENTE con datos cacheados
+    // 💡 Fase 4: Router — mostrar UI INMEDIATAMENTE
     setPhase('Iniciando aplicación...', 80);
     appRouter.init();
 
