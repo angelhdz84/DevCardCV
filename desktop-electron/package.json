@@ -29,7 +29,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "app/assets/icon-512.png"
     },
     "nsis": {
       "oneClick": false,

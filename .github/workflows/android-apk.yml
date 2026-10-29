@@ -39,29 +39,31 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Compilar APK debug
+      - name: Generar iconos de la app (assets/icon-512.png → mipmap)
+        run: node generar-iconos.cjs
+
+      - name: Compilar APK release
         working-directory: capacitor/android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk DevCardCV-debug.apk
+          ./gradlew assembleRelease --no-daemon
 
-      - name: Subir APK debug
-        uses: actions/upload-artifact@v4
-        with:
-          name: DevCardCV-debug.apk
-          path: capacitor/android/DevCardCV-debug.apk
-          if-no-files-found: error
-
-      - name: Compilar APK release (sin firmar)
+      - name: Firmar APK con keystore del repo (firma estable entre builds)
         working-directory: capacitor/android
         run: |
-          ./gradlew assembleRelease --no-daemon
-          cp app/build/outputs/apk/release/app-release-unsigned.apk ../DevCardCV-release-unsigned.apk
+          BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+          "$ANDROID_HOME/build-tools/$BT/apksigner" sign \
+            --ks ../keystore/devcardcv-release.p12 \
+            --ks-pass pass:devcardcv2026 \
+            --key-pass pass:devcardcv2026 \
+            --ks-key-alias devcardcv \
+            --out DevCardCV.apk \
+            app/build/outputs/apk/release/app-release-unsigned.apk
+          "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs DevCardCV.apk
 
-      - name: Subir APK release sin firmar
+      - name: Subir APK instalable
         uses: actions/upload-artifact@v4
         with:
-          name: DevCardCV-release-unsigned.apk
-          path: capacitor/DevCardCV-release-unsigned.apk
+          name: DevCardCV-APK
+          path: capacitor/android/DevCardCV.apk
           if-no-files-found: error

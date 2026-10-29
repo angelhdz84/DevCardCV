@@ -9,10 +9,12 @@
     "@capacitor/core": "^6.1.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.1.2"
+    "@capacitor/cli": "^6.1.2",
+    "pngjs": "^7.0.0"
   },
   "scripts": {
     "copiar-web": "node copiar-web.cjs",
+    "iconos": "node generar-iconos.cjs",
     "add:android": "cap add android",
     "sync": "cap sync android",
     "apk": "cd android && gradlew.bat assembleDebug",

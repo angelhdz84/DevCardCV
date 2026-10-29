@@ -59,6 +59,7 @@ function createWindow() {
     title: 'DevCardCV',
     autoHideMenuBar: true,
     backgroundColor: '#f8fafc',
+    icon: (() => { try { return path.join(appDir(), 'assets', 'icon-512.png'); } catch (e) { return undefined; } })(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
