@@ -185,10 +185,16 @@ const appRouter = {
   _initAuthStore() {
     if (!Alpine.store('ui')) {
       Alpine.store('ui', {
-        sidebarCollapsed: (() => { try { return localStorage.getItem('_sidebar_collapsed') === 'true'; } catch(e) { return false; } })(),
+        sidebarCollapsed: (() => {
+          try {
+            return localStorage.getItem('_sidebar_collapsed') === 'true'
+              && window.matchMedia('(min-width: 1024px)').matches;
+          } catch (e) { return false; }
+        })(),
         toggleSidebar() {
+          if (!window.matchMedia('(min-width: 1024px)').matches) { this.sidebarCollapsed = false; return; }
           this.sidebarCollapsed = !this.sidebarCollapsed;
-          try { localStorage.setItem('_sidebar_collapsed', this.sidebarCollapsed); } catch(e) {}
+          try { localStorage.setItem('_sidebar_collapsed', this.sidebarCollapsed); } catch (e) {}
         }
       });
     }

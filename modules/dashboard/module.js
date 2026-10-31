@@ -51,17 +51,18 @@ const Dashboard = {
 
     const adminCount = usuarios.filter(u => u.rol === 'admin').length;
 
-    // 💡 Heatmap: skills por categoría por dev
-    const heatCats = Object.keys(categorias).sort();
-    const heatRows = perfiles.map(p => {
-      const perfilRs = relaciones.filter(r => r.perfil_id == p.id);
-      return heatCats.map(cat =>
-        perfilRs.filter(r => {
-          const hab = habilidades.find(h => h.id == r.habilidad_id);
-          return hab && hab.categoria === cat;
-        }).length
-      );
-    });
+    // 💡 Heatmap: proyectos asignados a los desarrolladores (mismo diseño de gráfico)
+    const proyectos = (await dbLocal.getAll('proyectos').catch(() => [])) || [];
+    const proyectoAsign = (await dbLocal.getAll('proyecto_usuarios').catch(() => [])) || [];
+    const heatProys = [...proyectos]
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      .slice(0, 8);
+    const heatCats = heatProys.map(p => p.nombre);
+    const heatRows = perfiles.map(p =>
+      heatProys.map(pr =>
+        proyectoAsign.some(u => Number(u.perfilId) === Number(p.id) && Number(u.proyectoId) === Number(pr.id)) ? 1 : 0
+      )
+    );
     const heatDevs = perfilesData.map(p => ({ id: p.id, nombre: p.nombre }));
 
     return `
@@ -80,7 +81,7 @@ const Dashboard = {
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
     <div class="card bg-white">
       <div class="card-body p-4 sm:p-5">
-        <p class="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted stat-label-wrap mb-2">Desarrolladores</p>
+        <p class="text-[11px] sm:text-xs font-medium uppercase tracking-wide text-muted stat-label-wrap mb-2">Developer</p>
         <div class="flex items-center gap-3">
           <div class="p-2 sm:p-2.5 rounded-lg shrink-0 bg-muted">
             <i class="bi bi-people-fill text-lg" style="color: var(--ink);"></i>
@@ -163,27 +164,6 @@ const Dashboard = {
     </div>
   </div>
 
-  <!-- Estado de la base de datos (modo offline: SQLite local; modo online: sincronización) -->
-  <div x-show="$store.auth.isAdmin" class="card bg-white mb-6">
-    <div class="card-body p-5">
-      <h3 class="text-xs font-semibold uppercase tracking-wider mb-4 flex items-center gap-2 text-muted">
-        <i class="bi text-accent" :class="window.DB_OFFLINE_SQLITE ? 'bi-database-fill-check' : 'bi-cloud-arrow-up'"></i>
-        <span x-text="window.DB_OFFLINE_SQLITE ? 'Base de datos local' : 'Sincronización Cloud'"></span>
-      </h3>
-      <div class="flex items-center gap-3 p-3 rounded-lg bg-muted">
-        <div class="w-2.5 h-2.5 rounded-full shrink-0" :class="(window.DB_OFFLINE_SQLITE || syncStatus === 'connected') ? 'status-dot-success' : 'status-dot-error'"></div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium" x-text="window.DB_OFFLINE_SQLITE ? 'SQLite: ' + storageLabel : ('Supabase: ' + onlineLabel)"></p>
-          <p class="text-xs mt-0.5 text-muted" x-text="window.DB_OFFLINE_SQLITE ? 'Todos los datos se guardan en este equipo — sin conexión' : 'WebSocket en tiempo real'"></p>
-        </div>
-        <button x-show="!window.DB_OFFLINE_SQLITE" class="btn btn-ghost btn-xs gap-1.5 shrink-0 radius-sm" @click="forceRefresh()" :disabled="syncing">
-          <i class="bi" :class="syncing ? 'bi-arrow-repeat animate-spin' : 'bi-arrow-repeat'" role="status"></i>
-          <span x-text="syncing ? 'Refrescando...' : 'Refrescar'"></span>
-        </button>
-      </div>
-    </div>
-  </div>
-
   <!-- Backup manual (solo admin) -->
   <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
     <div class="card-body p-5">
@@ -194,7 +174,7 @@ const Dashboard = {
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mt-1 mb-4 text-faint">JSON, Excel o copia completa .sqlite — todo local, sin nube</p>
+      <p class="text-xs mt-1 mb-4 text-faint">JSON, Excel o copia completa .sqlite — se descarga a la carpeta <strong>Descargas</strong> de tu dispositivo</p>
       <div x-show="open" x-collapse>
         <div class="flex flex-wrap items-center gap-3">
           <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="exportarJSON()">
@@ -224,47 +204,6 @@ const Dashboard = {
     </div>
   </div>
 
-  <!-- Reporte SQL (sql.js) -->
-  <div x-show="$store.auth.isAdmin" class="card bg-white mb-6" x-data="{ open: false }">
-    <div class="card-body p-5">
-      <h3 class="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 cursor-pointer select-none text-muted" @click="open = !open">
-        <i class="bi bi-code-slash text-accent"></i> Reporte SQL
-        <span class="ml-auto flex items-center gap-1">
-          <span x-text="open ? 'ocultar' : 'mostrar'"></span>
-          <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-        </span>
-      </h3>
-      <p class="text-xs mt-1 mb-4 text-faint">Perfiles × Skills — consulta JOIN ejecutada con sql.js</p>
-      <div x-show="open" x-collapse>
-        <div class="overflow-x-auto rounded-lg border-default">
-          <table class="table table-xs w-full">
-            <thead>
-              <tr class="bg-muted">
-                <th>Perfil</th>
-                <th>Cargo</th>
-                <th>Skill</th>
-                <th>Categoría</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="row in sqlReport" :key="row.pid + '-' + row.hid">
-                <tr class="stagger-enter" :style="'animation-delay: ' + ($el.parentElement.children.length * 0.02) + 's'">
-                  <td class="font-medium text-sm" x-text="row.nombre"></td>
-                  <td class="text-sm" x-text="row.cargo"></td>
-                  <td class="text-sm" x-text="row.skill"></td>
-                  <td class="text-sm text-muted" x-text="row.categoria"></td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-        <p class="text-xs mt-3 text-faint">
-          <i class="bi bi-database"></i> <span x-text="sqlReport.length + ' relaciones'"></span>
-        </p>
-      </div>
-    </div>
-  </div>
-
   <!-- Buscador -->
   <div class="card bg-white mb-6">
     <div class="card-body p-4">
@@ -278,20 +217,28 @@ const Dashboard = {
 
   <!-- Gráficos -->
   <div class="mb-6 space-y-6">
-    <!-- Heatmap: skills por categoría por dev (ancho completo) -->
+    <!-- Heatmap: proyectos asignados a los desarrolladores (mismo diseño) -->
     <div class="card bg-white">
       <div class="card-body p-5">
         <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
-          <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por categoría
-          <span class="badge badge-ghost badge-xs radius-sm ml-auto">dev → cat</span>
+          <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Proyectos asignados
+          <span class="badge badge-ghost badge-xs radius-sm ml-auto">dev → proyecto</span>
         </h3>
-        <div class="overflow-x-auto -mx-5 px-5">
+
+        <template x-if="!heatCats.length">
+          <div class="text-center py-6 text-sm text-muted">
+            <i class="bi bi-kanban text-2xl block mb-1 text-muted/30"></i>
+            Sin proyectos aún — créalos desde <a href="#/proyectos" class="text-accent underline">Proyectos</a>
+          </div>
+        </template>
+
+        <div class="overflow-x-auto -mx-5 px-5" x-show="heatCats.length">
           <table class="w-full text-xs border-collapse">
             <thead>
               <tr>
                 <th class="text-left text-muted font-medium px-1.5 py-1 sticky left-0 bg-white z-10 min-w-[90px]"></th>
                 <template x-for="cat in heatCats" :key="cat">
-                  <th class="text-center text-muted font-medium px-1.5 py-1 w-8" x-text="cat.substring(0, 4)" :title="cat"></th>
+                  <th class="text-center text-muted font-medium px-1.5 py-1 w-10" x-text="cat.substring(0, 8)" :title="cat"></th>
                 </template>
               </tr>
             </thead>
@@ -301,25 +248,22 @@ const Dashboard = {
                   <td class="text-left px-1.5 py-1 sticky left-0 bg-white z-10 truncate max-w-[100px] font-medium" x-text="dev.nombre" :title="dev.nombre"></td>
                   <template x-for="(val, ci) in heatRows[di]" :key="ci">
                     <td class="text-center rounded-sm text-[11px] font-semibold leading-none"
-                        :style="'background: ' + heatColor(val)"
-                        :title="heatCats[ci] + ': ' + val + (val === 1 ? ' skill' : ' skills')"
-                        x-text="val || ''"></td>
+                        :style="'background: ' + (val ? heatColor(5) : heatColor(0))"
+                        :title="dev.nombre + ' → ' + heatCats[ci] + ': ' + (val ? 'asignado' : 'sin asignar')"
+                        x-text="val ? '✓' : ''"></td>
                   </template>
                 </tr>
               </template>
             </tbody>
           </table>
         </div>
-        <div class="flex items-center gap-3 mt-3 text-[10px] text-muted">
-          <span>0</span>
+        <div class="flex items-center gap-3 mt-3 text-[10px] text-muted" x-show="heatCats.length">
+          <span>sin asignar</span>
           <span class="w-4 h-3 rounded-xs" style="background: #f1f5f9"></span>
-          <span class="w-4 h-3 rounded-xs" style="background: #dcfce7"></span>
-          <span class="w-4 h-3 rounded-xs" style="background: #bbf7d0"></span>
           <span class="w-4 h-3 rounded-xs" style="background: #86efac"></span>
-          <span class="w-4 h-3 rounded-xs" style="background: #4ade80"></span>
           <span class="w-4 h-3 rounded-xs" style="background: #22c55e"></span>
           <span class="w-4 h-3 rounded-xs" style="background: #15803d"></span>
-          <span>5+</span>
+          <span>asignado</span>
         </div>
       </div>
     </div>

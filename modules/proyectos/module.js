@@ -212,7 +212,7 @@ const PROYECTOS = {
         </div>
 
         <div class="flex gap-2">
-          <button class="btn btn-primary btn-sm radius-md" @click="guardarProyecto()" :disabled="!form.nombre || !formAsignados.length || guardando">
+          <button class="btn btn-primary btn-sm radius-md" @click="guardarProyecto()" :disabled="!form.nombre || guardando">
             <i class="bi bi-check-lg"></i>
             <span x-show="!guardando">Crear proyecto</span>
             <span x-show="guardando" class="loading loading-spinner loading-xs"></span>
@@ -546,8 +546,9 @@ function proyectosData(initial) {
     },
 
     async guardarProyecto() {
-      if (!this.form.nombre || !this.formAsignados.length) {
-        UI.toast('Debes ingresar nombre y asignar al menos un desarrollador', 'warning');
+      // 💡 Solo el nombre es obligatorio (asignación de devs opcional)
+      if (!this.form.nombre) {
+        UI.toast('Debes ingresar el nombre del proyecto', 'warning');
         return;
       }
       this.guardando = true;

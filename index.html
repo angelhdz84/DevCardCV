@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- La app es SIEMPRE en claro: impide que el modo oscuro del sistema "invierta" los colores (WebView/Android force-dark) -->
+  <meta name="color-scheme" content="light">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -24,6 +26,7 @@
 
     /* Design tokens — ClickUp-inspired: Slate + Emerald accent + Violet secondary */
     :root {
+      color-scheme: light;
       --canvas: #f8fafc;
       --canvas-subtle: #f1f5f9;
       --surface: #ffffff;
@@ -446,14 +449,20 @@
     }
     @media (max-width: 1023px) {
       .sidebar-aside.sidebar-collapsed { width: 15rem; }
+      /* En móvil el menú NUNCA se queda solo-iconos (sin botón de expandir disponible) */
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a { justify-content: flex-start; padding-left: 0.75rem; padding-right: 0.75rem; }
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a span { display: inline; }
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a i { margin-right: 0.625rem; font-size: 1rem; }
     }
-    .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a {
-      justify-content: center;
-      padding-left: 0.5rem;
-      padding-right: 0.5rem;
+    @media (min-width: 1024px) {
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a {
+        justify-content: center;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+      }
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a span { display: none; }
+      .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a i { margin: 0; font-size: 1.25rem; }
     }
-    .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a span { display: none; }
-    .sidebar-aside.sidebar-collapsed:not(.hover-expand) .menu li a i { margin: 0; font-size: 1.25rem; }
 
     /* Drawer-side on desktop: match sidebar width for smooth grid */
     @media (min-width: 1024px) {
@@ -553,9 +562,14 @@
     /* Spinner de refresco girando */
     @keyframes spin360 { to { transform: rotate(360deg); } }
     .animate-spin { animation: spin360 1s linear infinite; }
-    /* Mientras hay un modal (formulario, confirm…) no mostrar FAB ni badge flotantes */
-    body:has(.modal.modal-open) #fab-add-dev,
-    body:has(.modal.modal-open) #sync-badge-wrap { display: none !important; }
+    /* Mientras hay un modal (formulario, confirm…) no mostrar la FAB */
+    body:has(.modal.modal-open) #fab-add-dev { display: none !important; }
+    /* Drawer abierto: bloquear el scroll del fondo (evita que la página se mueva detrás) */
+    body:has(#sidebar-drawer:checked) { overflow: hidden; }
+    /* Chevron de colapsar sidebar: solo escritorio (la clase 'hidden' la pisa .btn de DaisyUI) */
+    @media (max-width: 1023px) {
+      .sidebar-collapse-btn { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -578,7 +592,7 @@
     <!-- Main content -->
     <div class="drawer-content flex flex-col min-h-screen">
       <!-- Barra superior móvil (sticky): nunca tapa el contenido al hacer scroll -->
-      <div class="lg:hidden sticky top-0 z-30 bg-white/95 backdrop-blur border-b-default mobile-bar" x-show="$store.auth.isLoggedIn" x-cloak>
+      <div class="lg:hidden sticky top-0 z-30 bg-white border-b-default mobile-bar" x-show="$store.auth.isLoggedIn" x-cloak>
         <div class="flex items-center gap-3 px-3" style="height: 52px;">
           <label for="sidebar-drawer" class="btn btn-square btn-ghost btn-sm radius-md" aria-label="Abrir menú" title="Abrir menú">
             <i class="bi bi-list text-xl"></i>
@@ -608,9 +622,10 @@
              x-transition:leave="opacity-0 duration-300"
              class="w-full max-w-4xl mx-auto">
 
-          <!-- Icono de bienvenida + fase texto + barra de progreso -->
-          <div class="flex flex-col items-center gap-4 mb-8">
-            <img src="assets/icon-512.png" alt="DevCardCV" width="80" height="80"
+          <!-- Icono de bienvenida centrado en pantalla + fase texto + barra de progreso -->
+          <div class="flex flex-col items-center justify-center gap-4"
+               style="min-height: calc(100vh - 170px);">
+            <img src="assets/icon-512.png" alt="DevCardCV" width="96" height="96"
                  class="radius-lg shadow-elevated" style="image-rendering: auto;">
             <p class="text-sm font-semibold tracking-heading">DevCardCV</p>
             <div class="flex items-center gap-3 text-sm text-muted">
@@ -681,38 +696,13 @@
             <div x-show="$store.ui.sidebarCollapsed && !hoverExpand" class="mx-auto" x-cloak>
               <img src="assets/icon-512.png" alt="" width="18" height="18" class="radius-sm">
             </div>
-<button class="btn btn-ghost btn-xs btn-square shrink-0 hidden lg:inline-flex" @click="$store.ui.toggleSidebar()" title="Alternar sidebar" aria-label="Alternar sidebar">
+<button class="btn btn-ghost btn-xs btn-square shrink-0 hidden lg:inline-flex sidebar-collapse-btn" @click="$store.ui.toggleSidebar()" title="Alternar sidebar" aria-label="Alternar sidebar">
   <i :class="$store.ui.sidebarCollapsed ? 'bi-chevron-right' : 'bi-chevron-left'" class="text-sm"></i>
 </button>
           </div>
 
-          <!-- User profile -->
-          <div x-show="$store.auth.isLoggedIn"
-               class="mx-2 my-3 p-2 rounded-lg shrink-0 bg-muted"
-               :class="$store.ui.sidebarCollapsed && !hoverExpand ? 'p-1.5' : ''">
-            <div class="flex items-center gap-3" :class="$store.ui.sidebarCollapsed && !hoverExpand ? 'flex-col' : ''">
-              <div class="avatar cursor-pointer shrink-0"
-                   @click="window.location.hash='#/cv/' + ($store.auth.perfil?.id || $store.auth.user?.perfilId || '')"
-                   title="Ver mi perfil">
-                <div class="w-9 h-9 rounded-full ring-2 ring-accent/20 overflow-hidden">
-                  <img x-show="$store.auth.fotoBase64" :src="$store.auth.fotoBase64" alt="Foto de perfil" class="w-full h-full object-cover" />
-                  <div x-show="!$store.auth.fotoBase64" class="w-full h-full flex items-center justify-center bg-base-200 rounded-full">
-                    <span class="text-xs font-semibold text-base-content/40" x-text="($store.auth.perfil?.nombre || $store.auth.user?.nombre || '?').charAt(0)"></span>
-                  </div>
-                </div>
-              </div>
-              <div x-show="!$store.ui.sidebarCollapsed || hoverExpand" class="flex-1 min-w-0" x-cloak>
-                <p class="text-sm font-medium truncate" x-text="$store.auth.perfil?.nombre || $store.auth.user?.nombre"></p>
-                <div class="flex items-center gap-1 mt-0.5">
-                  <span class="badge badge-xs" :class="$store.auth.user?.rol === 'admin' ? 'badge-accent' : 'badge-ghost'"
-                        x-text="$store.auth.user?.rol === 'admin' ? 'Admin' : ($store.auth.perfil?.cargo || 'Dev')"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Navigation menu -->
-          <nav id="nav-menu" aria-label="Navegación principal" class="menu menu-md gap-0.5 px-2 mt-2 flex-1">
+          <!-- Navegación (sin perfil de usuario: uso monousuario) -->
+          <nav id="nav-menu" aria-label="Navegación principal" class="menu menu-md gap-0.5 px-2 mt-4 flex-1">
             <!-- Generado dinámicamente por app.js -- aria-current="page" debe aplicarse al <a> activo -->
           </nav>
 
@@ -738,16 +728,7 @@
     <i class="bi bi-person-plus-fill"></i>
   </button>
 
-  <!-- Sync status flotante (texto/estilo actualizados por JS vanilla: actualizarBadgeEstado) -->
-  <div id="sync-badge-wrap" class="fixed bottom-4 left-4 z-40" x-show="$store.auth.isLoggedIn">
-    <span id="sync-badge-pill" class="badge gap-1.5 text-xs font-medium shadow-card border-default transition-normal badge-ghost"
-          title="Estado de los datos">
-      <i class="bi bi-database-fill text-accent text-[10px]"></i>
-      <span>SQLite</span>
-    </span>
-  </div>
-
-  <!-- Configuración (antes de Alpine: los stores y el badge dependen de APP_CONFIG) -->
+  <!-- Configuración (antes de Alpine: los stores dependen de APP_CONFIG) -->
   <script src="project.config.js"></script>
 
   <!-- JS Librerías base -->
@@ -785,10 +766,19 @@
       }
       if (!Alpine.store('ui')) {
         Alpine.store('ui', {
-          sidebarCollapsed: (() => { try { return localStorage.getItem('_sidebar_collapsed') === 'true'; } catch(e) { return false; } })(),
+          // 💡 Colapsado solo aplica en escritorio (≥1024px): en móvil el menú SIEMPRE
+          //    muestra los textos (el botón de expandir está oculto en pantallas pequeñas)
+          sidebarCollapsed: (() => {
+            try {
+              return localStorage.getItem('_sidebar_collapsed') === 'true'
+                && window.matchMedia('(min-width: 1024px)').matches;
+            } catch (e) { return false; }
+          })(),
           toggleSidebar() {
+            const enEscritorio = window.matchMedia('(min-width: 1024px)').matches;
+            if (!enEscritorio) { this.sidebarCollapsed = false; return; }
             this.sidebarCollapsed = !this.sidebarCollapsed;
-            try { localStorage.setItem('_sidebar_collapsed', this.sidebarCollapsed); } catch(e) {}
+            try { localStorage.setItem('_sidebar_collapsed', this.sidebarCollapsed); } catch (e) {}
           }
         });
       }

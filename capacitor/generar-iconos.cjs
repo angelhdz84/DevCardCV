@@ -67,4 +67,18 @@ if (fs.existsSync(anydpi)) {
   fs.rmSync(anydpi, { recursive: true, force: true });
   console.log('✅ eliminados XMLs adaptativos (mipmap-anydpi-v26) → se usan los PNG');
 }
+
+// 💡 Modo oscuro del sistema: prohibir force-dark en la app (si no, Android invierte
+//    los colores de la web y el texto queda ilegible sobre fondos negros).
+const manifest = path.join(__dirname, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
+if (fs.existsSync(manifest)) {
+  let xml = fs.readFileSync(manifest, 'utf8');
+  if (!xml.includes('forceDarkAllowed')) {
+    xml = xml.replace(/<application([^>]*)>/, (m, attrs) => `<application${attrs} android:forceDarkAllowed="false">`);
+    fs.writeFileSync(manifest, xml);
+    console.log('✅ AndroidManifest: forceDarkAllowed=false (sin modo oscuro forzado)');
+  }
+} else {
+  console.warn('⚠️ no se encontró AndroidManifest.xml para aplicar forceDarkAllowed');
+}
 console.log('🎨 Iconos Android generados desde assets/icon-512.png');

@@ -115,7 +115,7 @@ const CV = {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div class="flex items-center gap-2 text-muted">
                   <i class="bi bi-envelope text-accent/60"></i>
-                  <span x-text="perfil.email"></span>
+                  <a :href="'mailto:' + perfil.email" x-text="perfil.email" class="link link-accent"></a>
                 </div>
                 <div class="flex items-center gap-2 text-muted" x-show="perfil.dni">
                   <i class="bi bi-card-text text-accent/60"></i>
@@ -123,7 +123,7 @@ const CV = {
                 </div>
                 <div class="flex items-center gap-2 text-muted" x-show="perfil.telefono">
                   <i class="bi bi-phone text-accent/60"></i>
-                  <span x-text="perfil.telefono"></span>
+                  <a :href="'tel:' + String(perfil.telefono).replace(/[^0-9+]/g, '')" x-text="perfil.telefono" class="link link-accent"></a>
                 </div>
                 <div class="flex items-center gap-2 text-muted" x-show="perfil.direccion">
                   <i class="bi bi-geo-alt text-accent/60"></i>

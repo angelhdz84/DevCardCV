@@ -105,10 +105,12 @@ const Perfiles = {
               <i class="bi bi-card-text"></i> <span x-text="dev.dni"></span>
             </span>
             <span x-show="dev.email" class="flex items-center gap-1">
-              <i class="bi bi-envelope"></i> <span x-text="dev.email"></span>
+              <i class="bi bi-envelope"></i>
+              <a :href="'mailto:' + dev.email" x-text="dev.email" class="link link-accent" @click.stop></a>
             </span>
             <span x-show="dev.telefono" class="flex items-center gap-1">
-              <i class="bi bi-telephone"></i> <span x-text="dev.telefono"></span>
+              <i class="bi bi-telephone"></i>
+              <a :href="'tel:' + String(dev.telefono).replace(/[^0-9+]/g, '')" x-text="dev.telefono" class="link link-accent" @click.stop></a>
             </span>
             <span x-show="dev.direccion" class="flex items-center gap-1">
               <i class="bi bi-geo-alt"></i> <span x-text="dev.direccion"></span>
@@ -300,7 +302,7 @@ const Perfiles = {
         </div>
         <div class="flex gap-2">
           <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
-          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || !form.email || !form.cargo || saving">
+          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || saving">
             <i class="bi bi-check-lg"></i>
             <span x-show="!saving" x-text="editando ? 'Actualizar' : 'Guardar'"></span>
             <span x-show="saving" class="loading loading-spinner loading-xs"></span>
@@ -526,10 +528,9 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
       this.saving = true;
       this.formErrors = { nombre: '', email: '', cargo: '' };
       try {
+        // 💡 Solo el nombre es obligatorio (resto de campos opcionales)
         if (!this.form.nombre) this.formErrors.nombre = 'El nombre es obligatorio';
-        if (!this.form.email) this.formErrors.email = 'El email es obligatorio';
-        if (!this.form.cargo) this.formErrors.cargo = 'El cargo es obligatorio';
-        if (this.formErrors.nombre || this.formErrors.email || this.formErrors.cargo) {
+        if (this.formErrors.nombre) {
           UI.toast('Corrige los campos marcados', 'warning');
           this.$nextTick(() => {
             const firstError = this.$el.querySelector('[data-error]');
@@ -538,15 +539,19 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
           return;
         }
 
-        // Verificar email duplicado — consulta directa a DB, no array local
-        const emailNormalizado = this.form.email.toLowerCase().trim();
-        const emailHash = CryptoJS.SHA256(emailNormalizado).toString(CryptoJS.enc.Hex);
-        const existentes = await dbOnline.getWhere('perfiles', 'email_hash', emailHash);
-        const duplicado = existentes.some(p => (this.editando ? p.id !== this.editando : true));
-        if (duplicado) {
-          this.formErrors.email = 'Ya existe un perfil con este email';
-          UI.toast('Ya existe un perfil con este email', 'warning');
-          return;
+        // Verificar email duplicado — solo si el email está informado
+        let emailNormalizado = '';
+        let emailHash = '';
+        if (this.form.email && String(this.form.email).trim()) {
+          emailNormalizado = this.form.email.toLowerCase().trim();
+          emailHash = CryptoJS.SHA256(emailNormalizado).toString(CryptoJS.enc.Hex);
+          const existentes = await dbOnline.getWhere('perfiles', 'email_hash', emailHash);
+          const duplicado = existentes.some(p => (this.editando ? p.id !== this.editando : true));
+          if (duplicado) {
+            this.formErrors.email = 'Ya existe un perfil con este email';
+            UI.toast('Ya existe un perfil con este email', 'warning');
+            return;
+          }
         }
 
         const datos = {
@@ -556,7 +561,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
           telefono: this.form.telefono || '',
           direccion: this.form.direccion || '',
           dni: this.form.dni || '',
-          cargo: this.form.cargo,
+          cargo: this.form.cargo || '',
           bio: this.form.bio,
           fotoBase64: this.form.fotoBase64,
           updated_at: new Date()
