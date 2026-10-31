@@ -19,18 +19,6 @@ const Dashboard = {
       categorias[h.categoria] = (categorias[h.categoria] || 0) + 1;
     });
 
-    // 💡 Skills más comunes
-    const skillCount = {};
-    relaciones.forEach(r => {
-      const hab = habilidades.find(h => h.id == r.habilidad_id);
-      if (hab) {
-        skillCount[hab.nombre] = (skillCount[hab.nombre] || 0) + 1;
-      }
-    });
-    const topSkills = Object.entries(skillCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
-
     // 💡 Preparar datos para Alpine
     const perfilesData = [];
     for (const p of perfiles) {
@@ -51,22 +39,93 @@ const Dashboard = {
 
     const adminCount = usuarios.filter(u => u.rol === 'admin').length;
 
-    // 💡 Heatmap: proyectos asignados a los desarrolladores (mismo diseño de gráfico)
+    // ─── Nuevas gráficas: datos de proyectos y tareas ───
+    const tareas = (await dbLocal.getAll('tareas').catch(() => [])) || [];
     const proyectos = (await dbLocal.getAll('proyectos').catch(() => [])) || [];
-    const proyectoAsign = (await dbLocal.getAll('proyecto_usuarios').catch(() => [])) || [];
-    const heatProys = [...proyectos]
-      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-      .slice(0, 8);
-    const heatCats = heatProys.map(p => p.nombre);
-    const heatRows = perfiles.map(p =>
-      heatProys.map(pr =>
-        proyectoAsign.some(u => Number(u.perfilId) === Number(p.id) && Number(u.proyectoId) === Number(pr.id)) ? 1 : 0
-      )
-    );
-    const heatDevs = perfilesData.map(p => ({ id: p.id, nombre: p.nombre }));
 
+    // 1) Estado de las tareas (donut)
+    const ESTADOS = [
+      { key: 'pendiente', label: 'Pendiente', color: '#3b82f6' },
+      { key: 'en-progreso', label: 'En progreso', color: '#f59e0b' },
+      { key: 'completada', label: 'Completada', color: '#06b6d4' },
+      { key: 'confirmada', label: 'Confirmada', color: '#22c55e' }
+    ];
+    const estadoCounts = ESTADOS.map(e => ({
+      label: e.label,
+      color: e.color,
+      count: tareas.filter(t => (t.estado || 'pendiente') === e.key).length
+    }));
+
+    // 2) Prioridad del trabajo (donut)
+    const PRIORIDADES = [
+      { key: 'alta', label: 'Alta', color: '#ef4444' },
+      { key: 'media', label: 'Media', color: '#f59e0b' },
+      { key: 'baja', label: 'Baja', color: '#94a3b8' }
+    ];
+    const prioridadCounts = PRIORIDADES.map(p => ({
+      label: p.label,
+      color: p.color,
+      count: tareas.filter(t => (t.prioridad || 'media') === p.key).length
+    }));
+
+    // 3) Carga por desarrollador (barras horizontales: tareas abiertas)
+    const abiertas = tareas.filter(t => !t.estado || t.estado === 'pendiente' || t.estado === 'en-progreso');
+    let cargaDev = perfiles.map(p => ({
+      nombre: p.nombre,
+      abiertas: abiertas.filter(t => t.asignado_a != null && t.asignado_a !== '' && Number(t.asignado_a) === Number(p.id)).length
+    }));
+    const sinAsignar = abiertas.filter(t => t.asignado_a == null || t.asignado_a === '').length;
+    if (sinAsignar) cargaDev.push({ nombre: 'Sin asignar', abiertas: sinAsignar });
+    cargaDev = cargaDev.sort((a, b) => b.abiertas - a.abiertas);
+
+    // 4) Avance por proyecto (barras 100% apiladas: % tareas confirmadas)
+    const avanceProy = [...proyectos]
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      .slice(0, 8)
+      .map(p => {
+        const tt = tareas.filter(t => Number(t.proyectoId ?? t.proyecto_id) === Number(p.id));
+        const done = tt.filter(t => t.estado === 'confirmada').length;
+        return { nombre: p.nombre, pct: tt.length ? Math.round((done / tt.length) * 100) : 0, total: tt.length };
+      });
+
+    // 5) Vencimientos próximos (semáforo: vencidas ≤ hoy+7 días)
+    const hoy = dayjs().startOf('day');
+    let vencimientos = [];
+    const _addVenc = (item, fecha, tipo) => {
+      if (!fecha) return;
+      const f = dayjs(fecha);
+      if (!f.isValid()) return;
+      const dias = f.diff(hoy, 'day');
+      if (dias > 7) return;
+      vencimientos.push({
+        id: tipo + item.id,
+        nombre: item.nombre,
+        tipo,
+        fecha: f.format('DD/MM'),
+        dias,
+        estado: dias < 0 ? 'vencido' : (dias === 0 ? 'hoy' : 'proxima'),
+        cuando: dias < 0 ? ('hace ' + Math.abs(dias) + (Math.abs(dias) === 1 ? ' día' : ' días')) : (dias === 0 ? 'hoy' : ('en ' + dias + (dias === 1 ? ' día' : ' días')))
+      });
+    };
+    tareas.forEach(t => _addVenc(t, t.fecha_limite, 'Tarea'));
+    proyectos.forEach(p => _addVenc(p, p.fecha_limite, 'Proyecto'));
+    vencimientos = vencimientos.sort((a, b) => a.dias - b.dias).slice(0, 6);
+
+    // 6) Evolución mensual (últimos 6 meses: proyectos y tareas creados)
+    const evolucion = [];
+    for (let i = 5; i >= 0; i--) {
+      const m = dayjs().subtract(i, 'month');
+      const key = m.format('YYYY-MM');
+      evolucion.push({
+        label: m.format('MMM'),
+        proyectos: proyectos.filter(p => p.created_at && dayjs(p.created_at).format('YYYY-MM') === key).length,
+        tareas: tareas.filter(t => t.created_at && dayjs(t.created_at).format('YYYY-MM') === key).length
+      });
+    }
+
+    const J = (v) => JSON.stringify(v).replace(/"/g, '&quot;');
     return `
-<div x-data="dashboardData(${JSON.stringify(perfilesData).replace(/"/g, '&quot;')}, ${JSON.stringify(topSkills).replace(/"/g, '&quot;')}, ${JSON.stringify(categorias).replace(/"/g, '&quot;')}, ${adminCount}, ${JSON.stringify(heatDevs).replace(/"/g, '&quot;')}, ${JSON.stringify(heatCats).replace(/"/g, '&quot;')}, ${JSON.stringify(heatRows).replace(/"/g, '&quot;')})"
+<div x-data="dashboardData(${J(perfilesData)}, ${J(categorias)}, ${adminCount}, ${J(estadoCounts)}, ${J(prioridadCounts)}, ${J(cargaDev)}, ${J(avanceProy)}, ${J(vencimientos)}, ${J(evolucion)})"
      x-init="initChart()">
 
   <!-- Header con contador -->
@@ -215,76 +274,92 @@ const Dashboard = {
     </div>
   </div>
 
-  <!-- Gráficos -->
+  <!-- Gráficas informativas (proyectos, tareas, fechas) -->
   <div class="mb-6 space-y-6">
-    <!-- Heatmap: proyectos asignados a los desarrolladores (mismo diseño) -->
-    <div class="card bg-white">
-      <div class="card-body p-5">
-        <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
-          <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Proyectos asignados
-          <span class="badge badge-ghost badge-xs radius-sm ml-auto">dev → proyecto</span>
-        </h3>
-
-        <template x-if="!heatCats.length">
-          <div class="text-center py-6 text-sm text-muted">
-            <i class="bi bi-kanban text-2xl block mb-1 text-muted/30"></i>
-            Sin proyectos aún — créalos desde <a href="#/proyectos" class="text-accent underline">Proyectos</a>
-          </div>
-        </template>
-
-        <div class="overflow-x-auto -mx-5 px-5" x-show="heatCats.length">
-          <table class="w-full text-xs border-collapse">
-            <thead>
-              <tr>
-                <th class="text-left text-muted font-medium px-1.5 py-1 sticky left-0 bg-white z-10 min-w-[90px]"></th>
-                <template x-for="cat in heatCats" :key="cat">
-                  <th class="text-center text-muted font-medium px-1.5 py-1 w-10" x-text="cat.substring(0, 8)" :title="cat"></th>
-                </template>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="(dev, di) in heatDevs" :key="dev.id">
-                <tr>
-                  <td class="text-left px-1.5 py-1 sticky left-0 bg-white z-10 truncate max-w-[100px] font-medium" x-text="dev.nombre" :title="dev.nombre"></td>
-                  <template x-for="(val, ci) in heatRows[di]" :key="ci">
-                    <td class="text-center rounded-sm text-[11px] font-semibold leading-none"
-                        :style="'background: ' + (val ? heatColor(5) : heatColor(0))"
-                        :title="dev.nombre + ' → ' + heatCats[ci] + ': ' + (val ? 'asignado' : 'sin asignar')"
-                        x-text="val ? '✓' : ''"></td>
-                  </template>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 1) Estado de las tareas -->
+      <div class="card bg-white">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+            <i class="bi bi-pie-chart-fill text-accent"></i> Estado de las tareas
+          </h3>
+          <div id="estado-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de donut con el estado de las tareas"></div>
         </div>
-        <div class="flex items-center gap-3 mt-3 text-[10px] text-muted" x-show="heatCats.length">
-          <span>sin asignar</span>
-          <span class="w-4 h-3 rounded-xs" style="background: #f1f5f9"></span>
-          <span class="w-4 h-3 rounded-xs" style="background: #86efac"></span>
-          <span class="w-4 h-3 rounded-xs" style="background: #22c55e"></span>
-          <span class="w-4 h-3 rounded-xs" style="background: #15803d"></span>
-          <span>asignado</span>
+      </div>
+
+      <!-- 2) Prioridad del trabajo -->
+      <div class="card bg-white">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+            <i class="bi bi-exclamation-triangle-fill text-accent"></i> Prioridad del trabajo
+          </h3>
+          <div id="prioridad-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de donut con la prioridad de las tareas"></div>
+        </div>
+      </div>
+
+      <!-- 3) Carga por desarrollador -->
+      <div class="card bg-white">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+            <i class="bi bi-person-lines-fill text-accent"></i> Carga por desarrollador
+            <span class="badge badge-ghost badge-xs radius-sm ml-auto">tareas abiertas</span>
+          </h3>
+          <div id="carga-chart" style="min-height: 250px;" role="img" aria-label="Barras con las tareas abiertas por desarrollador"></div>
+        </div>
+      </div>
+
+      <!-- 6) Evolución mensual -->
+      <div class="card bg-white">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+            <i class="bi bi-graph-up-arrow text-accent"></i> Evolución mensual
+            <span class="badge badge-ghost badge-xs radius-sm ml-auto">últimos 6 meses</span>
+          </h3>
+          <div id="evolucion-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de área con proyectos y tareas creados por mes"></div>
         </div>
       </div>
     </div>
 
-    <!-- Charts: dos columnas debajo del heatmap -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="card bg-white">
-        <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
-            <i class="bi bi-bar-chart-fill text-accent"></i> Skills más frecuentes
-          </h3>
-          <div id="skills-chart" style="min-height: 250px;" role="img" aria-label="Gráfico de skills más frecuentes"></div>
-        </div>
+    <!-- 4) Avance por proyecto (ancho completo) -->
+    <div class="card bg-white">
+      <div class="card-body p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+          <i class="bi bi-bar-chart-line-fill text-accent"></i> Avance por proyecto
+          <span class="badge badge-ghost badge-xs radius-sm ml-auto">% tareas confirmadas</span>
+        </h3>
+        <div id="avance-chart" style="min-height: 200px;" role="img" aria-label="Barras apiladas de avance por proyecto"></div>
       </div>
+    </div>
 
-      <div class="card bg-white">
-        <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
-            <i class="bi bi-grid-3x3-gap-fill text-accent"></i> Skills por desarrollador
-          </h3>
-          <div id="skills-per-dev-chart" style="min-height: 280px;" role="img" aria-label="Treemap de skills por desarrollador"></div>
+    <!-- 5) Vencimientos próximos (semáforo) -->
+    <div class="card bg-white">
+      <div class="card-body p-5">
+        <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
+          <i class="bi bi-calendar-event-fill text-accent"></i> Vencimientos próximos
+          <span class="badge badge-ghost badge-xs radius-sm ml-auto">≤ 7 días</span>
+        </h3>
+
+        <template x-if="!vencimientos.length">
+          <div class="text-center py-6 text-sm text-muted">
+            <i class="bi bi-calendar-check text-2xl block mb-1" style="color: var(--ink-faint);"></i>
+            Sin fechas límite en los próximos 7 días
+          </div>
+        </template>
+
+        <div class="space-y-2" x-show="vencimientos.length">
+          <template x-for="v in vencimientos" :key="v.id">
+            <div class="flex items-center gap-3 p-3 rounded-lg border border-default"
+                 :style="v.estado === 'vencido' ? 'background:#fef2f2' : (v.estado === 'hoy' ? 'background:#fffbeb' : 'background:#f0fdf4')">
+              <span class="status-dot" :class="v.estado === 'vencido' ? 'status-dot-error' : (v.estado === 'hoy' ? 'status-dot-warning' : 'status-dot-success')"></span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium truncate" x-text="v.nombre"></p>
+                <p class="text-xs text-muted" x-text="v.tipo + ' · ' + v.cuando"></p>
+              </div>
+              <span class="badge badge-sm shrink-0"
+                    :class="v.estado === 'vencido' ? 'badge-error' : (v.estado === 'hoy' ? 'badge-warning' : 'badge-success')"
+                    x-text="v.fecha"></span>
+            </div>
+          </template>
         </div>
       </div>
     </div>
@@ -443,7 +518,7 @@ const Dashboard = {
 };
 
 // 💡 Alpine data factory
-function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, heatCats, heatRows) {
+function dashboardData(perfiles, categorias, adminCount, estadoCounts, prioridadCounts, cargaDev, avanceProy, vencimientos, evolucion) {
   const catColors = ['#0f172a', '#15803d', '#3b82f6', '#F59E0B', '#8B5CF6', '#22C55E', '#06b6d4', '#ec4899'];
   const catNames = Object.keys(categorias);
   const catValues = catNames.map(c => categorias[c]);
@@ -457,25 +532,17 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
   return {
     perfiles,
     search: '',
-    topSkills,
     categorias,
     catList,
     catColors,
     adminCount,
-    heatDevs,
-    heatCats,
-    heatRows,
-
-    heatColor(count) {
-      if (count === 0) return '#f1f5f9';
-      if (count === 1) return '#dcfce7';
-      if (count === 2) return '#bbf7d0';
-      if (count === 3) return '#86efac';
-      if (count === 4) return '#4ade80';
-      if (count === 5) return '#22c55e';
-      if (count >= 6) return '#15803d';
-      return '#f1f5f9';
-    },
+    // Nuevas gráficas
+    estadoCounts,
+    prioridadCounts,
+    cargaDev,
+    avanceProy,
+    vencimientos,
+    evolucion,
 
     get esUltimoAdmin() { return this.adminCount <= 1; },
 
@@ -491,16 +558,6 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
 
     get emptyState() {
       return UI.emptyState('No se encontraron resultados', 'bi-search');
-    },
-
-    get sqlReport() {
-      try {
-        return dbSQLite.queryObjects(
-          'SELECT p.id AS pid, p.nombre, p.cargo, h.id AS hid, h.nombre AS skill, h.categoria FROM perfiles p JOIN perfil_habilidades ph ON p.id = ph.perfil_id JOIN habilidades h ON h.id = ph.habilidad_id ORDER BY p.nombre, h.categoria'
-        );
-      } catch (e) {
-        return [];
-      }
     },
 
     verCV(id) {
@@ -703,74 +760,117 @@ function dashboardData(perfiles, topSkills, categorias, adminCount, heatDevs, he
       window._dashboardCharts = [];
       // 💡 Esperar a que el DOM esté pintado antes de renderizar gráficos
       setTimeout(() => {
-        // 💡 Gráfico de barras - Skills más frecuentes
-        if (this.topSkills.length > 0 && typeof ApexCharts !== 'undefined') {
-          const skillsEl = document.querySelector('#skills-chart');
-          if (skillsEl) {
-            const maxCount = Math.max(...this.topSkills.map(s => s[1]), 1);
-            const chart1 = new ApexCharts(skillsEl, {
-              chart: { type: 'bar', height: 250, toolbar: { show: false }, animations: { enabled: false } },
-              series: [{ name: 'Devs', data: this.topSkills.map(s => s[1]) }],
-              xaxis: { categories: this.topSkills.map(s => s[0]), labels: { rotate: -45, style: { fontSize: '11px' } } },
-              yaxis: {
-                min: 0,
-                max: maxCount,
-                tickAmount: maxCount,
-                labels: { formatter: (v) => Number.isInteger(v) ? v : '', style: { fontSize: '11px' } }
-              },
-              colors: ['#0f172a'],
-              plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-              grid: { borderColor: 'rgba(0,0,0,0.04)' },
-              tooltip: { theme: 'light' },
-              dataLabels: { enabled: false }
-            });
-            chart1.render();
-            window._dashboardCharts.push(chart1);
-          }
-        }
+        if (typeof ApexCharts === 'undefined') return;
 
-        // 💡 Treemap — Skills por desarrollador (solo si hay skills asignadas)
-        if (this.perfiles.length > 0 && typeof ApexCharts !== 'undefined') {
-          const el = document.querySelector('#skills-per-dev-chart');
-          if (el) {
-            const data = [...this.perfiles]
-              .sort((a, b) => b.skillCount - a.skillCount)
-              .filter(p => (p.skillCount || 0) > 0)
-              .map(p => ({ x: p.nombre, y: p.skillCount || 0 }));
-            if (!data.length) {
-              // 💡 Sin datos: mensaje en vez de un chart en blanco
-              el.innerHTML = '<div class="flex flex-col items-center justify-center text-center py-8 gap-2" style="min-height: 220px;">' +
-                '<i class="bi bi-diagram-3 text-3xl text-faint"></i>' +
-                '<p class="text-sm text-muted">Sin skills asignadas</p>' +
-                '<p class="text-xs text-faint">Asigna habilidades a los perfiles desde <a href="#/perfiles" class="text-accent underline">Perfiles</a></p>' +
-                '</div>';
-              return;
-            }
-            const palette = ['#15803d','#3b82f6','#F59E0B','#8B5CF6','#22C55E','#06b6d4','#ec4899','#0f172a','#f97316','#6366f1'];
-            const chart2 = new ApexCharts(el, {
-              chart: { type: 'treemap', height: 280, toolbar: { show: false }, animations: { enabled: false } },
-              series: [{ data }],
-              colors: palette,
-              plotOptions: {
-                treemap: {
-                  distributed: true,
-                  enableShades: false
-                }
-              },
-              dataLabels: {
-                enabled: true,
-                style: { fontSize: '12px', fontWeight: 600, colors: ['#fff'] },
-                offsetY: -4
-              },
-              tooltip: {
-                y: { formatter: v => v + (v === 1 ? ' skill' : ' skills') }
-              },
-              grid: { show: false }
-            });
-            chart2.render();
-            window._dashboardCharts.push(chart2);
-          }
-        }
+        const placeholder = (icono, msg) =>
+          '<div class="flex flex-col items-center justify-center text-center py-8 gap-2" style="min-height: 220px;">' +
+          '<i class="bi ' + icono + ' text-3xl" style="color: var(--ink-faint);"></i>' +
+          '<p class="text-sm text-muted">' + msg + '</p></div>';
+
+        const montar = (sel, opts, hayDatos, icono, msg) => {
+          const el = document.querySelector(sel);
+          if (!el) return;
+          if (!hayDatos) { el.innerHTML = placeholder(icono, msg); return; }
+          const c = new ApexCharts(el, opts);
+          c.render();
+          window._dashboardCharts.push(c);
+        };
+
+        // 1) Estado de las tareas (donut)
+        const estado = this.estadoCounts.filter(e => e.count > 0);
+        montar('#estado-chart', {
+          chart: { type: 'donut', height: 250, animations: { enabled: false } },
+          series: estado.map(e => e.count),
+          labels: estado.map(e => e.label),
+          colors: estado.map(e => e.color),
+          stroke: { width: 0 },
+          legend: { position: 'bottom', labels: { colors: '#64748b' } },
+          dataLabels: { style: { fontSize: '11px' } },
+          tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea' : ' tareas') } }
+        }, estado.length, 'bi-inbox', 'Sin tareas registradas');
+
+        // 2) Prioridad del trabajo (donut)
+        const prio = this.prioridadCounts.filter(p => p.count > 0);
+        montar('#prioridad-chart', {
+          chart: { type: 'donut', height: 250, animations: { enabled: false } },
+          series: prio.map(p => p.count),
+          labels: prio.map(p => p.label),
+          colors: prio.map(p => p.color),
+          stroke: { width: 0 },
+          legend: { position: 'bottom', labels: { colors: '#64748b' } },
+          dataLabels: { style: { fontSize: '11px' } },
+          tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea' : ' tareas') } }
+        }, prio.length, 'bi-exclamation-circle', 'Sin tareas con prioridad');
+
+        // 3) Carga por desarrollador (barras verticales — ejes enteros)
+        const carga = this.cargaDev.filter(c => c.abiertas > 0);
+        const maxCarga = Math.max(...carga.map(c => c.abiertas), 1);
+        montar('#carga-chart', {
+          chart: { type: 'bar', height: 250, toolbar: { show: false }, animations: { enabled: false } },
+          series: [{ name: 'Tareas abiertas', data: carga.map(c => c.abiertas) }],
+          xaxis: {
+            categories: carga.map(c => c.nombre),
+            labels: { rotate: -40, hideOverlappingLabels: true, style: { fontSize: '11px' } }
+          },
+          yaxis: {
+            min: 0,
+            max: maxCarga,
+            tickAmount: Math.max(2, maxCarga),
+            labels: { formatter: v => Number.isInteger(v) ? v : '', style: { fontSize: '11px' } }
+          },
+          colors: ['#15803d'],
+          plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+          dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 600 } },
+          legend: { show: false },
+          grid: { borderColor: 'rgba(0,0,0,0.04)' },
+          tooltip: { theme: 'light' }
+        }, carga.length, 'bi-people', 'Sin tareas abiertas');
+
+        // 4) Avance por proyecto (barras verticales 100% apiladas)
+        const av = this.avanceProy;
+        montar('#avance-chart', {
+          chart: { type: 'bar', height: Math.max(240, av.length * 34 + 90), stacked: true, stackType: '100%', toolbar: { show: false }, animations: { enabled: false } },
+          series: [
+            { name: 'Confirmadas', data: av.map(a => a.pct) },
+            { name: 'Resto', data: av.map(a => 100 - a.pct) }
+          ],
+          colors: ['#22c55e', '#e2e5e9'],
+          plotOptions: { bar: { borderRadius: 3, columnWidth: '60%' } },
+          xaxis: {
+            categories: av.map(a => (a.nombre.length > 14 ? a.nombre.slice(0, 13) + '…' : a.nombre)),
+            labels: { rotate: -40, hideOverlappingLabels: true, style: { fontSize: '11px' } }
+          },
+          yaxis: { max: 100, tickAmount: 4, labels: { formatter: v => Math.round(v) + '%', style: { fontSize: '10px' } } },
+          dataLabels: {
+            enabled: true,
+            formatter: (v, ctx) => (ctx.seriesIndex === 0 && v > 0) ? Math.round(v) + '%' : '',
+            style: { fontSize: '10px', fontWeight: 600 },
+            dropShadow: { enabled: false }
+          },
+          legend: { position: 'bottom', labels: { colors: '#64748b' } },
+          grid: { borderColor: 'rgba(0,0,0,0.04)' },
+          tooltip: { theme: 'light', y: { formatter: v => Math.round(v) + '%' } }
+        }, av.length, 'bi-folder', 'Sin proyectos creados');
+
+        // 5) Evolución mensual (área: proyectos y tareas creados por mes)
+        const ev = this.evolucion;
+        const totalEv = ev.reduce((s, m) => s + m.proyectos + m.tareas, 0);
+        montar('#evolucion-chart', {
+          chart: { type: 'area', height: 250, toolbar: { show: false }, animations: { enabled: false } },
+          series: [
+            { name: 'Proyectos', data: ev.map(m => m.proyectos) },
+            { name: 'Tareas', data: ev.map(m => m.tareas) }
+          ],
+          colors: ['#15803d', '#3b82f6'],
+          xaxis: { categories: ev.map(m => m.label), labels: { style: { fontSize: '11px' } } },
+          yaxis: { min: 0, tickAmount: 4, labels: { formatter: v => Number.isInteger(v) ? v : '', style: { fontSize: '11px' } } },
+          stroke: { curve: 'smooth', width: 2 },
+          fill: { type: 'opacity', opacity: 0.15 },
+          dataLabels: { enabled: false },
+          legend: { position: 'bottom', labels: { colors: '#64748b' } },
+          grid: { borderColor: 'rgba(0,0,0,0.04)' },
+          tooltip: { theme: 'light' }
+        }, totalEv > 0, 'bi-graph-up', 'Sin actividad en los últimos 6 meses');
       }, 100);
     },
 
