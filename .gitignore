@@ -20,3 +20,8 @@ Thumbs.db
 
 # Capturas/depuracion OpenChamber
 .openchamber/
+
+# APKs descargados/artefactos locales
+DevCardCV-APK.zip
+DevCardCV-APK/
+*.apk
