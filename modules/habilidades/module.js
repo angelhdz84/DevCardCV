@@ -10,18 +10,32 @@ const Habilidades = {
   async render(params = {}) {
     const habilidades = (await dbLocal.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
     const relaciones = await dbLocal.getAll('perfil_habilidades');
+    const perfiles = await dbLocal.getAll('perfiles');
 
-    // 💡 Contar cuántos devs tienen cada skill
-    const skillUses = {};
+    // 💡 Mapa de devs por habilidad. Las fotos NO viajan dentro del atributo
+    //    x-data (serían megabytes de base64): se guardan en un lookup global.
+    const fotos = {};
+    perfiles.forEach(p => {
+      fotos[p.id] = {
+        nombre: p.nombre,
+        foto: p.fotoBase64 || '',
+        inicial: (p.nombre || '?').charAt(0).toUpperCase()
+      };
+    });
+    window._fotosPerfil = fotos;
+
+    const devsPorSkill = {};
     relaciones.forEach(r => {
-      skillUses[r.habilidad_id] = (skillUses[r.habilidad_id] || 0) + 1;
+      if (!fotos[r.perfil_id]) return;
+      (devsPorSkill[r.habilidad_id] = devsPorSkill[r.habilidad_id] || []).push(Number(r.perfil_id));
     });
 
     // 💡 Agrupar por categoría
     const categorias = {};
     habilidades.forEach(h => {
       if (!categorias[h.categoria]) categorias[h.categoria] = [];
-      categorias[h.categoria].push({ ...h, uso: skillUses[h.id] || 0 });
+      const devs = devsPorSkill[h.id] || [];
+      categorias[h.categoria].push({ ...h, uso: devs.length, devs: devs.slice(0, 5) });
     });
 
     return `
@@ -57,7 +71,7 @@ const Habilidades = {
 
   <!-- Categorías y skills -->
   <template x-if="Object.keys(filteredCats).length === 0">
-    <div x-html="UI.emptyState(searchSkill ? 'No se encontraron habilidades para "' + searchSkill + '"' : 'No hay habilidades. Crea categorías y habilidades.', 'bi-tools', searchSkill ? {} : { handler: 'showCatModal=true', label: 'Crear categoría', icon: 'bi-folder-plus' })"></div>
+    <div x-html="UI.emptyState(searchSkill ? 'No se encontraron habilidades para &quot;' + searchSkill + '&quot;' : 'No hay habilidades. Crea categorías y habilidades.', 'bi-tools', searchSkill ? {} : { handler: 'showCatModal=true', label: 'Crear categoría', icon: 'bi-folder-plus' })"></div>
   </template>
 
   <div class="space-y-4" x-show="Object.keys(filteredCats).length > 0">
@@ -77,19 +91,33 @@ const Habilidades = {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
             <template x-for="(skill, i) in skills" :key="skill.id">
-              <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-base-100 group border-default stagger-enter" :style="'animation-delay: ' + (i * 40) + 'ms'">
-                <div class="flex items-center gap-2">
-                  <i class="bi bi-tag-fill text-accent/40 text-xs"></i>
-                  <span class="text-sm" x-text="skill.nombre"></span>
+              <div class="flex items-center justify-between px-3 py-2 rounded-lg skill-chip group border-default stagger-enter" :style="'animation-delay: ' + (i * 40) + 'ms'">
+                <div class="flex items-center gap-2 min-w-0">
+                  <i class="bi bi-tag-fill text-accent text-xs shrink-0"></i>
+                  <span class="text-sm font-medium truncate" style="color: var(--ink);" x-text="skill.nombre"></span>
                 </div>
-                <div class="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                  <span class="text-xs mr-1 text-faint" x-text="skill.uso"></span>
-                  <button class="btn btn-ghost btn-xs btn-square" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button class="btn btn-ghost btn-xs btn-square text-faint" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
-                    <i class="bi bi-x-lg"></i>
-                  </button>
+                <div class="flex items-center gap-2 shrink-0">
+                  <div class="flex -space-x-1.5" x-show="skill.devs && skill.devs.length" :title="skill.uso + ' desarrollador(es) con esta habilidad'">
+                    <template x-for="(d, di) in (skill.devs || [])" :key="di">
+                      <span class="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center text-[9px] font-semibold text-accent bg-accent/15 border border-white">
+                        <template x-if="perfilInfo(d).foto">
+                          <img :src="perfilInfo(d).foto" :alt="perfilInfo(d).nombre" :title="perfilInfo(d).nombre" class="w-full h-full object-cover">
+                        </template>
+                        <template x-if="!perfilInfo(d).foto">
+                          <span x-text="perfilInfo(d).inicial" :title="perfilInfo(d).nombre"></span>
+                        </template>
+                      </span>
+                    </template>
+                    <span x-show="skill.uso > 5" class="w-5 h-5 rounded-full bg-muted border border-white flex items-center justify-center text-[9px] text-muted" x-text="'+' + (skill.uso - 5)"></span>
+                  </div>
+                  <div class="flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                    <button class="btn btn-ghost btn-xs btn-square" @click="editarSkill(skill)" aria-label="Editar" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-ghost btn-xs btn-square text-faint" @click="eliminarSkill(skill)" aria-label="Eliminar" title="Eliminar">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </template>
@@ -167,6 +195,12 @@ function habilidadesData(categorias) {
     newSkill: { nombre: '', categoria: '' },
     editingSkill: null,
     _prevFocus: null,
+
+    // 💡 Foto/inicial de un desarrollador (lookup global, fuera del x-data)
+    perfilInfo(id) {
+      const mapa = window._fotosPerfil || {};
+      return mapa[id] || mapa[String(id)] || { nombre: 'Desarrollador', foto: '', inicial: '?' };
+    },
 
     get filteredCats() {
       if (!this.searchSkill.trim()) return this.cats;

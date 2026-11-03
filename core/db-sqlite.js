@@ -397,15 +397,19 @@ const dbSQLite = {
 
   // ─── Backup / restore ───
 
-  download() {
+  async download() {
     const data = this.export();
-    const blob = new Blob([data], { type: 'application/vnd.sqlite3' });
-    const url = URL.createObjectURL(blob);
+    const nombre = `${APP_CONFIG.app.nombre}_${dayjs().format('YYYYMMDD_HHmmss')}.sqlite`;
+    if (typeof UI !== 'undefined' && UI.descargar) {
+      return UI.descargar(nombre, new Blob([data], { type: 'application/vnd.sqlite3' }), 'application/vnd.sqlite3');
+    }
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/vnd.sqlite3' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${APP_CONFIG.app.nombre}_${dayjs().format('YYYYMMDD_HHmmss')}.sqlite`;
+    a.download = nombre;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => { try { a.remove(); } catch (e) {} URL.revokeObjectURL(url); }, 4000);
   },
 
   async import(data) {

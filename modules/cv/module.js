@@ -575,12 +575,7 @@ function cvData(perfiles, perfil, currentId) {
         const pdf = this._generarPDF(p, perfilSkills);
         const blob = pdf.output('blob');
         const nombre = p.nombre.replace(/\s+/g, '_');
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `CV_${nombre}_${dayjs().format('YYYYMMDD')}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+        await UI.descargar(`CV_${nombre}_${dayjs().format('YYYYMMDD')}.pdf`, blob, 'application/pdf');
         UI.toast('PDF descargado', 'success');
       } catch (err) {
         UI.toast('Error: ' + err.message, 'error');
@@ -614,13 +609,8 @@ function cvData(perfiles, perfil, currentId) {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Desarrollador');
         const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([buf], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `CV_${p.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        await UI.descargar(`CV_${p.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.xlsx`, blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         UI.toast(`Excel exportado: ${p.nombre}`, 'success');
       } catch (err) {
         UI.toast('Error al exportar Excel: ' + err.message, 'error');
@@ -661,13 +651,8 @@ function cvData(perfiles, perfil, currentId) {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Desarrolladores');
         const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([buf], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `DevCardCV_todos_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        await UI.descargar(`DevCardCV_todos_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`, blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         UI.toast(`Excel exportado: ${rows.length} desarrolladores`, 'success');
       } catch (err) {
         UI.toast('Error al exportar Excel: ' + err.message, 'error');
@@ -699,12 +684,7 @@ function cvData(perfiles, perfil, currentId) {
         };
 
         const blob = new Blob([JSON.stringify(perfilData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `perfil_${this.perfil.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        await UI.descargar(`perfil_${this.perfil.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.json`, blob, 'application/json');
         UI.toast(`Perfil de "${this.perfil.nombre}" exportado`, 'success');
       } catch (err) {
         UI.toast('Error al exportar: ' + err.message, 'error');

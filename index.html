@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -165,6 +165,55 @@
       border-color: var(--accent-border) !important;
     }
 
+    /* ── Badges por función: contraste alto y color por significado ── */
+    .badge-success {
+      background-color: rgba(21,128,61,0.12) !important;
+      color: #166534 !important;
+      border-color: rgba(21,128,61,0.28) !important;
+    }
+    .badge-info {
+      background-color: rgba(3,105,161,0.10) !important;
+      color: #075985 !important;
+      border-color: rgba(3,105,161,0.25) !important;
+    }
+    .badge-warning {
+      background-color: rgba(180,83,9,0.12) !important;
+      color: #92400e !important;
+      border-color: rgba(180,83,9,0.28) !important;
+    }
+    .badge-error {
+      background-color: rgba(185,28,28,0.10) !important;
+      color: #991b1b !important;
+      border-color: rgba(185,28,28,0.25) !important;
+    }
+    /* Habilidades / skills: siempre verde corporativo y legible */
+    .badge-skill,
+    .badge-skill-general {
+      background-color: rgba(21,128,61,0.10) !important;
+      color: #166534 !important;
+      border: 1px solid rgba(21,128,61,0.22) !important;
+      font-weight: 500;
+    }
+    /* Fila/chip de habilidad (módulo Habilidades): verde suave, texto oscuro legible */
+    .skill-chip {
+      background-color: rgba(21,128,61,0.06) !important;
+      border-color: rgba(21,128,61,0.18) !important;
+      color: var(--ink) !important;
+    }
+    .skill-chip:hover {
+      background-color: rgba(21,128,61,0.11) !important;
+      border-color: rgba(21,128,61,0.30) !important;
+    }
+    /* Fallback para badges sin modificador en modo oscuro del sistema.
+       💡 Se excluyen los .badge-skill*: este selector tiene mucha más
+       especificidad (cada :not suma) y, al llevar !important, pisaba el
+       verde de las habilidades y las dejaba grises. */
+    .badge:not([class*="badge-skill"]):not(.badge-success):not(.badge-error):not(.badge-warning):not(.badge-info):not(.badge-accent):not(.badge-ghost):not(.badge-primary):not(.badge-secondary):not(.badge-outline) {
+      background-color: var(--surface-muted) !important;
+      color: var(--ink) !important;
+      border-color: var(--border) !important;
+    }
+
     /* alert colors — increased opacity for WCAG AA bg contrast */
     .alert-info {
       background-color: rgba(0,111,255,0.12) !important;
@@ -298,7 +347,17 @@
       box-shadow: var(--shadow-elevated);
       background: var(--surface) !important;
       color: var(--ink);
+      max-width: calc(100vw - 1.25rem) !important;
+      max-height: calc(100dvh - 1.25rem);
     }
+    /* El cuerpo del modal nunca debe desplazarse en horizontal */
+    .modal-box > * { min-width: 0; }
+    .modal-body-scroll {
+      overflow-x: hidden !important;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-body-scroll .flex > * { min-width: 0; }
     .modal-backdrop, .modal-overlay {
       background: rgba(0,0,0,0.5) !important;
     }
@@ -358,10 +417,15 @@
       color: var(--ink-muted);
     }
 
-    /* Reduced motion */
+    /* Reduced motion
+       💡 Se desactivan las animaciones por completo (no solo se acortan): con
+       duration muy pequeña las animaciones quedan congeladas en su primer
+       fotograma y los elementos que arrancan en opacity:0 (toasts, tarjetas
+       .stagger-enter, badges del CV) permanecían invisibles. Con animation:none
+       se pinta el estado base, que siempre es visible. */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
-        animation-duration: 0.01ms !important;
+        animation: none !important;
         transition-duration: 0.01ms !important;
       }
     }
@@ -400,10 +464,26 @@
 
     /* 🔍 Contraste WCAG AA — text-base-content/50 usa --ink-muted sólido en vez de opacidad */
     .text-base-content\/50 { color: var(--ink-muted) !important; }
+    /* Variantes de opacidad usadas en las plantillas (Tailwind v2 no las genera) */
+    .text-base-content\/15 { color: rgba(15, 23, 42, 0.18) !important; }
+    .text-base-content\/20 { color: rgba(15, 23, 42, 0.22) !important; }
+    .text-base-content\/35 { color: var(--ink-muted) !important; }
+    .text-base-content\/60 { color: var(--ink-muted) !important; }
+    .text-base-content\/70 { color: var(--ink-secondary) !important; }
+    /* bg-base-100/200 eran oscuros en modo oscuro del sistema: ahora siempre claros */
+    .bg-base-100 { background-color: var(--surface) !important; }
+    .bg-base-200, .bg-base-200\/50 { background-color: var(--surface-muted) !important; }
+    .bg-base-300 { background-color: var(--canvas-subtle) !important; }
+    .text-base-content { color: var(--ink) !important; }
 
-    /* 🎬 Page transition */
+    /* 🎬 Page transition
+       💡 Sin transform: un transform persistente en #app-content lo convierte en
+       el bloque contenedor de los modales position:fixed y los desplazaba fuera
+       de la pantalla (footer con Eliminar/Actualizar inalcanzable). La entrada
+       se hace solo con opacidad. */
     #app-content {
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition: opacity 0.2s ease;
+      transform: none !important;
     }
 
     /* 💀 Skeleton loading shimmer */
@@ -491,6 +571,29 @@
     .tracking-display { letter-spacing: -0.04em; }
     .tracking-heading { letter-spacing: -0.025em; }
     .radius-pill { border-radius: var(--radius-pill); }
+
+    /* 🧰 Utilidades que el Tailwind precompilado (v2, sin JIT) NO genera
+       pero que las plantillas usan: se definen aquí para que dejen de ser no-ops. */
+    .text-\[9px\] { font-size: 0.5625rem; }
+    .text-\[10px\] { font-size: 0.625rem; }
+    .text-\[11px\] { font-size: 0.6875rem; }
+    .text-\[13px\] { font-size: 0.8125rem; }
+    .text-\[var\(--ink-secondary\)\] { color: var(--ink-secondary); }
+    .max-w-\[200px\] { max-width: 200px; }
+    .min-w-\[8rem\] { min-width: 8rem; }
+    .min-w-\[10rem\] { min-width: 10rem; }
+    .min-h-\[50vh\] { min-height: 50vh; }
+    .shrink-0 { flex-shrink: 0; }
+    .line-clamp-2,
+    .line-clamp-3 {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .line-clamp-2 { -webkit-line-clamp: 2; }
+    .line-clamp-3 { -webkit-line-clamp: 3; }
+    .last\:border-b-0:last-child { border-bottom-width: 0; }
+    .divide-\[var\(--border\)\] > * + * { border-top: 1px solid var(--border); }
 
     /* Status indicators */
     .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; flex-shrink: 0; }

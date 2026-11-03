@@ -30,6 +30,9 @@ const UI = {
       border-radius: 10px;
       box-shadow: 0 0 0 1px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.06);
       animation: toastIn 0.2s ease;
+      /* 💡 Opacidad fija en 1: con prefers-reduced-motion las animaciones se
+         congelan en su primer fotograma (opacity 0) y el toast nunca se veía. */
+      opacity: 1;
       font-size: 0.8125rem;
       font-weight: 500;
       padding: 0.625rem 0.875rem;
@@ -94,6 +97,85 @@ const UI = {
     if (diff < 30) return `Hace ${Math.floor(diff / 7)} sem.`;
     if (diff < 365) return `Hace ${Math.floor(diff / 30)} mes${Math.floor(diff / 30) > 1 ? 'es' : ''}`;
     return `Hace ${Math.floor(diff / 365)} año${Math.floor(diff / 365) > 1 ? 's' : ''}`;
+  },
+
+  // 💡 Descarga fiable (web, Electron y APK Android).
+  // En navegador/Electron: anchor oculto en el DOM + revoke diferido (antes se revocaba
+  // al instante y algunos navegadores/WebView cancelaban la descarga).
+  // En Android (Capacitor): escribe el archivo y abre la hoja de compartir/guardar.
+  async descargar(nombre, data, mime = 'application/octet-stream') {
+    try {
+      const blob = (data instanceof Blob)
+        ? data
+        : new Blob([data], { type: mime });
+
+      const cap = window.Capacitor;
+      const esNativo = !!(cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform());
+      const fsPlugin = cap && cap.Plugins && cap.Plugins.Filesystem;
+      if (esNativo && fsPlugin) {
+        return await this._descargarCapacitor(nombre, blob, mime, cap);
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombre;
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      // Revocar tarde: revocar justo después del click anula la descarga en WebView.
+      setTimeout(() => {
+        try { a.remove(); } catch (e) {}
+        try { URL.revokeObjectURL(url); } catch (e) {}
+      }, 4000);
+      return true;
+    } catch (err) {
+      UI.toast('No se pudo descargar el archivo: ' + err.message, 'error');
+      return false;
+    }
+  },
+
+  // Android: guarda en el almacenamiento de la app y abre el selector del sistema
+  // (guardar en Archivos / Descargas, enviar por WhatsApp, correo, etc.).
+  async _descargarCapacitor(nombre, blob, mime, cap) {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo'));
+      reader.readAsDataURL(blob);
+    });
+
+    try {
+      const saved = await cap.Plugins.Filesystem.writeFile({
+        path: nombre,
+        data: base64,
+        directory: 'CACHE',
+        recursive: true
+      });
+      const uri = saved && saved.uri;
+      const share = cap.Plugins.Share;
+      if (share && uri) {
+        await share.share({
+          title: nombre,
+          url: uri,
+          dialogTitle: 'Guardar o compartir ' + nombre
+        });
+      } else {
+        // Sin Share: dejarlo también en Documents de la app.
+        await cap.Plugins.Filesystem.writeFile({
+          path: nombre,
+          data: base64,
+          directory: 'DOCUMENTS',
+          recursive: true
+        });
+        UI.toast('Archivo guardado en Documents/' + nombre, 'success');
+      }
+      return true;
+    } catch (err) {
+      UI.toast('No se pudo guardar el archivo: ' + err.message, 'error');
+      return false;
+    }
   },
 
   showLoading(containerId, message = 'Cargando...') {

@@ -104,6 +104,52 @@ const appRouter = {
     }
   },
 
+  // 💡 Refresco con debounce: agrupa varias escrituras seguidas en un solo repintado
+  scheduleRefresh() {
+    clearTimeout(this._refreshTimer);
+    this._refreshIntentos = 0;
+    this._refreshTimer = setTimeout(() => this.refreshCurrent(), 160);
+  },
+
+  // 💡 Vuelve a pintar el módulo actual conservando la ruta y el contexto.
+  //    - Si el módulo expone refresh(), delega (así Proyectos conserva el detalle).
+  //    - Si hay un modal visible o el foco está en un campo, reintenta en breve
+  //      (el cambio queda pendiente hasta que el usuario cierre el formulario).
+  async refreshCurrent() {
+    if (!window._currentModule) return;
+    const container = document.getElementById('app-content');
+    if (!container) return;
+
+    // Los formularios llevan la clase estática "modal modal-open" y se ocultan con
+    // x-show (display:none), así que hay que mirar visibilidad real, no la clase.
+    const modalVisible = Array.prototype.some.call(document.querySelectorAll('.modal'), m => {
+      const st = window.getComputedStyle(m);
+      return st.display !== 'none' && st.visibility !== 'hidden';
+    });
+    const ae = document.activeElement;
+    const esCampoDeEscritura = ae && /^(TEXTAREA|SELECT)$/.test(ae.tagName) ||
+      (ae && ae.tagName === 'INPUT' && !['search', 'checkbox', 'radio', 'button', 'submit'].includes((ae.type || '').toLowerCase()));
+    const escribe = !!(ae && esCampoDeEscritura && container.contains(ae));
+    if (modalVisible || escribe) {
+      // Reintenta mientras el formulario siga abierto (máx ~30 s), sin bucle infinito.
+      this._refreshIntentos = (this._refreshIntentos || 0) + 1;
+      if (this._refreshIntentos < 50) {
+        clearTimeout(this._refreshTimer);
+        this._refreshTimer = setTimeout(() => this.refreshCurrent(), 600);
+      }
+      return;
+    }
+    this._refreshIntentos = 0;
+
+    const module = this.modules[window._currentModule];
+    if (module && typeof module.refresh === 'function') {
+      try { await module.refresh(); return; } catch (e) { console.warn('[refresh]', e); }
+    }
+    // Fuerza un nuevo render de la misma ruta
+    this.currentRoute = '';
+    await this.handleRoute();
+  },
+
   // 💡 Generar menú de navegación
   buildMenu() {
     const menu = document.getElementById('nav-menu');
@@ -136,6 +182,9 @@ const appRouter = {
   init() {
     this._initAuthStore();
     window.addEventListener('hashchange', () => this.handleRoute());
+    // 💡 Refresco en tiempo real: cualquier escritura (db-change) vuelve a pintar
+    //    el módulo visible sin recargar la app ni perder la ruta actual.
+    window.addEventListener('db-change', () => this.scheduleRefresh());
     this.buildMenu();
     this.handleRoute();
 

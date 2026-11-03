@@ -5,6 +5,18 @@ const Dashboard = {
 
   async init() {
     console.log('💡 [dashboard] Inicializado');
+    // 💡 Al cambiar el ancho (gira del teléfono / redimensionar) se redibujan los
+    //    gráficos para que se vean completos.
+    if (!window._dashboardResizeHandler) {
+      let t = null;
+      window._dashboardResizeHandler = () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          if (window._currentModule === 'dashboard' && window._redrawDashboardCharts) window._redrawDashboardCharts();
+        }, 320);
+      };
+      window.addEventListener('resize', window._dashboardResizeHandler);
+    }
   },
 
   async render(params = {}) {
@@ -78,13 +90,13 @@ const Dashboard = {
     if (sinAsignar) cargaDev.push({ nombre: 'Sin asignar', abiertas: sinAsignar });
     cargaDev = cargaDev.sort((a, b) => b.abiertas - a.abiertas);
 
-    // 4) Avance por proyecto (barras 100% apiladas: % tareas confirmadas)
+    // 4) Avance por proyecto (barras 100% apiladas: % tareas terminadas)
     const avanceProy = [...proyectos]
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
       .slice(0, 8)
       .map(p => {
         const tt = tareas.filter(t => Number(t.proyectoId ?? t.proyecto_id) === Number(p.id));
-        const done = tt.filter(t => t.estado === 'confirmada').length;
+        const done = tt.filter(t => t.estado === 'confirmada' || t.estado === 'completada').length;
         return { nombre: p.nombre, pct: tt.length ? Math.round((done / tt.length) * 100) : 0, total: tt.length };
       });
 
@@ -92,9 +104,8 @@ const Dashboard = {
     const hoy = dayjs().startOf('day');
     let vencimientos = [];
     const _addVenc = (item, fecha, tipo) => {
-      if (!fecha) return;
       const f = dayjs(fecha);
-      if (!f.isValid()) return;
+      if (!fecha || !f.isValid()) return;
       const dias = f.diff(hoy, 'day');
       if (dias > 7) return;
       vencimientos.push({
@@ -107,8 +118,8 @@ const Dashboard = {
         cuando: dias < 0 ? ('hace ' + Math.abs(dias) + (Math.abs(dias) === 1 ? ' día' : ' días')) : (dias === 0 ? 'hoy' : ('en ' + dias + (dias === 1 ? ' día' : ' días')))
       });
     };
-    tareas.forEach(t => _addVenc(t, t.fecha_limite, 'Tarea'));
-    proyectos.forEach(p => _addVenc(p, p.fecha_limite, 'Proyecto'));
+    tareas.forEach(t => _addVenc(t, t.fechaLimite ?? t.fecha_limite, 'Tarea'));
+    proyectos.forEach(p => _addVenc(p, p.fechaLimite ?? p.fecha_limite, 'Proyecto'));
     vencimientos = vencimientos.sort((a, b) => a.dias - b.dias).slice(0, 6);
 
     // 6) Evolución mensual (últimos 6 meses: proyectos y tareas creados)
@@ -233,7 +244,7 @@ const Dashboard = {
           <i class="bi" :class="open ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
         </span>
       </h3>
-      <p class="text-xs mt-1 mb-4 text-faint">JSON, Excel o copia completa .sqlite — se descarga a la carpeta <strong>Descargas</strong> de tu dispositivo</p>
+      <p class="text-xs mt-1 mb-4 text-faint">JSON, Excel o copia completa .sqlite — el archivo se guarda con el diálogo de tu dispositivo (Descargas / Archivos / compartir)</p>
       <div x-show="open" x-collapse>
         <div class="flex flex-wrap items-center gap-3">
           <button class="btn btn-primary btn-magnetic btn-sm radius-sm" @click="exportarJSON()">
@@ -325,7 +336,7 @@ const Dashboard = {
       <div class="card-body p-5">
         <h3 class="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2 text-muted">
           <i class="bi bi-bar-chart-line-fill text-accent"></i> Avance por proyecto
-          <span class="badge badge-ghost badge-xs radius-sm ml-auto">% tareas confirmadas</span>
+          <span class="badge badge-ghost badge-xs radius-sm ml-auto">% tareas terminadas</span>
         </h3>
         <div id="avance-chart" style="min-height: 200px;" role="img" aria-label="Barras apiladas de avance por proyecto"></div>
       </div>
@@ -417,7 +428,7 @@ const Dashboard = {
                 <td>
                   <div class="flex flex-wrap gap-1">
                     <template x-for="skill in dev.skills.slice(0, 4)" :key="skill">
-                      <span class="badge badge-sm radius-sm" x-text="skill"></span>
+                      <span class="badge badge-sm badge-skill radius-sm" x-text="skill"></span>
                     </template>
                     <span x-show="dev.skills.length > 4" class="badge badge-sm badge-ghost radius-sm" x-text=" '+' + (dev.skills.length - 4)"></span>
                   </div>
@@ -486,7 +497,7 @@ const Dashboard = {
             </div>
             <div class="flex flex-wrap gap-1 mt-3" x-show="dev.skills.length">
               <template x-for="skill in dev.skills.slice(0, 5)" :key="skill">
-                <span class="badge badge-sm radius-sm" x-text="skill"></span>
+                <span class="badge badge-sm badge-skill radius-sm" x-text="skill"></span>
               </template>
               <span x-show="dev.skills.length > 5" class="badge badge-sm badge-ghost radius-sm" x-text="'+' + (dev.skills.length - 5)"></span>
             </div>
@@ -508,11 +519,12 @@ const Dashboard = {
   },
 
   destroy() {
-    // 💡 Limpiar gráficos ApexCharts
+    // 💡 Limpiar gráficos y el callback de redibujado
     if (window._dashboardCharts) {
       window._dashboardCharts.forEach(c => { try { c.destroy(); } catch(e) {} });
       window._dashboardCharts = [];
     }
+    window._redrawDashboardCharts = null;
     console.log('💡 [dashboard] Destruído');
   }
 };
@@ -593,12 +605,7 @@ function dashboardData(perfiles, categorias, adminCount, estadoCounts, prioridad
         };
 
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `devcardcv_backup_${dayjs().format('YYYYMMDD_HHmmss')}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        await UI.descargar(`devcardcv_backup_${dayjs().format('YYYYMMDD_HHmmss')}.json`, blob, 'application/json');
         UI.toast(`Backup exportado: ${perfiles.length} perfiles, ${habilidades.length} habilidades`, 'success');
       } catch (err) {
         UI.toast('Error al exportar: ' + err.message, 'error');
@@ -641,22 +648,17 @@ function dashboardData(perfiles, categorias, adminCount, estadoCounts, prioridad
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Desarrolladores');
         const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([buf], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `devcardcv_devs_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        await UI.descargar(`devcardcv_devs_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`, blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         UI.toast(`Excel exportado: ${rows.length} desarrolladores`, 'success');
       } catch (err) {
         UI.toast('Error al exportar Excel: ' + err.message, 'error');
       }
     },
 
-    exportarSQLite() {
+    async exportarSQLite() {
       try {
-        dbSQLite.download();
+        await dbSQLite.download();
         UI.toast('Base de datos SQLite exportada', 'success');
       } catch (err) {
         UI.toast('Error al exportar SQLite: ' + err.message, 'error');
@@ -757,121 +759,167 @@ function dashboardData(perfiles, categorias, adminCount, estadoCounts, prioridad
     },
 
     initChart() {
+      if (window._dashboardCharts) {
+        window._dashboardCharts.forEach(c => { try { c.destroy(); } catch (e) {} });
+      }
       window._dashboardCharts = [];
-      // 💡 Esperar a que el DOM esté pintado antes de renderizar gráficos
-      setTimeout(() => {
-        if (typeof ApexCharts === 'undefined') return;
+      if (typeof ApexCharts === 'undefined') {
+        ['#estado-chart', '#prioridad-chart', '#carga-chart', '#avance-chart', '#evolucion-chart'].forEach(sel => {
+          const el = document.querySelector(sel);
+          if (el) el.innerHTML = '<p class="text-sm text-muted text-center py-8">Librería de gráficos no disponible</p>';
+        });
+        return;
+      }
 
-        const placeholder = (icono, msg) =>
-          '<div class="flex flex-col items-center justify-center text-center py-8 gap-2" style="min-height: 220px;">' +
-          '<i class="bi ' + icono + ' text-3xl" style="color: var(--ink-faint);"></i>' +
-          '<p class="text-sm text-muted">' + msg + '</p></div>';
+      const placeholder = (icono, msg) =>
+        '<div class="flex flex-col items-center justify-center text-center py-8 gap-2" style="min-height: 220px;">' +
+        '<i class="bi ' + icono + ' text-3xl" style="color: var(--ink-faint);"></i>' +
+        '<p class="text-sm text-muted">' + msg + '</p></div>';
 
-        const montar = (sel, opts, hayDatos, icono, msg) => {
+      const base = {
+        toolbar: { show: false },
+        zoom: { enabled: false },
+        animations: { enabled: false },
+        parentHeightOffset: 0,
+        sparkline: { enabled: false }
+      };
+      const leyenda = { position: 'bottom', labels: { colors: '#64748b' } };
+      const rejilla = { borderColor: 'rgba(0,0,0,0.04)', padding: { left: 4, right: 6, top: 0, bottom: 0 } };
+
+      // 💡 Se montan de uno en uno (un frame cada uno): la tarjeta responde al
+      //    instante y no se bloquea el hilo 5 gráficos a la vez en móviles.
+      const jobs = [];
+
+      const montar = (sel, opts, hayDatos, icono, msg) => {
+        jobs.push(() => {
           const el = document.querySelector(sel);
           if (!el) return;
           if (!hayDatos) { el.innerHTML = placeholder(icono, msg); return; }
+          el.innerHTML = '';
           const c = new ApexCharts(el, opts);
           c.render();
           window._dashboardCharts.push(c);
-        };
+        });
+      };
 
-        // 1) Estado de las tareas (donut)
-        const estado = this.estadoCounts.filter(e => e.count > 0);
-        montar('#estado-chart', {
-          chart: { type: 'donut', height: 250, animations: { enabled: false } },
-          series: estado.map(e => e.count),
-          labels: estado.map(e => e.label),
-          colors: estado.map(e => e.color),
-          stroke: { width: 0 },
-          legend: { position: 'bottom', labels: { colors: '#64748b' } },
-          dataLabels: { style: { fontSize: '11px' } },
-          tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea' : ' tareas') } }
-        }, estado.length, 'bi-inbox', 'Sin tareas registradas');
+      // 1) Estado de las tareas (donut)
+      const estado = this.estadoCounts.filter(e => e.count > 0);
+      montar('#estado-chart', {
+        chart: { type: 'donut', height: 260, width: '100%', ...base },
+        series: estado.map(e => e.count),
+        labels: estado.map(e => e.label),
+        colors: estado.map(e => e.color),
+        stroke: { width: 2, colors: ['#ffffff'] },
+        legend: leyenda,
+        dataLabels: { enabled: true, style: { fontSize: '11px' }, dropShadow: { enabled: false } },
+        plotOptions: { pie: { donut: { size: '68%', labels: { show: true, total: { show: true, fontSize: '12px', formatter: (w) => w.globals.seriesTotals.reduce((a, b) => a + b, 0) + ' tareas' } } } } },
+        tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea' : ' tareas') } }
+      }, estado.length, 'bi-inbox', 'Sin tareas registradas');
 
-        // 2) Prioridad del trabajo (donut)
-        const prio = this.prioridadCounts.filter(p => p.count > 0);
-        montar('#prioridad-chart', {
-          chart: { type: 'donut', height: 250, animations: { enabled: false } },
-          series: prio.map(p => p.count),
-          labels: prio.map(p => p.label),
-          colors: prio.map(p => p.color),
-          stroke: { width: 0 },
-          legend: { position: 'bottom', labels: { colors: '#64748b' } },
-          dataLabels: { style: { fontSize: '11px' } },
-          tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea' : ' tareas') } }
-        }, prio.length, 'bi-exclamation-circle', 'Sin tareas con prioridad');
+      // 2) Prioridad del trabajo (donut)
+      const prio = this.prioridadCounts.filter(p => p.count > 0);
+      montar('#prioridad-chart', {
+        chart: { type: 'donut', height: 260, width: '100%', ...base },
+        series: prio.map(p => p.count),
+        labels: prio.map(p => p.label),
+        colors: prio.map(p => p.color),
+        stroke: { width: 2, colors: ['#ffffff'] },
+        legend: leyenda,
+        dataLabels: { enabled: true, style: { fontSize: '11px' }, dropShadow: { enabled: false } },
+        tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea' : ' tareas') } }
+      }, prio.length, 'bi-exclamation-circle', 'Sin tareas con prioridad');
 
-        // 3) Carga por desarrollador (barras verticales — ejes enteros)
-        const carga = this.cargaDev.filter(c => c.abiertas > 0);
-        const maxCarga = Math.max(...carga.map(c => c.abiertas), 1);
-        montar('#carga-chart', {
-          chart: { type: 'bar', height: 250, toolbar: { show: false }, animations: { enabled: false } },
-          series: [{ name: 'Tareas abiertas', data: carga.map(c => c.abiertas) }],
-          xaxis: {
-            categories: carga.map(c => c.nombre),
-            labels: { rotate: -40, hideOverlappingLabels: true, style: { fontSize: '11px' } }
-          },
-          yaxis: {
-            min: 0,
-            max: maxCarga,
-            tickAmount: Math.max(2, maxCarga),
-            labels: { formatter: v => Number.isInteger(v) ? v : '', style: { fontSize: '11px' } }
-          },
-          colors: ['#15803d'],
-          plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
-          dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 600 } },
-          legend: { show: false },
-          grid: { borderColor: 'rgba(0,0,0,0.04)' },
-          tooltip: { theme: 'light' }
-        }, carga.length, 'bi-people', 'Sin tareas abiertas');
+      // 3) Carga por desarrollador (barras verticales — ejes enteros)
+      const carga = this.cargaDev.filter(c => c.abiertas > 0);
+      const maxCarga = Math.max(1, ...carga.map(c => c.abiertas));
+      montar('#carga-chart', {
+        chart: { type: 'bar', height: 260, width: '100%', ...base },
+        series: [{ name: 'Tareas abiertas', data: carga.map(c => c.abiertas) }],
+        xaxis: {
+          categories: carga.map(c => c.nombre === 'Sin asignar' ? 'Sin asignar' : c.nombre.split(' ')[0]),
+          labels: { rotate: -35, hideOverlappingLabels: true, style: { fontSize: '11px' }, trim: false }
+        },
+        yaxis: {
+          min: 0,
+          forceNiceScale: true,
+          tickAmount: Math.min(4, maxCarga),
+          labels: { formatter: v => (Number.isInteger(Number(v)) ? Number(v) : ''), style: { fontSize: '11px' } }
+        },
+        colors: ['#15803d'],
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+        dataLabels: { enabled: true, style: { fontSize: '11px', fontWeight: 600 }, dropShadow: { enabled: false } },
+        legend: { show: false },
+        grid: rejilla,
+        tooltip: { theme: 'light', y: { formatter: v => v + (v === 1 ? ' tarea abierta' : ' tareas abiertas') } }
+      }, carga.length, 'bi-people', 'Sin tareas abiertas asignadas');
 
-        // 4) Avance por proyecto (barras verticales 100% apiladas)
-        const av = this.avanceProy;
-        montar('#avance-chart', {
-          chart: { type: 'bar', height: Math.max(240, av.length * 34 + 90), stacked: true, stackType: '100%', toolbar: { show: false }, animations: { enabled: false } },
-          series: [
-            { name: 'Confirmadas', data: av.map(a => a.pct) },
-            { name: 'Resto', data: av.map(a => 100 - a.pct) }
-          ],
-          colors: ['#22c55e', '#e2e5e9'],
-          plotOptions: { bar: { borderRadius: 3, columnWidth: '60%' } },
-          xaxis: {
-            categories: av.map(a => (a.nombre.length > 14 ? a.nombre.slice(0, 13) + '…' : a.nombre)),
-            labels: { rotate: -40, hideOverlappingLabels: true, style: { fontSize: '11px' } }
-          },
-          yaxis: { max: 100, tickAmount: 4, labels: { formatter: v => Math.round(v) + '%', style: { fontSize: '10px' } } },
-          dataLabels: {
-            enabled: true,
-            formatter: (v, ctx) => (ctx.seriesIndex === 0 && v > 0) ? Math.round(v) + '%' : '',
-            style: { fontSize: '10px', fontWeight: 600 },
-            dropShadow: { enabled: false }
-          },
-          legend: { position: 'bottom', labels: { colors: '#64748b' } },
-          grid: { borderColor: 'rgba(0,0,0,0.04)' },
-          tooltip: { theme: 'light', y: { formatter: v => Math.round(v) + '%' } }
-        }, av.length, 'bi-folder', 'Sin proyectos creados');
+      // 4) Avance por proyecto (barras 100% apiladas)
+      const av = this.avanceProy;
+      montar('#avance-chart', {
+        chart: {
+          type: 'bar', stacked: true, stackType: '100%', toolbar: { show: false },
+          animations: { enabled: false }, parentHeightOffset: 0, sparkline: { enabled: false },
+          height: Math.max(220, av.length * 42 + 110), width: '100%'
+        },
+        series: [
+          { name: 'Terminadas', data: av.map(a => a.pct) },
+          { name: 'Resto', data: av.map(a => 100 - a.pct) }
+        ],
+        colors: ['#22c55e', '#e2e5e9'],
+        plotOptions: { bar: { borderRadius: 3, barHeight: '55%', horizontal: true } },
+        xaxis: {
+          categories: av.map(a => (a.nombre.length > 18 ? a.nombre.slice(0, 17) + '…' : a.nombre)),
+          // 💡 En barras horizontales el eje de valores es el horizontal (x):
+          //    el formatter del % va aquí. Ponerlo en yaxis convertía los
+          //    nombres de proyecto en "NaN%".
+          min: 0,
+          max: 100,
+          tickAmount: 4,
+          labels: { formatter: v => Math.round(v) + '%', style: { fontSize: '10px' } }
+        },
+        yaxis: { labels: { style: { fontSize: '11px' }, maxWidth: 140 } },
+        dataLabels: {
+          enabled: true,
+          formatter: (v, ctx) => (ctx.seriesIndex === 0 && v > 0) ? Math.round(v) + '%' : '',
+          style: { fontSize: '10px', fontWeight: 600 },
+          dropShadow: { enabled: false }
+        },
+        legend: leyenda,
+        grid: rejilla,
+        tooltip: { theme: 'light', y: { formatter: v => Math.round(v) + '%' } }
+      }, av.length, 'bi-folder', 'Sin proyectos creados');
 
-        // 5) Evolución mensual (área: proyectos y tareas creados por mes)
-        const ev = this.evolucion;
-        const totalEv = ev.reduce((s, m) => s + m.proyectos + m.tareas, 0);
-        montar('#evolucion-chart', {
-          chart: { type: 'area', height: 250, toolbar: { show: false }, animations: { enabled: false } },
-          series: [
-            { name: 'Proyectos', data: ev.map(m => m.proyectos) },
-            { name: 'Tareas', data: ev.map(m => m.tareas) }
-          ],
-          colors: ['#15803d', '#3b82f6'],
-          xaxis: { categories: ev.map(m => m.label), labels: { style: { fontSize: '11px' } } },
-          yaxis: { min: 0, tickAmount: 4, labels: { formatter: v => Number.isInteger(v) ? v : '', style: { fontSize: '11px' } } },
-          stroke: { curve: 'smooth', width: 2 },
-          fill: { type: 'opacity', opacity: 0.15 },
-          dataLabels: { enabled: false },
-          legend: { position: 'bottom', labels: { colors: '#64748b' } },
-          grid: { borderColor: 'rgba(0,0,0,0.04)' },
-          tooltip: { theme: 'light' }
-        }, totalEv > 0, 'bi-graph-up', 'Sin actividad en los últimos 6 meses');
-      }, 100);
+      // 5) Evolución mensual (área: proyectos y tareas creados por mes)
+      const ev = this.evolucion;
+      const totalEv = ev.reduce((s, m) => s + m.proyectos + m.tareas, 0);
+      montar('#evolucion-chart', {
+        chart: { type: 'area', height: 260, width: '100%', ...base },
+        series: [
+          { name: 'Proyectos', data: ev.map(m => m.proyectos) },
+          { name: 'Tareas', data: ev.map(m => m.tareas) }
+        ],
+        colors: ['#15803d', '#3b82f6'],
+        xaxis: { categories: ev.map(m => m.label), labels: { style: { fontSize: '11px' } }, axisBorder: { show: false } },
+        yaxis: { min: 0, forceNiceScale: true, tickAmount: 4, labels: { formatter: v => (Number.isInteger(Number(v)) ? Number(v) : ''), style: { fontSize: '11px' } } },
+        stroke: { curve: 'smooth', width: 2.5 },
+        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.05, stops: [0, 100] } },
+        dataLabels: { enabled: false },
+        legend: leyenda,
+        grid: rejilla,
+        tooltip: { theme: 'light' }
+      }, totalEv > 0, 'bi-graph-up', 'Sin actividad en los últimos 6 meses');
+
+      // 💡 Primer gráfico en el siguiente frame (DOM ya medido por Alpine)
+      const arrancar = (i) => {
+        if (i >= jobs.length) return;
+        try { jobs[i](); } catch (e) { console.warn('⚠️ gráfico', e); }
+        requestAnimationFrame(() => arrancar(i + 1));
+      };
+      if (this.$nextTick) this.$nextTick(() => arrancar(0));
+      else requestAnimationFrame(() => arrancar(0));
+
+      // 💡 Al cambiar el ancho (gira de teléfono, ventana) se redibujan completos
+      window._redrawDashboardCharts = () => { try { this.initChart(); } catch (e) {} };
     },
 
     // 💡 Sync state (simplificado — Realtime es automático)

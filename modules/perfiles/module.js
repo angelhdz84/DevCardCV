@@ -65,13 +65,49 @@ const Perfiles = {
     </div>
   </div>
 
+  <!-- Filtros -->
+  <div class="mb-5 space-y-2" x-show="perfiles.length > 0">
+    <div class="relative">
+      <i class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-faint"></i>
+      <input type="search" x-model="search" placeholder="Buscar por nombre, cargo, habilidad o email..."
+             class="input input-bordered input-sm radius-sm w-full pl-8" aria-label="Buscar desarrollador">
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <select x-model="filterCargo" class="select select-bordered select-xs radius-sm" aria-label="Filtrar por cargo">
+        <option value="">Todos los cargos</option>
+        <template x-for="c in cargos" :key="c">
+          <option :value="c" x-text="c"></option>
+        </template>
+      </select>
+      <select x-model="filterHabilidad" class="select select-bordered select-xs radius-sm" aria-label="Filtrar por habilidad">
+        <option value="">Todas las habilidades</option>
+        <template x-for="h in habilidades" :key="h.id">
+          <option :value="h.nombre" x-text="h.nombre"></option>
+        </template>
+      </select>
+      <button x-show="search || filterCargo || filterHabilidad" class="btn btn-ghost btn-xs radius-sm gap-1"
+              @click="search=''; filterCargo=''; filterHabilidad=''">
+        <i class="bi bi-x-circle"></i> Limpiar
+      </button>
+      <span class="text-xs text-faint ml-auto" x-text="filtered.length + ' de ' + perfiles.length"></span>
+    </div>
+  </div>
+
   <!-- Grid de tarjetas -->
   <template x-if="perfiles.length === 0">
     <div x-html="UI.emptyState('No hay perfiles aún. Crea el primero.', 'bi-person-plus', { handler: 'abrirFormulario()', label: 'Crear perfil', icon: 'bi-person-plus-fill' })"></div>
   </template>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="perfiles.length > 0">
-    <template x-for="(dev, index) in perfiles" :key="dev.id">
+  <div x-show="perfiles.length > 0 && filtered.length === 0" class="text-center py-12">
+    <i class="bi bi-person-x text-4xl" style="color: var(--ink-faint);"></i>
+    <p class="text-sm text-muted mt-3">Ningún desarrollador coincide con el filtro</p>
+    <button class="btn btn-ghost btn-xs radius-sm gap-1 mt-3" @click="search=''; filterCargo=''; filterHabilidad=''">
+      <i class="bi bi-arrow-counterclockwise"></i> Quitar filtros
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="filtered.length > 0">
+    <template x-for="(dev, index) in filtered" :key="dev.id">
       <div class="card bg-white group stagger-enter card-hover" :style="'animation-delay: ' + (index * 60) + 'ms'">
         <div class="card-body p-5">
           <!-- Foto + Nombre -->
@@ -120,9 +156,9 @@ const Perfiles = {
           <!-- Skills -->
           <div class="flex flex-wrap gap-1.5 mt-3">
             <template x-for="skill in dev.skillNames.slice(0, 5)" :key="skill">
-              <span class="badge badge-sm radius-sm" x-text="skill"></span>
+              <span class="badge badge-sm badge-skill radius-sm" x-text="skill"></span>
             </template>
-            <span x-show="dev.skillNames.length > 5" class="badge badge-sm badge-ghost radius-sm" x-text=" '+' + (dev.skillNames.length - 5)"></span>
+            <span x-show="dev.skillNames.length > 5" class="badge badge-sm badge-ghost radius-sm" x-text="'+' + (dev.skillNames.length - 5)"></span>
           </div>
 
           <!-- Acciones -->
@@ -163,7 +199,7 @@ const Perfiles = {
       </div>
 
       <!-- Scrollable body -->
-      <div class="overflow-y-auto flex-1 px-6 py-5">
+      <div class="modal-body-scroll overflow-y-auto flex-1 px-4 sm:px-6 py-5">
         <div class="divide-y divide-[var(--border)]">
           <!-- Sección: Foto + Identidad -->
           <div class="pb-5 mb-5 border-b-default">
@@ -295,14 +331,18 @@ const Perfiles = {
         </div>
       </div>
 
-      <!-- Footer sticky -->
-      <div class="flex justify-between items-center px-6 py-4 shrink-0 border-t-default bg-elevated">
-        <div class="text-xs text-base-content/50">
-          <i class="bi bi-shield-lock text-[10px]"></i> <span>Email, teléfono, DNI y dirección se cifran automáticamente</span>
-        </div>
-        <div class="flex gap-2">
-          <button class="btn btn-ghost btn-sm radius-sm" @click="cerrarFormulario()">Cancelar</button>
-          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm" @click="guardar()" :disabled="!form.nombre || saving">
+      <!-- Footer sticky: siempre visible y sin salirse de pantalla -->
+      <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 px-4 sm:px-6 py-3 shrink-0 border-t-default bg-elevated">
+        <p class="hidden sm:block text-xs text-muted">
+          <i class="bi bi-shield-lock text-[10px]"></i> Tus datos se guardan solo en este dispositivo
+        </p>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <button x-show="editando && $store.auth.isAdmin" class="btn btn-ghost btn-sm radius-sm gap-1.5 text-error flex-1 sm:flex-none border-default"
+                  @click="eliminar(editando)" title="Eliminar este perfil">
+            <i class="bi bi-trash"></i> Eliminar
+          </button>
+          <button class="btn btn-ghost btn-sm radius-sm flex-1 sm:flex-none" @click="cerrarFormulario()">Cancelar</button>
+          <button class="btn btn-primary btn-magnetic btn-sm gap-1.5 radius-sm flex-1 sm:flex-none" @click="guardar()" :disabled="!form.nombre || saving">
             <i class="bi bi-check-lg"></i>
             <span x-show="!saving" x-text="editando ? 'Actualizar' : 'Guardar'"></span>
             <span x-show="saving" class="loading loading-spinner loading-xs"></span>
@@ -378,6 +418,9 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
     perfiles,
     categorias,
     habilidades,
+    search: '',
+    filterCargo: '',
+    filterHabilidad: '',
     showModal: false,
     editando: null,
     saved: false,
@@ -402,6 +445,28 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
     showSkillModal: false,
     newSkillNombre: '',
     newSkillCategoria: '',
+
+    // 💡 Filtros de la lista (búsqueda + cargo + habilidad)
+    get cargos() {
+      return [...new Set(this.perfiles.map(p => p.cargo).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    },
+
+    get filtered() {
+      let lista = this.perfiles.slice();
+      if (this.filterCargo) lista = lista.filter(p => (p.cargo || '') === this.filterCargo);
+      if (this.filterHabilidad) lista = lista.filter(p => (p.skillNames || []).includes(this.filterHabilidad));
+      const q = (this.search || '').toLowerCase().trim();
+      if (q) {
+        lista = lista.filter(p =>
+          (p.nombre || '').toLowerCase().includes(q) ||
+          (p.cargo || '').toLowerCase().includes(q) ||
+          (p.email || '').toLowerCase().includes(q) ||
+          (p.dni || '').toLowerCase().includes(q) ||
+          (p.skillNames || []).some(s => s.toLowerCase().includes(q))
+        );
+      }
+      return lista;
+    },
 
     agregarCategoria() {
       this.newCat = '';
@@ -523,6 +588,37 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
       reader.readAsDataURL(file);
     },
 
+    // 💡 Relee SQLite y actualiza la lista en pantalla (cambio en tiempo real,
+    //    sin necesidad de recargar la app).
+    async _recargarLista() {
+      const perfiles = (await dbLocal.getAll('perfiles')).sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+      const habilidades = (await dbLocal.getAll('habilidades')).sort((a, b) => (a.categoria || '').localeCompare(b.categoria || ''));
+      const relaciones = await dbLocal.getAll('perfil_habilidades');
+      this.perfiles = perfiles.map(p => {
+        const perfilSkills = relaciones
+          .filter(r => r.perfil_id == p.id)
+          .map(r => habilidades.find(h => h.id == r.habilidad_id))
+          .filter(Boolean);
+        return {
+          ...p,
+          email: p.email || '',
+          telefono: p.telefono || '',
+          direccion: p.direccion || '',
+          dni: p.dni || '',
+          edad: calcularEdad(p.dni || ''),
+          skills: perfilSkills.map(s => s.id),
+          skillNames: perfilSkills.map(s => s.nombre)
+        };
+      });
+      const cats = {};
+      habilidades.forEach(h => {
+        if (!cats[h.categoria]) cats[h.categoria] = [];
+        cats[h.categoria].push(h);
+      });
+      this.habilidades = habilidades;
+      this.categorias = cats;
+    },
+
     async guardar() {
       if (this.saving) return;
       this.saving = true;
@@ -609,6 +705,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
         }
 
         this.cerrarFormulario();
+        await this._recargarLista();
         window.dispatchEvent(new CustomEvent('db-change'));
         UI.toast(modoOffline
           ? (this.editando ? 'Perfil guardado localmente (sin conexión)' : 'Desarrollador guardado localmente (sin conexión)')
@@ -636,9 +733,13 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
       try {
         await dbOnline.bulkDelete('perfil_habilidades', 'perfil_id', id);
         await dbOnline.delete('perfiles', id);
+        // 💡 Cerrar el modal de edición si estaba abierto y refrescar la lista
+        this.showModal = false;
+        this.editando = null;
+        await this._recargarLista();
         UI.toast('Perfil eliminado', 'success');
         window.dispatchEvent(new CustomEvent('db-change'));
-        window.location.hash = '#/perfiles';
+        if ((window.location.hash || '').startsWith('#/perfiles')) window.location.hash = '#/perfiles';
       } catch (err) {
         UI.toast('Error al eliminar: ' + err.message, 'error');
       }
@@ -670,12 +771,7 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
         };
 
         const blob = new Blob([JSON.stringify(perfilData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `perfil_${dev.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        await UI.descargar(`perfil_${dev.nombre.replace(/\s+/g, '_')}_${dayjs().format('YYYYMMDD')}.json`, blob, 'application/json');
         UI.toast(`Perfil de "${dev.nombre}" exportado`, 'success');
       } catch (err) {
         UI.toast('Error al exportar: ' + err.message, 'error');
@@ -795,13 +891,8 @@ function perfilesData(perfiles, categorias, habilidades, abrirForm, editId) {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Desarrolladores');
         const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([buf], { type: 'application/octet-stream' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `devcardcv_devs_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        await UI.descargar(`devcardcv_devs_${dayjs().format('YYYYMMDD_HHmmss')}.xlsx`, blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         UI.toast(`Excel exportado: ${rows.length} desarrolladores`, 'success');
       } catch (err) {
         UI.toast('Error al exportar Excel: ' + err.message, 'error');
